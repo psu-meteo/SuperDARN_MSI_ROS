@@ -3,6 +3,7 @@ linux/home/radar/ros.3.6/log/superdarn-ros.*
 
 #files being edited
 *~
+temp.out*
 
 # make and build files
 *.o
