@@ -1,0 +1,575 @@
+#include <pthread.h>
+#include <limits.h>
+#include <math.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/time.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/mman.h>
+#include <sys/stat.h>        /* For mode constants */
+#include <fcntl.h>           /* For O_* constants */
+#include "utils.h"
+#include "global_server_variables.h"
+
+extern int recvsock;
+extern int verbose;
+extern pthread_mutex_t recv_comm_lock, thread_list_lock;
+extern int *ready_state_pointer;
+extern struct Thread_List_Item *controlprogram_threads;
+extern struct BlackList *blacklist;
+extern int *blacklist_count_pointer;
+extern struct ClrPwr *latest_clr_fft[MAX_RADARS];
+extern struct timeval latest_full_clr_time;
+extern int max_freqs,full_clr_wait,full_clr_start,full_clr_end;
+extern unsigned long error_count,collection_count;
+int oldv;
+
+int compare_structs(const void *a, const void *b){
+
+    t_fft_index *struct_a = (t_fft_index *) a;
+    t_fft_index *struct_b = (t_fft_index *) b;
+
+    if (struct_a->apwr > struct_b->apwr) return 1;
+    else if (struct_a->apwr == struct_b->apwr) return 0;
+    else return -1;
+
+}
+
+void *receiver_rxfe_settings(void *arg)
+{
+  struct DriverMsg msg;
+  struct SiteSettings *site_settings;
+
+  site_settings=arg;
+  pthread_mutex_lock(&recv_comm_lock);
+  //printf("RECV_rxfe_settins\n");
+  if (site_settings!=NULL) {
+    msg.type=RECV_RXFE_SETTINGS;
+    msg.status=1;
+    send_data(recvsock, &msg, sizeof(struct DriverMsg));
+    send_data(recvsock, &site_settings->ifmode, sizeof(site_settings->ifmode));
+    send_data(recvsock, &site_settings->rf_settings, sizeof(struct RXFESettings));
+    send_data(recvsock, &site_settings->if_settings, sizeof(struct RXFESettings));
+    recv_data(recvsock, &msg, sizeof(struct DriverMsg));                                    
+  }                                                                                        
+  pthread_mutex_unlock(&recv_comm_lock);
+}                                                           
+
+void receiver_assign_frequency(struct ControlProgram *arg){
+  struct Thread_List_Item *thread_list;
+  struct ControlProgram *controlprogram;
+  t_fft_index *fft_array;
+  int i,j,acount,r;
+  int blacklist_count=0;
+  int numclients=0;
+  int best_index=0; 
+  int finding_best=0,finding_current=0;
+  int assigning_best=0,assigning_current=0;
+  int tx_sideband,rx_sideband; //in KHz
+  fprintf(stderr,"ASSIGN FREQ: %d %d\n",arg->parameters->radar-1,arg->parameters->channel-1);
+  fprintf(stderr," FFT FREQ: %d %d\n",arg->clrfreqsearch.start,arg->clrfreqsearch.end);
+  fprintf(stderr," Start Freq: %lf\n",arg->state->fft_array[0].freq);
+  if(arg->state->fft_array==NULL) { 
+    fprintf(stderr,"Error in assigning frequency function\n"); 
+    pthread_exit(NULL);
+  }
+  fft_array = (t_fft_index *) malloc(sizeof(t_fft_index) * arg->state->N);
+  memcpy(fft_array,arg->state->fft_array,arg->state->N*sizeof(t_fft_index));
+  tx_sideband=MAX(2*ceil(arg->parameters->baseband_samplerate/1000.0),50);
+  rx_sideband=MAX(2*ceil(arg->parameters->baseband_samplerate/1000.0),50);
+  fprintf(stderr," Side Band: %d [kHz]\n",tx_sideband);
+  fflush(stderr);
+/* Calculate power over reciever bandwidth */
+  r=arg->parameters->radar-1;
+/*
+*  Take a running average of power using filter_bandwith number of bins
+*/
+
+       for(i = 0; i< arg->state->N;i++){
+         fft_array[i].apwr=0;
+         acount=0;
+         for( j = -rx_sideband; j<=rx_sideband;j++) {
+           if( ( (i+j)>=0 ) && ( (i+j)<arg->state->N ) ) {
+             fft_array[i].apwr+= fft_array[i+j].pwr;
+             acount++;
+           }
+         }
+         if (acount> 0) {
+            fft_array[i].apwr= fft_array[i].apwr/acount;
+            fft_array[i].apwr= fft_array[i].apwr*rx_sideband;
+         } else {
+            fft_array[i].apwr=1E10;
+         }
+       }
+//  if (verbose>4) {                                                                             
+//        printf("freq ordered fft_array: \n");                                                   
+//        for(i = 0; i< arg->state->N;i++) {                                                      
+//          printf("%d: freq = %8.3lf, pwr = %8.3lf apwr = %8.3lf\n",i,fft_array[i].freq,fft_array[i].pwr,fft_array[i].apwr);
+//        }
+//        printf("rx_sideband: %d tx_sideband: %d\n",rx_sideband,tx_sideband);
+//   }                                  
+/*Sort the fft structure array */
+   qsort(fft_array, arg->state->N, sizeof(fft_array[0]), compare_structs);
+
+   if (verbose>-1) {	
+     fprintf(stderr," Lowest 5 freqs: \n");
+     //for(i = 0; i< arg->state->N;i++){
+     for(i = 0; i< 5;i++){
+          fprintf(stderr,"%d: freq = %8.3lf, pwr = %8.3lf apwr = %8.3lf\n",i,fft_array[i].freq,fft_array[i].pwr,fft_array[i].apwr);
+     }
+   }	
+
+   thread_list=controlprogram_threads;
+   pthread_mutex_lock(&thread_list_lock);
+   while (thread_list!=NULL) {
+     controlprogram=thread_list->data;
+     if(controlprogram->active!=0) numclients++;
+     thread_list=thread_list->prev;
+   }
+   pthread_mutex_unlock(&thread_list_lock);
+   if(blacklist!=NULL) {  
+     blacklist_count=*blacklist_count_pointer;
+/*
+* First add all the higher priority control program's assigned frequencies to the black list   
+* priority is like golf: lower number wins
+*/
+     if (verbose>1) fprintf(stderr,"%d %d :: Filling backlist\n",arg->parameters->radar,arg->parameters->channel);	
+     thread_list=controlprogram_threads;
+     while (thread_list!=NULL) {
+       controlprogram=thread_list->data;
+       if(controlprogram->active!=0) {
+         if (controlprogram->parameters->priority < arg->parameters->priority){
+           /* place controlprogram's assigned frequency on the blacklist */
+           blacklist[blacklist_count].start=controlprogram->state->best_assigned_freq-controlprogram->state->tx_sideband;
+           blacklist[blacklist_count].end=controlprogram->state->best_assigned_freq+controlprogram->state->tx_sideband;
+           blacklist[blacklist_count].program=(unsigned int)controlprogram;
+           if (verbose>-11) printf("  %d %d :: Adding backlist :: %d %d :  %d %d\n",
+                       arg->parameters->radar,arg->parameters->channel,
+                       controlprogram->parameters->radar,controlprogram->parameters->channel,
+                       blacklist[blacklist_count].start,blacklist[blacklist_count].end);	
+           blacklist_count++;
+           if (blacklist_count >= (numclients*2)) blacklist_count=numclients*2-1;
+         } 
+       }
+       thread_list=thread_list->prev;
+     }//JDS Need to calculate noise power
+/*
+* Now set best available frequency from fft as arg's best assigned frequency   
+* exclude all blacklisted frequencies.
+*/
+     best_index=0; 
+     assigning_best=1;
+     assigning_current=0;
+     while(assigning_best||assigning_current) {
+       finding_best=1;
+       while(finding_best) {
+         /* Test to see if stored freq is inside clrfreqsearch band of interest */
+         if((fft_array[best_index].freq<arg->clrfreqsearch.start) || 
+          (fft_array[best_index].freq<arg->clrfreqsearch.start)) {
+           best_index++;
+           if (best_index>=(arg->state->N-1)) finding_best=0;
+           continue; 
+         }
+         if (verbose>1) fprintf(stderr,"%d %d :: Blacklist Count %d\n",
+                    arg->parameters->radar,arg->parameters->channel,blacklist_count);
+         /* test to see if frequency is in a blacklisted transmit window */
+         for (i=0;i<blacklist_count;i++) {
+           if ((fft_array[best_index].freq<=blacklist[i].end) && 
+            (fft_array[best_index].freq>=blacklist[i].start)) {
+             if (verbose>1) fprintf(stderr,"%d %d :: freq %lf in backlist  %d %d \n",
+                       arg->parameters->radar,arg->parameters->channel,
+                       fft_array[best_index].freq,
+                       blacklist[blacklist_count].start,blacklist[blacklist_count].end);
+
+          /* increment best_index and start over.*/
+             best_index++;
+             if (best_index>=(arg->state->N-1)) finding_best=0;
+             break; 
+           }        
+         }
+         finding_best=0;
+       }
+       thread_list=controlprogram_threads;
+       if(assigning_best) {
+         arg->state->best_assigned_freq=fft_array[best_index].freq;
+         arg->state->best_assigned_noise=fft_array[best_index].apwr;
+         if(verbose > 1 ) fprintf(stderr,"%lf best frequency: %d assigned frequency: %d\n",fft_array[best_index].freq,
+                           arg->state->best_assigned_freq,arg->state->current_assigned_freq);
+       }
+       arg->state->current_assigned_freq=fft_array[best_index].freq;
+       arg->state->current_assigned_noise=fft_array[best_index].apwr;
+       arg->state->tx_sideband=tx_sideband;
+       arg->state->rx_sideband=rx_sideband;
+       assigning_best=0;
+/*
+* Now check to see if any controlprogram has a currently assigned frequency that conflicts with the best freq   
+* priority :high number wins
+* Kick lower priority control programs to give up their frequency.
+*/
+       assigning_current=1;
+       finding_current=0;
+       if (verbose>1) fprintf(stderr,"Finding current using freq %d\n",arg->state->current_assigned_freq);	
+       while (thread_list!=NULL) {
+         controlprogram=thread_list->data;
+         if(controlprogram->active!=0) {
+           if (abs(controlprogram->state->best_assigned_freq-arg->state->best_assigned_freq) < tx_sideband ){
+             if (controlprogram->parameters->priority < arg->parameters->priority){
+               controlprogram->state->freq_change_needed=1;
+             }
+           }
+           if (controlprogram!=arg){
+           /* controlprogram different from arg */
+             if (abs(controlprogram->state->current_assigned_freq-arg->state->current_assigned_freq) < arg->state->tx_sideband ){
+               finding_current=1;
+               for(j=0;j<blacklist_count;j++) {
+                 if(blacklist[j].program==(unsigned int)controlprogram) break;
+               }
+               if(j==blacklist_count) {
+                 blacklist[blacklist_count].start=controlprogram->state->current_assigned_freq-arg->state->tx_sideband;
+                 blacklist[blacklist_count].end=controlprogram->state->current_assigned_freq+arg->state->tx_sideband;
+                 blacklist[blacklist_count].program=(unsigned int)controlprogram;
+                 if (verbose>1) fprintf(stderr,"%d %d :: freq conflict %d %d: Adding backlist :  %d %d\n",
+                       arg->parameters->radar,arg->parameters->channel,
+                       controlprogram->state->current_assigned_freq,arg->state->current_assigned_freq,
+                       blacklist[blacklist_count].start,blacklist[blacklist_count].end);
+      
+                 blacklist_count++;
+                 if (blacklist_count >= (numclients*2)) blacklist_count=numclients*2-1;
+               }
+               if (controlprogram->parameters->priority < arg->parameters->priority){
+                 controlprogram->state->freq_change_needed=1;
+               }
+               best_index++;
+               if (best_index>=(arg->state->N-1)) finding_current=0;
+               break;
+             }
+           } else {
+         /* controlprogram is arg: do nothing */
+           }
+         }
+         thread_list=thread_list->prev;
+       }
+       if(!finding_current) {
+         assigning_current=0;
+         if (verbose>1) fprintf(stderr,"Current Assigned %d\n",arg->state->current_assigned_freq);	
+//       arg->state->current_assigned_freq=fft_array[best_index].freq;
+       }
+     }
+     //if (blacklist!=NULL) free(blacklist);
+     free(fft_array);
+     fft_array=NULL;
+     pthread_exit(NULL);
+  }
+}
+
+
+void receiver_exit(void *arg)
+{
+   int *sockfd = (int *) arg;
+   pthread_t tid;
+/* get the calling thread's ID */
+   tid = pthread_self();
+/* print where the thread was in its search when it was cancelled */
+}
+
+void *receiver_end_controlprogram(struct ControlProgram *arg)
+{
+  struct DriverMsg msg;
+  pthread_mutex_lock(&recv_comm_lock);
+  if (arg!=NULL) {
+     if (arg->state->pulseseqs[arg->parameters->current_pulseseq_index]!=NULL) {
+       msg.type=RECV_CtrlProg_END;
+       msg.status=1;
+       send_data(recvsock, &msg, sizeof(struct DriverMsg));
+       send_data(recvsock, arg->parameters, sizeof(struct ControlPRM));
+     }
+  }
+  pthread_mutex_unlock(&recv_comm_lock);
+  pthread_exit(NULL);
+};
+
+void *receiver_ready_controlprogram(struct ControlProgram *arg)
+{
+  struct DriverMsg msg;
+  pthread_mutex_lock(&recv_comm_lock);
+  if (arg!=NULL) {
+     if (arg->state->pulseseqs[arg->parameters->current_pulseseq_index]!=NULL) {
+       msg.type=RECV_CtrlProg_READY;
+       msg.status=1;
+       send_data(recvsock, &msg, sizeof(struct DriverMsg));
+       send_data(recvsock, arg->parameters, sizeof(struct ControlPRM));
+       recv_data(recvsock, &msg, sizeof(struct DriverMsg));
+     } 
+  }
+  pthread_mutex_unlock(&recv_comm_lock);
+  pthread_exit(NULL);
+};
+
+void *receiver_pretrigger(void *arg)
+{
+  struct DriverMsg msg;
+  pthread_mutex_lock(&recv_comm_lock);
+
+   msg.type=RECV_PRETRIGGER;
+   msg.status=1;
+   send_data(recvsock, &msg, sizeof(struct DriverMsg));
+   recv_data(recvsock, &msg, sizeof(struct DriverMsg));
+   pthread_mutex_unlock(&recv_comm_lock);
+   pthread_exit(NULL);
+
+};
+
+void *receiver_posttrigger(void *arg)
+{
+  struct DriverMsg msg;
+  pthread_mutex_lock(&recv_comm_lock);
+
+   msg.type=RECV_POSTTRIGGER;
+   msg.status=1;
+   send_data(recvsock, &msg, sizeof(struct DriverMsg));
+   recv_data(recvsock, &msg, sizeof(struct DriverMsg));
+   pthread_mutex_unlock(&recv_comm_lock);
+   pthread_exit(NULL);
+};
+
+void *receiver_controlprogram_get_data(struct ControlProgram *arg)
+{
+  struct DriverMsg msg;
+  struct timeval t0,t1,t3;
+  char *timestr;
+  int rval,ready_state;
+  char shm_device[80];
+  int shm_fd;
+  int r,c,b;
+  unsigned long wait_elapsed;
+  double error_percent=0;
+  int error_flag;
+  error_flag=0;
+  if (collection_count==ULONG_MAX) {
+    error_count=0;
+    collection_count=0;
+  }
+  if (arg!=NULL) {
+    if (arg->state!=NULL) {
+      gettimeofday(&t0,NULL);
+      while(arg->state->ready!=0) {
+        gettimeofday(&t3,NULL);
+        wait_elapsed=(t3.tv_sec-t0.tv_sec)*1E6;
+        wait_elapsed+=t3.tv_usec-t0.tv_usec;
+        if(wait_elapsed > 10*1E6) {
+          error_flag=-101; 
+          break;  
+        } else {
+          usleep(1);
+        }
+      } 
+      pthread_mutex_lock(&recv_comm_lock);
+      collection_count++;
+      if (error_flag==0) {
+        arg->data->samples=arg->parameters->number_of_samples;
+        if(arg->main!=NULL) munmap(arg->main,sizeof(unsigned int)*arg->data->samples);
+        if(arg->back!=NULL) munmap(arg->back,sizeof(unsigned int)*arg->data->samples);
+
+        msg.type=RECV_GET_DATA;
+        msg.status=1;
+        send_data(recvsock, &msg, sizeof(struct DriverMsg));
+        send_data(recvsock, arg->parameters, sizeof(struct ControlPRM));
+        recv_data(recvsock,&arg->data->status,sizeof(arg->data->status));
+      } else {
+        arg->data->status=error_flag;
+        arg->data->samples=0;
+      }      
+      if (arg->data->status==0 ) {
+        //printf("RECV: GET_DATA: status good\n");
+        recv_data(recvsock,&arg->data->shm_memory,sizeof(arg->data->shm_memory));
+        recv_data(recvsock,&arg->data->frame_header,sizeof(arg->data->frame_header));
+        recv_data(recvsock,&arg->data->bufnum,sizeof(arg->data->bufnum));
+        recv_data(recvsock,&arg->data->samples,sizeof(arg->data->samples));
+        recv_data(recvsock,&arg->main_address,sizeof(arg->main_address));
+        recv_data(recvsock,&arg->back_address,sizeof(arg->back_address));
+        //printf("RECV: GET_DATA: data recv'd\n");
+        r=arg->parameters->radar-1;
+        c=arg->parameters->channel-1;
+        b=arg->data->bufnum;
+
+        //printf("RECV: GET_DATA: samples %d\n",arg->data->samples);
+        //printf("RECV: GET_DATA: frame header %d\n",arg->data->frame_header);
+        //printf("RECV: GET_DATA: shm flag %d\n",arg->data->shm_memory);
+        if(arg->data->shm_memory) {
+          //printf("RECV: GET_DATA: set up shm memory space\n");
+          sprintf(shm_device,"/receiver_main_%d_%d_%d",r,c,b);
+          shm_fd=shm_open(shm_device,O_RDONLY,S_IRUSR | S_IWUSR);
+          if (shm_fd == -1) fprintf(stderr,"shm_open error\n");              
+          arg->main=mmap(0,sizeof(unsigned int)*arg->data->samples,PROT_READ,MAP_SHARED,shm_fd,0);
+          close(shm_fd);
+          sprintf(shm_device,"/receiver_back_%d_%d_%d",r,c,b);
+          shm_fd=shm_open(shm_device,O_RDONLY,S_IRUSR | S_IWUSR);
+          arg->back=mmap(0,sizeof(unsigned int)*arg->data->samples,PROT_READ,MAP_SHARED,shm_fd,0);
+          close(shm_fd);
+          //printf("RECV: GET_DATA: end set up shm memory space\n");
+
+        } else {
+#ifdef __QNX__
+          //printf("RECV: GET_DATA: set up non-shm memory space\n");
+          arg->main =mmap( 0, sizeof(unsigned int)*arg->data->samples, 
+                        PROT_READ|PROT_NOCACHE, MAP_PHYS, NOFD, 
+                            arg->main_address+sizeof(unsigned int)*arg->data->frame_header);
+//                            arg->main_address);
+          arg->back =mmap( 0, sizeof(unsigned int)*arg->data->samples, 
+                        PROT_READ|PROT_NOCACHE, MAP_PHYS, NOFD, 
+                        arg->back_address+sizeof(unsigned int)*arg->data->frame_header);
+//                            arg->back_address);
+#else
+          arg->main=NULL;
+          arg->back=NULL;
+#endif
+          //printf("RECV: GET_DATA: end set up non-shm memory space\n");
+        }
+
+      } else { //error occurred
+        error_count++;
+        error_percent=(double)error_count/(double)collection_count*100.0;
+        arg->data->samples=0;
+        arg->main=NULL;
+        arg->back=NULL;
+        gettimeofday(&t1,NULL);
+        fprintf(stderr,"RECV::GET_DATA: Bad Status: %d Time: %s",arg->data->status,ctime(&t1.tv_sec));
+        fprintf(stderr,"  Collected: %ld  Errors: %ld  Percentage: %lf\n",collection_count,error_count,error_percent);
+        fflush(stderr);
+      }
+
+      if (error_flag==0) {
+        //printf("RECV: GET_DATA: recv RosMsg\n");
+        recv_data(recvsock, &msg, sizeof(struct DriverMsg));
+      }
+      //printf("RECV: GET_DATA: unlock comm lock\n");
+      pthread_mutex_unlock(&recv_comm_lock);
+    }
+  }
+  pthread_exit(NULL);
+};
+
+void *receiver_clrfreq(struct ControlProgram *arg)
+{
+  struct DriverMsg msg;
+  struct timeval t0;
+  struct CLRFreqPRM clrfreq_parameters;
+  unsigned long wait_elapsed;
+  int i,j,r,bandwidth,index,min_index,max_index,radars,length;
+  int temp1,temp2;
+  int i_min[MAX_CHANNELS*MAX_RADARS];
+  double m_min[MAX_CHANNELS*MAX_RADARS];
+  double best_freq[MAX_CHANNELS*MAX_RADARS];
+  double best_bandwidth_min[MAX_CHANNELS*MAX_RADARS];
+  double *pwr=NULL;
+  int start,end,centre,acount;
+  int clr_needed=0;
+
+  //printf("CLRFREQ: %d %d\n",arg->parameters->radar-1,arg->parameters->channel-1);
+  //printf(" FFT FREQ: %d %d\n",arg->clrfreqsearch.start,arg->clrfreqsearch.end);
+  pthread_mutex_lock(&recv_comm_lock);
+  gettimeofday(&t0,NULL);
+
+  /* Check to see if Clr search request falls within full scan parameters */
+  if((arg->clrfreqsearch.start >=full_clr_start) && (arg->clrfreqsearch.end <= full_clr_end)) {
+    /* Check to see if Full Clr was done recently enough to be useful*/
+    wait_elapsed=t0.tv_usec-latest_full_clr_time.tv_usec;
+    wait_elapsed*=1E6;
+    wait_elapsed+=t0.tv_sec-latest_full_clr_time.tv_sec;
+    if (wait_elapsed < full_clr_wait*1E6) {
+      //New Full clr search not needed
+      clr_needed=0;
+    } else {
+      //New Full clr search needed
+      clr_needed=1;
+    }
+  } else {
+    //Do not perform Full Search
+    clr_needed=1;
+  }
+  switch(clr_needed) {
+   case 0:
+     break; 
+/*
+   case 2:
+    msg.type=FULL_CLRFREQ;
+    msg.status=1;
+    send_data(recvsock, &msg, sizeof(struct DriverMsg));
+    recv_data(recvsock, &msg, sizeof(struct DriverMsg));
+    recv_data(recvsock, &radars, sizeof(radars));
+    for(r=0;r<radars;r++) {
+      recv_data(recvsock, &msg, sizeof(struct DriverMsg));
+      recv_data(recvsock, &start, sizeof(start));
+      recv_data(recvsock, &end, sizeof(end));
+      recv_data(recvsock, &length, sizeof(end));
+      min_index=(start-full_clr_start);
+      max_index=(end-full_clr_start);
+      if(pwr!=NULL) free(pwr); 
+      pwr=NULL;
+      pwr = (double*) malloc(sizeof(double) * length);
+      recv_data(recvsock, pwr, sizeof(double)* length);
+      for(i=0;i<length;i++) {
+        index=min_index+i; 
+        if ((index >= 0)&& (index < max_freqs)){
+          latest_clr_fft[r][index].pwr=pwr[i];
+        } 
+      }
+    }
+    recv_data(recvsock, &msg, sizeof(struct DriverMsg));
+    break;   
+*/
+   case 1:
+    r=arg->parameters->radar-1;
+    msg.type=RECV_CLRFREQ;
+    msg.status=1;
+    send_data(recvsock, &msg, sizeof(struct DriverMsg));
+    send_data(recvsock, &arg->clrfreqsearch, sizeof(struct CLRFreqPRM));
+    send_data(recvsock, arg->parameters, sizeof(struct ControlPRM));
+    recv_data(recvsock, &arg->clrfreqsearch, sizeof(struct CLRFreqPRM));
+    if(verbose > -1 ) printf("  final search parameters\n");  
+    if(verbose > -1 ) printf("  start: %d\n",arg->clrfreqsearch.start);        
+    if(verbose > -1 ) printf("  end: %d\n",arg->clrfreqsearch.end);    
+    if(verbose > -1 ) printf("  nave:  %d\n",arg->clrfreqsearch.nave); 
+    recv_data(recvsock, &arg->state->N, sizeof(int));
+    if(verbose > -1 ) printf("  N:  %d\n",arg->state->N); 
+    if(pwr!=NULL) free(pwr); 
+    pwr=NULL;
+    pwr = (double*) malloc(sizeof(double) * arg->state->N);
+    recv_data(recvsock, pwr, sizeof(double)*arg->state->N);
+    recv_data(recvsock, &msg, sizeof(struct DriverMsg));
+    centre=(arg->clrfreqsearch.end+arg->clrfreqsearch.start)/2;
+    bandwidth=arg->state->N;
+    start=centre-arg->state->N/2;
+    end=centre+arg->state->N/2;
+    for(i = 0; i< arg->state->N;i++){
+        index=(start+i-full_clr_start);
+        if ((index >=0) && (index < max_freqs)) {
+          latest_clr_fft[r][index].pwr=pwr[i];
+        }
+    }
+    break;
+  } // END of Switch 
+/* Fill the requested client data */
+  if(arg->state->fft_array!=NULL) free(arg->state->fft_array);
+  arg->state->fft_array=NULL;
+  arg->state->fft_array = (t_fft_index *) malloc(sizeof(t_fft_index) * arg->state->N);
+  for(i = 0; i< arg->state->N;i++){
+    arg->state->fft_array[i].apwr=0;
+    arg->state->fft_array[i].index = i;
+    arg->state->fft_array[i].freq = start+i;
+    index=arg->state->fft_array[i].freq-full_clr_start;
+    if ((index >=0) && (index < max_freqs)) {
+      arg->state->fft_array[i].pwr=latest_clr_fft[r][index].pwr;
+    } else {
+      arg->state->fft_array[i].pwr=1E6;
+    }
+  }
+  //printf(" Start Freq: %lf\n",arg->state->fft_array[0].freq);
+  if (pwr!=NULL) free(pwr);
+  pwr=NULL;
+  pthread_mutex_unlock(&recv_comm_lock);
+  pthread_exit(NULL);
+
+}

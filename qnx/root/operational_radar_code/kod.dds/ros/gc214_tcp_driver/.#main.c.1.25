@@ -1,0 +1,896 @@
+
+#include <stdio.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <stdarg.h>
+#include <stdint.h>
+#include <signal.h>
+#include <math.h>
+#include <netdb.h>
+#include <string.h>
+#include <time.h>
+#include <fcntl.h>
+#include <pthread.h>
+#include <sys/types.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <fcntl.h>           /* For O_* constants */
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <fftw3.h>
+#ifdef __QNX__
+  #include <sys/iofunc.h>
+  #include <sys/dispatch.h>
+  #include <devctl.h>
+  #include <sched.h>
+  #include <process.h>
+  #include <sys/iomsg.h>
+  #include <sys/uio.h>
+  #include <sys/resmgr.h>
+  #include <sys/neutrino.h>
+  #include <hw/inout.h>
+  #include <hw/pci.h>
+  #include <netinet/in.h>
+  #include <netinet/tcp.h>
+#endif
+
+#include "control_program.h"
+#include "global_server_variables.h"
+#include "utils.h"
+#include "gc214_defines.h"
+#include "gc4016.h"
+#include "setcard.h"
+#define IMAGING 0
+#define BUFS 1
+#define DMA_BUF_SIZE 32768L
+#define MAX_SAMPLES 262144 
+#define MAIN 0
+#define BACK 1
+
+int verbose=0;
+
+
+int sock,msgsock;
+unsigned int	 BASE1[MAX_CARDS], BASE2[MAX_CARDS],BASE3[MAX_CARDS];
+//MSI RADAR VARIABLES
+unsigned int     virtual_addr[MAX_RADARS][MAX_CHANNELS][2][BUFS],physical_addr[MAX_RADARS][MAX_CHANNELS][2][BUFS];
+unsigned int     main_virtual[MAX_RADARS][MAX_CHANNELS][BUFS],back_virtual[MAX_RADARS][MAX_CHANNELS][BUFS];
+unsigned int     main_physical[MAX_RADARS][MAX_CHANNELS][BUFS],back_physical[MAX_RADARS][MAX_CHANNELS][BUFS];
+unsigned int     *main_test_data[MAX_RADARS][MAX_CHANNELS][BUFS],*back_test_data[MAX_RADARS][MAX_CHANNELS][BUFS],*aux_test_data[MAX_RADARS][MAX_CHANNELS][BUFS];
+struct GC4016Global global;
+struct GC4016Channel chana,chanb,chanc,chand;
+int pci_index[MAX_RADARS];
+short   resampcoeffs[256];
+int     resampratios[4];
+/* according to GC4-16 data sheet, pp 57 & 58; cfir_34 & pfir_34 */
+  int cfircoeffsAB[11]={ -24, 74, 494, 548, -977, -3416, -3672, 1525, 13074, 26547, 32767};
+  int cfircoeffsCD[11]={ -24, 74, 494, 548, -977, -3416, -3672, 1525, 13074, 26547, 32767};
+  int pfircoeffsAB[32]={ 14, 30, 41, 27, -29, -118, -200, -212, -95, 150,
+                     435, 598, 475, 5, -680, -1256, -1330, -653, 669,
+                     2112, 2880, 2269, 101, -2996, -5632, 6103,
+                     -3091, 3666, 13042, 22747, 30053, 32767};
+  int pfircoeffsCD[32]={ 14, 30, 41, 27, -29, -118, -200, -212, -95, 150,
+                     435, 598, 475, 5, -680, -1256, -1330, -653, 669,
+                     2112, 2880, 2269, 101, -2996, -5632, 6103,
+                     -3091, 3666, 13042, 22747, 30053, 32767};
+long baseGC214;
+int fclrflag=0;
+
+int armed=0,configured=0;
+int ENABLED=0;
+int scanstatus=-1;
+int wait_thread() { 
+  int r;
+  double elapsed=0.0;
+  struct timespec start;
+  struct timespec stop;
+
+  while (1) {    
+    if (ENABLED && configured) {
+#ifdef __QNX__ 
+      clock_gettime(CLOCK_REALTIME,&start);
+      clock_gettime(CLOCK_REALTIME,&stop);
+#endif  
+      while (ENABLED) {    
+    
+    /* Check to see if at least one frame has been collected, if so, make sure there was no FIFO overrun, and exit */
+        r=pollGC214(baseGC214);
+        if (r >= 1){
+          elapsed=((stop.tv_sec-start.tv_sec)*1E9+(stop.tv_nsec-start.tv_nsec))/1.0E9;
+          printf("  Data Wait Elasped: %lf\n",elapsed);
+          stopGC214(baseGC214);
+          r=pollGC214FIFO(baseGC214);
+          if ((r & 0x0000000f)>0){
+            fprintf(stderr,"FIFO Overflow: \n");
+            scanstatus=SCAN_OVERFLOW;
+            ENABLED=0;
+          }
+          if ((r & 0x00000010)>0){
+            if(fclrflag) fprintf(stderr,"FCLR CH1 A/D Over-range: \n");
+            //return SCAN_OVERFLOW;
+            scanstatus=SCAN_OK;
+            ENABLED=0;
+          }
+          if ((r & 0x00000020)>0){
+            if(fclrflag) fprintf(stderr,"FCLR CH2 A/D Over-range: \n");
+            //return SCAN_OVERFLOW;
+            scanstatus=SCAN_OK;
+            ENABLED=0;
+          }
+          else {
+            scanstatus=SCAN_OK;
+            ENABLED=0;
+          } 
+        }
+    /* Check to see if this is taking too long (this can be due to too much data being requested, or to a lack of trigge
+r */
+#ifdef __QNX__
+        clock_gettime(CLOCK_REALTIME,&stop);
+        if ((stop.tv_sec-start.tv_sec)>1){
+          stopGC214(baseGC214);
+          fprintf(stderr,"Did not collect data in alloted time: \n");
+          scanstatus=SCAN_ERROR;
+          ENABLED=0;
+        }
+        delay(1);
+#else
+        usleep(1000);
+#endif
+      } //end while enabled
+    } else {
+      usleep(1000);
+    } //end if enabled
+  } //while 1
+}
+
+int main(int argc, char **argv){
+	// socket and message passing variables
+        int smpdlyAB,smpdlyCD;
+        struct  timeval tv;
+	char	datacode;
+	int	rval;
+        fd_set rfds,efds;
+        int status;
+        short I,Q;
+        long long P;
+	// counter and temporary variables
+	int	temp,tmp,buf,r,c,cc,x,i,ii,j,n,b,N;
+        unsigned int utemp;
+        struct  DriverMsg msg;
+        struct CLRFreqPRM clrfreq_parameters;
+        unsigned int *main, *back;
+        int  maxclients=MAX_RADARS*MAX_CHANNELS;
+        int numclients=0;
+        int ready_index[MAX_RADARS][MAX_CHANNELS];
+        struct  ControlPRM  clients[maxclients],client;
+        struct timeval t0,t1,t2,t3;
+        unsigned long elapsed;
+        int card=0;
+        char shm_device[80];
+        int shm_fd;
+        int shm_memory=0;
+        unsigned int main_offset,back_offset;
+
+        unsigned int CLOCK_RES;
+        int pci_handle, pci_handle_dio,IRQ;
+        fftw_complex *in=NULL, *out=NULL;
+        double *pwr=NULL,*pwr2=NULL;
+        fftw_plan plan;
+        double bandwidth;
+        int centre,start,end;
+#ifdef __QNX__
+	struct	 _clockperiod 	new, old;
+#endif
+        float freqout=3333.33;
+        float freqoutCD=50000.0;
+        int tfreq=0;
+        int Fsamp=FCLOCK;
+        int sample=300;
+        int metsample=3000;
+        float power;
+        FILE *fp;
+
+        for (r=0;r<MAX_RADARS;r++){
+          pci_index[r]=r+1;  //JDS:  This may need to change based on computer hardware, timing card uses 9080 as well
+          for (c=0;c<MAX_CHANNELS;c++){
+            ready_index[r][c]=-1;
+          }
+        }
+#ifdef __QNX__
+   /* SET UP COMMUNICATION TO GC314 DRIVERS */
+        configured=1;
+        if(MAX_CHANNELS > 2) {
+	    fprintf(stderr, "Too many channels requested for gc214 reciever: maximum of 2 channels allowed\n");
+        }
+        if(IMAGING==1) {
+          if (MAX_CARDS < (MAX_TRANSMITTERS+MAX_BACK_ARRAY+1)) {
+	    fprintf(stderr, "Too few cards configured for imaging radar configuration\n");
+            configured=0;
+          }
+        } else {
+          if (MAX_CARDS <  MAX_RADARS) {
+	    fprintf(stderr, "One Card per radar needed\n");
+            configured=0;
+          }
+        }
+// TODO: JDS initial setup of gc214 cards here if needed
+#endif
+#ifdef __QNX__
+    /* SET THE SYSTEM CLOCK RESOLUTION AND GET THE START TIME OF THIS PROCESS */
+	// set the system clock resolution to 10 us
+	new.nsec=10000;
+	new.fract=0;
+	temp=ClockPeriod(CLOCK_REALTIME,&new,0,0);
+	if(temp==-1) 	perror("Unable to change system clock resolution");
+	temp=ClockPeriod(CLOCK_REALTIME,0,&old,0);
+	if(temp==-1) 	perror("Unable to read sytem time");
+	CLOCK_RES=old.nsec;
+#endif
+//TODO: JDS GC214 Configuration Here
+    /* OPEN THE PLX9080 AND GET LOCAL BASE ADDRESSES */
+        if (configured) {
+          if (verbose > 0 ) printf("Opening PLX9080 on each card\n");
+#ifdef __QNX__
+	  for (i=0;i<MAX_CARDS;i++){
+      /* BASE1 mmap'd device pointer to PCI 256 kb io/config space */
+      /* BASE2 mmap'd device pointer to GC214 register space */
+      /* BASE3 non-mmap'd device address to register space */
+            if ((temp =
+             initPCI9080(&IRQ, &BASE1[i], &BASE2[i], &BASE3[i], pci_index[i],1)) == -1) {
+              perror("Unable to initialize PCI Bus");
+              exit(-1);
+            }
+            fflush(stderr);
+	    if(temp==-1)	 fprintf(stderr, "PLX9080 configuration failed: Card %d\n", i);
+ 	    else 		 fprintf(stderr, "PLX9080 configuration successful: Card %d\n", i);
+	  }
+#endif
+          if(IMAGING==1) {
+          } else {
+//TODO: JDS GC214 setup here only 4 buffers per card in total
+            /* CREATE DMA BUFFERS FOR ALL RECIEVER CHANNELS */
+#ifdef __QNX__
+            for (cc = 0; cc < MAX_CHANNELS; cc++) {
+              for ( i = 0;  i< MAX_RADARS; i++) {
+                for ( b = 0;  b< BUFS; b++) {
+                   c=cc % 2;  // Force channel number below 2
+                  temp =
+                   _create_DMA_buff(&virtual_addr[i][c][MAIN][b], &physical_addr[i][c][MAIN][b],
+                             DMA_BUF_SIZE * 16);
+                   _create_DMA_buff(&virtual_addr[i][c][BACK][b], &physical_addr[i][c][BACK][b],
+                             DMA_BUF_SIZE * 16);
+                  if (temp == -1) {
+                    fprintf(stderr, "ERROR MAKING DMA BUFFERS! %d %d\n", i,cc);
+                    break;
+                  }
+                }
+              }
+            }
+#endif
+	    pthread_create(NULL,NULL, wait_thread, NULL);	
+
+            if (verbose > 0 ) printf("Setting up for Multi-site Radar\n");
+	    for(r=0;r<MAX_RADARS;r++){
+	      for(cc=0;cc<MAX_CHANNELS;cc++){
+                for ( b = 0;  b< BUFS; b++) {
+                  c=cc % 2; // Force channel number below 2 
+                  printf("%p %p\n",virtual_addr[r][c][MAIN][b],physical_addr[r][c][MAIN][b]);
+  		  main_virtual[r][cc][b]=virtual_addr[r][c][MAIN][b];	
+  		  main_physical[r][cc][b]=physical_addr[r][c][MAIN][b];	
+		  back_virtual[r][cc][b]=virtual_addr[r][c][BACK][b];	
+		  back_physical[r][cc][b]=physical_addr[r][c][BACK][b];	
+                }
+              }
+            } 
+          }
+        } else {
+	    printf("Filling Test Data Arrays\n");
+            shm_memory=1;
+	    for(r=0;r<MAX_RADARS;r++){
+	      for(c=0;c<MAX_CHANNELS;c++){
+                  sprintf(shm_device,"/receiver_main_%d_%d_%d",r,c,0);
+                  printf("%s ",shm_device);
+                  shm_unlink(shm_device);
+                  shm_fd=shm_open(shm_device,O_RDWR|O_CREAT,S_IRUSR | S_IWUSR);
+                  if (shm_fd == -1) printf("shm_open error\n");
+                  printf("%d \n",shm_fd);
+                  if (ftruncate(shm_fd, MAX_SAMPLES*4) == -1) printf("ftruncate error\n");
+
+                  printf("%d \n",shm_fd);
+                  main_test_data[r][c][0]=mmap(0,MAX_SAMPLES*4,PROT_READ|PROT_WRITE,MAP_SHARED,shm_fd,0);
+                  close(shm_fd);
+                  sprintf(shm_device,"/receiver_back_%d_%d_%d",r,c,0);
+                  printf("%s ",shm_device);
+                  shm_unlink(shm_device);
+                  shm_fd=shm_open(shm_device,O_RDWR|O_CREAT,S_IRUSR | S_IWUSR);
+                  ftruncate(shm_fd, MAX_SAMPLES*4);
+                  back_test_data[r][c][0]=mmap(0,MAX_SAMPLES*4,PROT_READ|PROT_WRITE,MAP_SHARED,shm_fd,0);
+                  close(shm_fd);
+                  sprintf(shm_device,"/receiver_aux_%d_%d_%d",r,c,0);
+                  shm_fd=shm_open(shm_device,O_RDWR|O_CREAT,S_IRUSR | S_IWUSR);
+                  ftruncate(shm_fd, MAX_SAMPLES*4);
+                  aux_test_data[r][c][0]=mmap(0,MAX_SAMPLES*4,PROT_READ|PROT_WRITE,MAP_SHARED,shm_fd,0);
+                  close(shm_fd);
+                  for (i=0;i<MAX_SAMPLES;i++) {
+  		    main_test_data[r][c][0][i]=i;	
+		    back_test_data[r][c][0][i]=i;	
+		    aux_test_data[r][c][0][i]=i;	
+
+                  } 
+              }
+            }
+        }
+
+	for(r=0;r<MAX_RADARS;r++){
+          buildGC4016Global(&global);
+          buildGC4016Channel(&chana);
+          buildGC4016Channel(&chanb);
+          buildGC4016Channel(&chanc);
+          buildGC4016Channel(&chand);
+          setcard(&global,&chana,&chanb,&chanc,&chand,Fsamp,&smpdlyAB,&smpdlyCD,
+                  cfircoeffsAB,cfircoeffsCD,pfircoeffsAB,pfircoeffsCD,resampcoeffs);
+        }
+        for (i=0;i<256;i++)  resampcoeffs[i]=0;
+        resampcoeffs[0]=1024;
+
+//JDS :: TEST CODE
+        if(configured) {
+          fp=fopen("test.out","w");
+//        matched=1;
+          sample=300;
+          metsample=300;
+          printf(" Samples: %d  MetSamples %d\n",sample,metsample);
+          r=0;  
+          for(tfreq=12000000;tfreq<=12000000;tfreq+=100){
+            fprintf(fp,"freq : %d\n",tfreq);
+            freqout=3333.33;
+            chana.rate=freqout;
+            chanb.rate=freqout;
+            chanc.rate=freqout;
+            chand.rate=freqout;
+            chana.match=0;
+            chanb.match=0;
+            chanc.match=0;
+            chand.match=0;
+            chana.samples=sample;
+            chanb.samples=sample;
+            chanc.samples=metsample;
+            chand.samples=metsample;
+            chana.freq= pow( 2, 32)* 
+              ( (double) ( tfreq))/ ( (double) Fsamp);
+            chanb.freq= chana.freq;
+            chanc.freq= chana.freq;
+            chand.freq= chana.freq;
+            printf(" A::  Samples: %d  Dly: %d B:: Samples %d Dly: %d\n",chana.samples,smpdlyAB,chanb.samples,smpdlyAB);
+            printf(" C::  Samples: %d  Dly: %d D:: Samples %d Dly: %d\n",chanc.samples,smpdlyCD,chand.samples,smpdlyCD);
+            setcard(&global,&chana,&chanb,&chanc,&chand,Fsamp,&smpdlyAB,&smpdlyCD,
+                  cfircoeffsAB,cfircoeffsCD,pfircoeffsAB,pfircoeffsCD,resampcoeffs);
+
+            printf(" A::  Samples: %d  Dly: %d B:: Samples %d Dly: %d\n",chana.samples,smpdlyAB,chanb.samples,smpdlyAB);
+            printf(" C::  Samples: %d  Dly: %d D:: Samples %d Dly: %d\n",chanc.samples,smpdlyCD,chand.samples,smpdlyCD);
+            baseGC214=BASE2[r];
+            printf(" hmm 1 %ld\n",baseGC214);
+            setupGC214(baseGC214,chana.samples+smpdlyAB,chanc.samples+smpdlyCD);
+            printf(" hmm 2\n");
+            setupGC4016(baseGC214,&global, resampcoeffs);
+            setupGC4016channel(baseGC214,0,&chana,cfircoeffsAB,pfircoeffsAB);
+            setupGC4016channel(baseGC214,1,&chanb,cfircoeffsAB,pfircoeffsAB);
+            setupGC4016channel(baseGC214,2,&chanc,cfircoeffsCD,pfircoeffsCD);
+            setupGC4016channel(baseGC214,3,&chand,cfircoeffsCD,pfircoeffsCD);
+            releaseGC4016(baseGC214);
+            enableGC214(baseGC214);
+            printf(" Getting ready to software trigger\n");
+            triggerGC214(baseGC214);
+            ENABLED=1;
+            while(ENABLED); //wait for data
+            printf("  Scan Status: %d\n",scanstatus);
+          //for(x=0;x<2;x++) {
+          //  tmp=read32(baseGC214+0x00000);
+          //      I=tmp&0x0000ffff;
+          //      Q=(tmp>>16) & (0x0000ffff);
+//
+//                printf("%d:: %x :  %x\n",x,I,Q);
+//          }
+          //for(x=0;x<(smpdlyAB-2);x++) {
+          //  tmp=read32(baseGC214+0x00000);
+          //}
+          //for(x=0;x<(smpdlyCD);x++) tmp=read32(baseGC214+0x40000);
+            power=0;
+            for(x=0;x<sample;x++){
+                tmp=read32(baseGC214+0x00000);
+                I=tmp&0x0000ffff;
+                Q=tmp>>16;
+                power=(float)(I*I+Q*Q);
+                power=10*log10(power); 
+                fprintf(fp,"%8d :: %8d %8d %8.3lf :: ",x,I,Q,power);
+                tmp=read32(baseGC214+0x20000);
+                I=tmp&0x0000ffff;
+                Q=tmp>>16;
+                power=(float)(I*I+Q*Q);
+                power=10*log10(power); 
+                fprintf(fp,"%8d %8d %8.3lf\n",I,Q,power);
+            }
+            power=power/sample;
+            power=power/(32768*32768);
+            power=10*log10(power);
+            fflush(fp);
+          }
+          fclose(fp);
+        }
+
+
+
+
+    // OPEN TCP SOCKET AND START ACCEPTING CONNECTIONS 
+	sock=tcpsocket(RECV_HOST_PORT);
+	listen(sock, 5);
+	while (1) {
+                rval=1;
+		msgsock=accept(sock, 0, 0);
+		if (verbose > 0) printf("accepting socket!!!!!\n");
+		if( (msgsock==-1) ){
+			perror("accept FAILED!");
+			return EXIT_FAILURE;
+		}
+		else while (rval>=0){
+                  /* Look for messages from external client process */
+                  FD_ZERO(&rfds);
+                  FD_SET(msgsock, &rfds); //Add msgsock to the read watch
+                  FD_ZERO(&efds);
+                  FD_SET(msgsock, &efds);  //Add msgsock to the exception watch
+                  /* Wait up to five seconds. */
+                  tv.tv_sec = 5;
+                  tv.tv_usec = 0;
+		  if (verbose > 2) printf("%d Entering Select\n",msgsock);
+                  rval = select(msgsock+1, &rfds, NULL, &efds, &tv);
+		  if (verbose > 2) printf("%d Leaving Select %d\n",msgsock,rval);
+                  /* Don’t rely on the value of tv now! */
+                  if (FD_ISSET(msgsock,&efds)){
+                    if (verbose > 1) printf("Exception on msgsock %d ...closing\n",msgsock);
+                    break;
+                  }
+                  if (rval == -1) perror("select()");
+                  rval=recv(msgsock, &buf, sizeof(int), MSG_PEEK); 
+                  if (verbose>2) printf("%d PEEK Recv Msg %d\n",msgsock,rval);
+		  if (rval==0) {
+                    if (verbose > 1) printf("Remote Msgsock %d client disconnected ...closing\n",msgsock);
+                    break;
+                  } 
+		  if (rval<0) {
+                    if (verbose > 0) printf("Msgsock %d Error ...closing\n",msgsock);
+                    break;
+                  } 
+                  if ( FD_ISSET(msgsock,&rfds) && rval>0 ) {
+                    if (verbose>2) printf("Data is ready to be read\n");
+		    if (verbose > 2) printf("%d Recv Msg\n",msgsock);
+                    rval=recv_data(msgsock,&msg,sizeof(struct DriverMsg));
+                    datacode=msg.type;
+		    if (verbose > 2) printf("\nmsg code is %c\n", datacode);
+
+		    switch( datacode ){
+
+		      case RECV_CtrlProg_READY:
+                        gettimeofday(&t0,NULL);
+		        if (verbose > 0) printf("\nAsking to set up receiver for client that is ready\n");	
+		        rval=recv_data(msgsock,&client,sizeof(struct ControlPRM));
+                        r=client.radar-1; 
+                        c=client.channel-1; 
+                        if ((ready_index[r][c]>=0) && (ready_index[r][c] <maxclients) ) {
+                          clients[ready_index[r][c]]=client;
+                        } else {
+                          clients[numclients]=client;
+                          ready_index[r][c]=numclients;
+                          numclients++;
+                        }
+			if (verbose > 1) printf("Radar: %d, Channel: %d Recv Beamnum: %d Status %d\n",
+			  client.radar,client.channel,client.rbeam,msg.status);	
+                        if (numclients >= maxclients) msg.status=-2;
+		        if (verbose > 1) printf("\nclient ready done\n");	
+                        numclients=numclients % maxclients;
+                        rval=send_data(msgsock, &msg, sizeof(struct DriverMsg));
+                        gettimeofday(&t1,NULL);
+                        elapsed=(t1.tv_sec-t0.tv_sec)*1E6;
+                        elapsed+=(t1.tv_usec-t0.tv_usec);
+                        if (verbose > 0) printf("  Receiver Client Ready Elapsed Microseconds: %ld\n",elapsed);
+                        if (verbose > 1)  printf("Ending Client Ready Setup\n");
+                        break; 
+
+		      case RECV_PRETRIGGER:
+                        gettimeofday(&t0,NULL);
+			if(verbose > 0 ) printf("Setup Receiver Card for next trigger\n");	
+                        if (configured) {
+                          if (IMAGING==0) {
+                          //MSI
+			   for(r=0;r<MAX_RADARS;r++){
+			    for(i=0;i<numclients;i++){
+                             if(r==(clients[i].radar-1)) { 
+                              c=(clients[i].channel-1 % 2); 
+                              b=0; 
+			      if(verbose > 0 ) printf("Set up card parameters fr client: %d r: %d c: %d\n",i,r,c);	
+			      if(verbose > 0 ) printf("%d force card index to 0\n",i);	
+                              card=r;
+			      if(verbose > 0 ) printf("%d Setup filters %d %d\n",
+                                                 i,(int) clients[i].filter_bandwidth,clients[i].match_filter);	
+//JDS: TODO set match num samples and frequency here
+                              if (c==0) {
+                                chana.rate=clients[i].baseband_samplerate;
+                                chanb.rate=clients[i].baseband_samplerate;
+                                chana.match=clients[i].match_filter;
+                                chanb.match=clients[i].match_filter;
+                                chana.samples=clients[i].number_of_samples;
+                                chanb.samples=clients[i].number_of_samples;
+                                chana.freq= pow( 2, 32)* 
+                                  ( (double) ( clients[i].rfreq*1000))/ ( (double) Fsamp);
+                                chanb.freq= chana.freq;
+                              } // c=0
+                              if (c==1) {
+                                chanc.rate=clients[i].baseband_samplerate;
+                                chand.rate=clients[i].baseband_samplerate;
+                                chanc.match=clients[i].match_filter;
+                                chand.match=clients[i].match_filter;
+                                chanc.samples=clients[i].number_of_samples;
+                                chand.samples=clients[i].number_of_samples;
+                                chanc.freq= pow( 2, 32)* 
+                                  ( (double) ( clients[i].rfreq*1000))/ ( (double) Fsamp);
+                                chand.freq= chanc.freq;
+                              } //c=1
+                             }
+			    } // client loop
+                            setcard(&global,&chana,&chanb,&chanc,&chand,Fsamp,&smpdlyAB,&smpdlyCD,
+                                    cfircoeffsAB,cfircoeffsCD,pfircoeffsAB,pfircoeffsCD,resampcoeffs);
+                            baseGC214=BASE2[r];
+                            setupGC214(baseGC214,chana.samples+smpdlyAB,chanc.samples+smpdlyCD);
+                            setupGC4016(baseGC214,&global, resampcoeffs);
+                            setupGC4016channel(baseGC214,0,&chana,cfircoeffsAB,pfircoeffsAB);
+                            setupGC4016channel(baseGC214,1,&chanb,cfircoeffsAB,pfircoeffsAB);
+                            setupGC4016channel(baseGC214,2,&chanc,cfircoeffsCD,pfircoeffsCD);
+                            setupGC4016channel(baseGC214,3,&chand,cfircoeffsCD,pfircoeffsCD);
+                            releaseGC4016(baseGC214);
+                            enableGC214(baseGC214);
+                           } // radar loop
+			   if(verbose > 0 ) printf("Done with setting up parameters\n");	
+                          } else {
+                          //IMAGING
+                            msg.status=0;
+                          } 
+                        } //if configured 
+                        ENABLED=1;
+                        armed=1;
+                        rval=send_data(msgsock, &msg, sizeof(struct DriverMsg));
+                        gettimeofday(&t1,NULL);
+                        elapsed=(t1.tv_sec-t0.tv_sec)*1E6;
+                        elapsed+=(t1.tv_usec-t0.tv_usec);
+                        if (verbose > 0) printf("  Receiver Pre-trigger Elapsed Microseconds: %ld\n",elapsed);
+                        if (verbose > 1)  printf("Ending Pretrigger Setup\n");
+                        break; 
+
+		      case RECV_POSTTRIGGER:
+                        gettimeofday(&t0,NULL);
+			if(verbose > 0 ) printf("Receiver post-trigger\n");	
+                        armed=0;
+                        numclients=0;
+                        for (r=0;r<MAX_RADARS;r++){
+                          for (c=0;c<MAX_CHANNELS;c++){
+                            ready_index[r][c]=-1;
+                          }
+                        }
+
+                        msg.status=0;
+                        rval=send_data(msgsock, &msg, sizeof(struct DriverMsg));
+                        gettimeofday(&t1,NULL);
+                        elapsed=(t1.tv_sec-t0.tv_sec)*1E6;
+                        elapsed+=(t1.tv_usec-t0.tv_usec);
+                        if (verbose > 0) printf("  Receiver Post-trigger Elapsed Microseconds: %ld\n",elapsed);
+                        if (verbose > 1)  printf("Ending Post-trigger\n");
+                        break;
+
+		      case RECV_GET_DATA:
+                        gettimeofday(&t0,NULL);
+			if(verbose > 0 ) printf("Receiver get data\n");	
+		        rval=recv_data(msgsock,&client,sizeof(struct ControlPRM));
+                        r=client.radar-1; 
+                        c=client.channel-1; 
+                        baseGC214=BASE2[r];
+			if(verbose > 0 ) printf("  radar: %d channel: %d\n",client.radar,client.channel);	
+                        b=0; 
+if(verbose > -1 ) printf("  SHM Memory: %d\n",shm_memory);
+                        rval=send_data(msgsock,&shm_memory,sizeof(shm_memory));
+                        if(verbose > -1 ) printf("  FRAME Offset: %d\n",RECV_SAMPLE_HEADER);
+                        temp=RECV_SAMPLE_HEADER;
+                        rval=send_data(msgsock,&temp,sizeof(temp));
+                        if(verbose > -1 ) printf("  DMA Buf: %d\n",b);
+                        rval=send_data(msgsock,&b,sizeof(b));
+//JDS - NEED to convert driver to double buffer
+//                        b=client.buffer_index; 
+                        sample=client.number_of_samples;
+                        rval=send_data(msgsock,&sample,sizeof(sample));
+			if(verbose > 0 ) printf("Sent Number of Samples %d\n",sample);	
+			if(verbose > 0 ) printf("r: %d c: %d\n",r,c);	
+                        if (IMAGING==0) {
+                          if (configured) {
+                            while(ENABLED); //Wait for data
+			    if(verbose > 0 ) printf("Send collected data %p %p\n",main_virtual[r][c][0],back_virtual[r][c][0]);	
+//Take Data and Retrieve it
+                            main=main_virtual[r][c][b];
+                            back=back_virtual[r][c][b];
+                            if(c==0) {
+                              main_offset=0x00000;
+                              back_offset=0x20000;
+                            } else if (c==1) {
+                              main_offset=0x40000;
+                              back_offset=0x60000;
+                            } else {
+                              main_offset=0x40000;
+                              back_offset=0x60000;
+                            }
+			    for(x=0;x<smpdlyAB;x++) tmp=read32(baseGC214+main_offset);
+                            for(x=0;x<sample;x++) {
+                              tmp=read32(baseGC214+main_offset);
+                              main[x]=tmp;
+                            }
+                            for(x=0;x<smpdlyAB;x++) tmp=read32(baseGC214+back_offset);
+                            for(x=0;x<sample;x++) {
+                              tmp=read32(baseGC214+back_offset);
+                              back[x]=tmp;
+                            } 
+
+
+//                            for (i=0;i<sample;i++) {
+//                              I=(main[i] & 0xffff0000) >> 16;
+//                              Q=main[i] & 0x0000ffff;
+//                              P=(long long)pow(I,2)+pow(Q,2);
+//                              if (verbose > 1) printf("        Data index: %d I: %d Q: %d P:%ld \n",i,I,Q,P);
+//                            }
+			    rval=send_data(msgsock,&main_physical[r][c][b],sizeof(unsigned int));
+			    rval=send_data(msgsock,&back_physical[r][c][b],sizeof(unsigned int));
+                          } else {
+			    if(verbose >0) printf("Send simulated data %p %p\n",main_test_data[r][c][0],back_test_data[r][c][0]);	
+                            utemp=0;
+                            rval=send_data(msgsock,&temp,sizeof(utemp));
+                            rval=send_data(msgsock,&temp,sizeof(utemp));
+			    if(verbose > 0 ) printf("Data sent\n");	
+                          }
+                        } else {
+
+                        }
+                        numclients=0;
+                        msg.status=0;
+                        rval=send_data(msgsock, &msg, sizeof(struct DriverMsg));
+                        gettimeofday(&t1,NULL);
+                        elapsed=(t1.tv_sec-t0.tv_sec)*1E6;
+                        elapsed+=(t1.tv_usec-t0.tv_usec);
+                        if (verbose > 0) printf("  Receiver Get Data Elapsed Microseconds: %ld\n",elapsed);
+                        if (verbose > 1)  printf("Ending Get Data\n");
+                        break;
+
+                      case RECV_CLRFREQ:
+                        if(verbose > 1 ) gettimeofday(&t0,NULL);
+			if(verbose > 0 ) printf("Clear Frequency Search\n");	
+			rval=recv_data(msgsock,&clrfreq_parameters, sizeof(struct CLRFreqPRM));
+
+                        centre=(clrfreq_parameters.end+clrfreq_parameters.start)/2;
+                        bandwidth=clrfreq_parameters.end-clrfreq_parameters.start;
+			if(verbose > 0 ) printf("start: %d\n",clrfreq_parameters.start);	
+			if(verbose > 0 ) printf("end: %d\n",clrfreq_parameters.end);	
+			if(verbose > 0 ) printf("centre: %d\n",centre);	
+			if(verbose > 0 ) printf("bandwidth: %lf in Khz\n",bandwidth);	
+			if(verbose > 0 ) printf("nave: %d\n",clrfreq_parameters.nave);	
+
+/*
+*  Set up fft variables
+*/
+                        N=(int)pow(2,ceil(log10(1.25*(float)bandwidth)/log10(2)));
+                        if(N>1024){
+                          N=512;
+                          bandwidth=300;
+                          start=(int)(centre-bandwidth/2+0.49999);
+                          end=(int)(centre+bandwidth/2+0.49999);
+                        }
+/* 1 kHz fft boundaries*/
+                        bandwidth=N;            
+                        start=(int)(centre-bandwidth/2+0.49999);
+                        end=(int)(centre+bandwidth/2+0.49999);
+			if(verbose > 0 ) printf("start: %d\n",start);	
+			if(verbose > 0 ) printf("end: %d\n",end);	
+			if(verbose > 0 ) printf("centre: %d\n",centre);	
+			if(verbose > 0 ) printf("bandwidth: %lf in Khz\n",bandwidth);	
+			if(verbose > 0 ) printf("N: %d\n",N);	
+  
+			if(verbose > 0 ) printf("Malloc fftw_complex arrays %d\n",N);	
+                        if(in!=NULL) free(in);
+                        in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) *N);
+                        if(out!=NULL) free(out);
+                        out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex)*N);
+                        if(pwr!=NULL) free(pwr);
+                        pwr = (double*) malloc(sizeof(double)*N);
+                        if(pwr2!=NULL) free(pwr2);
+                        pwr2 = (double*) malloc(sizeof(double)*N);
+			if(verbose > 0 ) printf("Malloc fftw_complex arrays %p %p\n",in,out);	
+			if(verbose > 0 ) printf("Build Plan\n");	
+                        plan = fftw_plan_dft_1d(N, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
+                        for (i=0;i<N;i++) {
+                          pwr[i]=0;
+                        }
+                        msg.status=1;
+		        if(verbose > 1 ) printf("Nave %d\n",clrfreq_parameters.nave);	
+                        for(ii=0;ii<clrfreq_parameters.nave;ii++) {
+                          if(verbose > 1 ) gettimeofday(&t2,NULL);
+		          if(verbose > 1 ) printf("Iter: %d\n",ii);	
+#ifdef __QNX__
+//do the hardware sampling here.
+//JDS - NEED to convert driver to double buffer
+//                              b=client.buffer_index; 
+//			      gc314SetDMABuffer(gc314fs[r], c, b);
+//JDS Force Card index to 0 for testing 
+                          if(!armed){
+			    if(verbose > 0 ) printf("%d force card index to 0\n",i);	
+                            card=0;
+			    if(verbose > 0 ) printf("%d force channel index to 0\n",i);	
+                            c=0;
+			    if(verbose > 0 ) printf("%d Setup filters %d %d\n",
+                                                 i,(int) bandwidth,0);	
+//			    gc314SetFilters(gc314fs[card], (int) bandwidth*1000, c, 0); //no match filter
+			    if(verbose > 0 ) printf("%d Setup output rate %lf in KHz\n",i,(double) bandwidth);	
+//			    gc314SetOutputRate(gc314fs[card], (double) bandwidth*1000, c);
+			    if(verbose > 0 ) printf("%d Setup freq %d\n",i,centre*1000);	
+//			    gc314SetFrequency(gc314fs[card], centre*1000, c);
+			    if(verbose > 0 ) printf("%d update channel\n",i);	
+//			    gc314UpdateChannel(gc314fs[card], c);
+			    if(verbose > 0 ) printf("%d Setup samples\n",i);	
+//			    gc314SetSamples(gc314fs[card], N+RECV_SAMPLE_HEADER, c);
+			    if(verbose > 0 ) printf("Done with client parameters\n");	
+			    if(verbose > 0 ) printf("Setup external trigger off sync master only\n");	
+//			    gc314SetExternalTrigger(gc314fs[SYNC_MASTER], GC314_OFF);
+			    if(verbose > 0 ) printf("set sync mask on all cards\n");	
+//			    for(i=0;i<MAX_CARDS;i++) gc314SetSyncMask(gc314fs[i], SYNC1_SIA_ONETIME);
+			    if(verbose > 0 ) printf("Sync1 ON on sync master only\n");	
+//			    gc314SetSync1(gc314fs[SYNC_MASTER], GC314_ON);
+			    if(verbose > 0 ) printf("set global reset on all cards ON\n");	
+//			    for(i=0;i<MAX_CARDS;i++) gc314SetGlobalReset(gc314fs[i], GC314_ON);
+			    if(verbose > 0 ) printf("set load gc4016 on all cards\n");	
+//			    for(i=0;i<MAX_CARDS;i++) gc314LoadGC4016s(gc314fs[i]);
+			    if(verbose > 0 ) printf("set global reset on all cards OFF\n");	
+//			    for(i=0;i<MAX_CARDS;i++) gc314SetGlobalReset(gc314fs[i], GC314_OFF);
+			    if(verbose > 0 ) printf("Sync1 OFF on sync master only\n");	
+//			    gc314SetSync1(gc314fs[SYNC_MASTER], GC314_OFF);
+			    if(verbose > 0 ) printf("Set RDA for channel\n");	
+//			    gc314SetRDA(gc314fs[card], c);
+			    if(verbose > 0 ) printf("set sync mask on all cards\n");	
+//			    for(i=0;i<MAX_CARDS;i++) gc314SetSyncMask(gc314fs[i], SYNC1_SIA_ONETIME);
+			    if(verbose > 0 ) printf("Set Channel On\n");	
+//JDS force card to 0 for testing
+//			    gc314ChannelOn(gc314fs[card], c);
+			    if(verbose > 0 ) printf("start collection  on all cards\n");	
+//			    for(i=0;i<MAX_CARDS;i++) gc314StartCollection(gc314fs[i]);
+//			    gc314SetSync1(gc314fs[SYNC_MASTER], GC314_PULSE);
+                            if (verbose > 1) { 
+                              gettimeofday(&t3,NULL);
+                              elapsed=(t3.tv_sec-t2.tv_sec)*1E6;
+                              elapsed+=(t3.tv_usec-t2.tv_usec);
+                              printf("Receiver: ClrFreq Iteration %d Card setup %d FFT Input Elapsed Microseconds: %ld\n",ii,N,elapsed);
+                            }
+                            if(verbose > 1 ) gettimeofday(&t2,NULL);
+//			    gc314WaitForData(gc314fs[card], c);
+                            delay(10);
+                            if (verbose > 1) { 
+                              gettimeofday(&t3,NULL);
+                              elapsed=(t3.tv_sec-t2.tv_sec)*1E6;
+                              elapsed+=(t3.tv_usec-t2.tv_usec);
+                              printf("  Receiver: ClrFreq Iteration %d Wait for data %d FFT Input Elapsed Microseconds: %ld\n",ii,N,elapsed);
+                            }
+                            if(verbose > 1 ) gettimeofday(&t2,NULL);
+                            main=main_virtual[card][c][b];
+                            for (j=0;j<N;j++) {
+                              if(REVERSE_IQ_ORDER) {
+                                Q=(main[j+RECV_SAMPLE_HEADER] & 0xffff0000) >> 16;
+                                I=main[j+RECV_SAMPLE_HEADER] & 0x0000ffff;
+                              } else {
+                                I=(main[j+RECV_SAMPLE_HEADER] & 0xffff0000) >> 16;
+                                Q=main[j+RECV_SAMPLE_HEADER] & 0x0000ffff;
+                              }
+                                in[j][0]=Q;
+                                in[j][1]=I;
+                            }
+                            if (verbose > 1) { 
+                              gettimeofday(&t3,NULL);
+                              elapsed=(t3.tv_sec-t2.tv_sec)*1E6;
+                              elapsed+=(t3.tv_usec-t2.tv_usec);
+                              printf("    Receiver: ClrFreq Iteration %d Fill %d FFT Input Elapsed Microseconds: %ld\n",ii,N,elapsed);
+                            }
+                          } else {
+                        //if armed set an error condition
+                            msg.status=-1;
+                          }
+#else
+			  if(verbose > 0 ) printf("Fill In array %p\n",in);	
+                          for (j=0;j<N;j++) {
+  		            in[j][0]=1;	
+  		            in[j][1]=0;	
+                          }
+#endif
+                          if (msg.status) {
+                            if(verbose > 1 ) gettimeofday(&t2,NULL);
+                            fftw_execute(plan);
+/* calculate power from output of fft */
+                            for (j=0;j<N;j++) {
+                              pwr[j]+=(out[j][0]*out[j][0]+out[j][1]*out[j][1])/(N*N);
+                            }
+			    if(verbose > 1 ) {  printf("FFT Out/pwr\n");	
+                              for (j=0;j<N;j++) {
+                                printf("%d :: Out: %lf %lf  pwr: %lf\n",j,out[j][0],out[j][1],pwr[j]);
+                              }
+                            }
+                            if (verbose > 1) { 
+                              gettimeofday(&t3,NULL);
+                              elapsed=(t3.tv_sec-t2.tv_sec)*1E6;
+                              elapsed+=(t3.tv_usec-t2.tv_usec);
+                              printf("      Receiver: ClrFreq Iteration %d Calculate %d FFT Elapsed Microseconds: %ld\n",ii,N,elapsed);
+                            }
+
+                          }
+                        } //end of nave loop
+
+/* take average power for nave number of calculations */
+                        if(verbose > 1 ) printf("Average pwr\n");	
+                        for(i=0;i<N;i++) pwr[i]=pwr[i]/(clrfreq_parameters.nave);
+  /* Re-arrange the output of the fft to go from start to end (fftshift).
+     This centers the fft, so now the first element in pwr2 corresponds
+     with the start freq, and goes up to the end freq
+  */
+                        if(verbose > 0 ) printf("Reorder pwr\n");	
+                        for(i=0;i<(N/2);i++){
+                          pwr2[N/2+i]=pwr[i];
+                          pwr2[i]=pwr[N/2+i];
+                        }
+                        if(verbose > 0 ) {
+                          printf("shifted pwr array\n");	
+                          for(i=0;i<N;i++){
+                            printf("%d: %lf %lf\n",i,pwr[i],pwr2[i]);
+                          }
+                        }
+                        if(pwr!=NULL) free(pwr);
+                        pwr=NULL;  
+                        if(verbose > 0 ) printf("Send clrfreq data back\n");	
+                        rval=send_data(msgsock, &clrfreq_parameters, sizeof(struct CLRFreqPRM));
+                        rval=send_data(msgsock, &N, sizeof(int));
+                        rval=send_data(msgsock, pwr2, sizeof(double)*N);  //freq order power
+                        rval=send_data(msgsock, &msg, sizeof(struct DriverMsg));
+                        fftw_destroy_plan(plan);
+                        fftw_free(in); 
+                        fftw_free(out);
+                        in=NULL;
+                        out=NULL;
+                        if(pwr2!=NULL) free(pwr2);
+                        pwr2=NULL;  
+                        if (verbose > 1) { 
+                          gettimeofday(&t1,NULL);
+                          elapsed=(t1.tv_sec-t0.tv_sec)*1E6;
+                          elapsed+=(t1.tv_usec-t0.tv_usec);
+                          printf("  Receiver: ClrFreq Search Elapsed Microseconds: %ld\n",elapsed);
+                        }
+                        break;                      
+
+		      default:
+			if (verbose > 0) fprintf(stderr,"BAD CODE: %c : %d\n",datacode,datacode);
+                        msg.status=0;
+                        rval=send_data(msgsock, &msg, sizeof(struct DriverMsg));
+			break;
+		    }
+		  }	
+		} 
+		if (verbose > 0 ) fprintf(stderr,"Closing socket\n");
+		close(msgsock);
+	};
+        fftw_destroy_plan(plan);
+        fftw_free(in); 
+        fftw_free(out);
+
+        return 1;
+}
+
+
+
+
+
+
