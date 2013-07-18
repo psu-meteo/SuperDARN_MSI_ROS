@@ -1,0 +1,20 @@
+# SuperDARN ROS
+
+base codebase/base/src.lib lib
+base codebase/base/src.bin bin 
+base codebase/base/src.doc doc
+
+general codebase/general/src.lib lib 
+general codebase/general/src.bin bin 
+general codebase/general/src.doc doc
+
+superdarn codebase/superdarn/src.lib/tk lib
+superdarn codebase/superdarn/src.lib/os lib
+superdarn codebase/superdarn/src.bin/os bin
+superdarn codebase/superdarn/src.doc doc
+superdarn usr/codebase/superdarn/src.lib/tk lib
+superdarn usr/codebase/superdarn/src.lib/os lib
+superdarn usr/codebase/superdarn/src.bin/os bin
+
+
+

@@ -1,0 +1,10 @@
+#Log files
+linux/home/radar/ros.3.6/log/superdarn-ros.*
+
+#files being edited
+*~
+
+# make and build files
+*.o
+*.so
+*.a

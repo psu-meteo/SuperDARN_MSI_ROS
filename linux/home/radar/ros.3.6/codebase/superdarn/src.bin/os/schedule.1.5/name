@@ -1,0 +1,119 @@
+./check_program.c: (c) 2010 JHU/APL & Others - Please Consult LICENSE.superdarn-rst.3.1-beta-18-gf704e97.txt for more information.
+./check_program.c:  if (ptr->pid !=-1) {
+./check_program.c:    s=getpriority(PRIO_PROCESS,ptr->pid);
+./check_program.c:        (strcmp(ptr->command,ptr->entry[cnt].command)==0)) return;
+./check_program.c:  if (confirm_program(ptr->path,ptr->entry[cnt].command)==0) {
+./check_program.c:    sprintf(txt," Program not found : %s",ptr->entry[cnt].command);
+./check_program.c:  if (ptr->pid !=-1) {
+./check_program.c:    terminate(ptr->pid);
+./check_program.c:  sprintf(txt,"Starting program:%s",ptr->entry[cnt].command);
+./check_program.c:  if ((ptr->pid=execute(ptr->path,ptr->entry[cnt].command))==-1) {
+./check_program.c:    log_info(0," Program failed to start - trying default program");
+./check_program.c:    if (confirm_program(ptr->path,ptr->entry[0].command)==0) {
+./check_program.c:    if ((ptr->pid=execute(ptr->path,ptr->entry[0].command))==-1) {
+./check_program.c:  strcpy(ptr->command,ptr->entry[cnt].command);
+./execute.c: (c) 2010 JHU/APL & Others - Please Consult LICENSE.superdarn-rst.3.1-beta-18-gf704e97.txt for more information.
+./load_schedule.c: (c) 2010 JHU/APL & Others - Please Consult LICENSE.superdarn-rst.3.1-beta-18-gf704e97.txt for more information.
+./load_schedule.c:  if ((token=strtok(line,DELIM))==NULL) return -1; /* year/default */
+./load_schedule.c:    if ((token=strtok(NULL,""))==NULL) return -1; /* command */
+./load_schedule.c:    strcpy(ptr->entry[ptr->num].command,token);
+./load_schedule.c:    ptr->entry[ptr->num].stime=-1;
+./load_schedule.c:	ptr->num++;
+./load_schedule.c:    if ((token=strtok(NULL,""))==NULL) return -1; /* command */
+./load_schedule.c:    strcpy(ptr->path,token);
+./load_schedule.c:    if ((token=strtok(NULL,""))==NULL) return -1; /* minutes */
+./load_schedule.c:    ptr->priority=atoi(token);
+./load_schedule.c:    ptr->has_priority=1;
+./load_schedule.c:    if ((token=strtok(NULL,""))==NULL) return -1; /* minutes */
+./load_schedule.c:    ptr->max_duration_minutes=atoi(token);
+./load_schedule.c:    ptr->has_duration=1;
+./load_schedule.c:    ptr->entry[ptr->num].priority=-1;
+./load_schedule.c:    ptr->entry[ptr->num].duration_minutes=-1;
+./load_schedule.c:    if ((token=strtok(NULL,DELIM))==NULL) return -1; /* month */
+./load_schedule.c:    if ((token=strtok(NULL,DELIM))==NULL) return -1; /* day */
+./load_schedule.c:    if ((token=strtok(NULL,DELIM))==NULL) return -1; /* hour */
+./load_schedule.c:    if ((token=strtok(NULL,DELIM))==NULL) return -1; /* minute */
+./load_schedule.c:    ptr->entry[ptr->num].stime=TimeYMDHMSToEpoch(year,month,day,hour,minute,0);
+./load_schedule.c:    if (ptr->entry[ptr->num].stime==-1) return -1;
+./load_schedule.c:    if(ptr->has_duration) {
+./load_schedule.c:      if ((token=strtok(NULL,DELIM))==NULL) return -1; /* duration in minutes */
+./load_schedule.c:	  ptr->entry[ptr->num].duration_minutes=ptr->max_duration_minutes ;
+./load_schedule.c:	  ptr->entry[ptr->num].duration_minutes=val;
+./load_schedule.c:    if(ptr->has_priority) {
+./load_schedule.c:      if ((token=strtok(NULL,DELIM))==NULL) return -1; /* priority */
+./load_schedule.c:	  ptr->entry[ptr->num].priority=ptr->priority ;
+./load_schedule.c:	  ptr->entry[ptr->num].priority=val;
+./load_schedule.c:    if ((token=strtok(NULL,""))==NULL) return -1; /* command */
+./load_schedule.c:    if (token[i]==0) return -1;   
+./load_schedule.c:    strcpy(ptr->entry[ptr->num].command,token+i);
+./load_schedule.c:    ptr->num++;
+./load_schedule.c:   if (as->stime<ab->stime) return -1;
+./load_schedule.c:   if (as->stime>ab->stime) return 1;
+./load_schedule.c:   if (as->stime==ab->stime) { 
+./load_schedule.c:     if (as->priority>ab->priority) return -1;
+./load_schedule.c:     if (as->priority<ab->priority) return 1;
+./load_schedule.c:  ptr->num=0;
+./load_schedule.c:  ptr->cnt=0;
+./load_schedule.c:          (ptr->num<SCHED_MAX_ENTRIES) ) {
+./load_schedule.c:  if (ptr->num==0) {
+./load_schedule.c:    return -1;
+./load_schedule.c:    return -1;
+./load_schedule.c:  if (ptr->num >= SCHED_MAX_ENTRIES) {
+./load_schedule.c:  qsort(ptr->entry,ptr->num,sizeof(struct scd_entry),cmp_scd);						    
+./load_schedule.c:  for(i=0;i<ptr->num;i++) {
+./load_schedule.c:          i,ptr->entry[i].stime,ptr->entry[i].priority,
+./load_schedule.c:          ptr->entry[i].command);
+./log_info.c: (c) 2010 JHU/APL & Others - Please Consult LICENSE.superdarn-rst.3.1-beta-18-gf704e97.txt for more information.
+./log_info.c:  date[strlen(date)-1]=':';
+./log_info.c:          time_of_day->tm_year,time_of_day->tm_mon+1,
+./log_info.c:          time_of_day->tm_mday);
+./print_schedule.c: (c) 2010 JHU/APL & Others - Please Consult LICENSE.superdarn-rst.3.1-beta-18-gf704e97.txt for more information.
+./print_schedule.c:  if (ptr->num==0) {
+./print_schedule.c:  sprintf(txt,"Schedule file %s loaded",ptr->name);
+./print_schedule.c:  sprintf(txt,"Command path -> %s",ptr->path);
+./print_schedule.c:  if (ptr->entry[0].stime==-1) {
+./print_schedule.c:    sprintf(txt,"Default Program -> %s\n",ptr->entry[0].command);
+./print_schedule.c:  sprintf(txt,"Priority -> %d",ptr->priority);
+./print_schedule.c:  sprintf(txt,"Max Duration -> %d",ptr->max_duration_minutes);
+./print_schedule.c:  if ((ptr->cnt >=0) && (ptr->cnt<ptr->num)) {
+./print_schedule.c:    for (c=ptr->cnt+1;c<ptr->num;c++) {
+./print_schedule.c:      if (ptr->entry[c].stime==-1) continue;
+./print_schedule.c:      TimeEpochToYMDHMS(ptr->entry[c].stime,&yr,&mo,&dy,&hr,&mt,&sc);
+./print_schedule.c:      sprintf(txt,"%d : %d %d %d : %d %d -> %s",c,yr,mo,dy,hr,mt,
+./print_schedule.c:	          ptr->entry[c].command);
+./print_schedule.c:  sprintf(txt,"\nCurrent program ->%s",ptr->command);
+./print_schedule.c:  sprintf(txt,"Schedule reloaded every %d seconds",ptr->refresh);
+./refresh.c: (c) 2010 JHU/APL & Others - Please Consult LICENSE.superdarn-rst.3.1-beta-18-gf704e97.txt for more information.
+./refresh.c:int then=-1;
+./refresh.c:time_t tval=-1;
+./refresh.c:  now=nowsec/ptr->refresh;
+./refresh.c:  if ((rc=stat(ptr->name,&buf)) !=0) return -1;
+./refresh.c:  if (tval==-1) tval=buf.st_mtime;
+./refresh.c:  if (then==-1) then=now;
+./schedule.c: (c) 2010 JHU/APL & Others - Please Consult LICENSE.superdarn-rst.3.1-beta-18-gf704e97.txt for more information.
+./schedule.c:  if (schedule.pid !=-1) pid=wait(NULL);
+./schedule.c:  schedule.pid=-1;
+./schedule.c:  OptionAdd(&opt,"-help",'x',&help);
+./schedule.c:  OptionAdd(&opt,"-option",'x',&option);
+./schedule.c:  printf("Num Schedule Files: %d\n",scdfilelist->num);
+./schedule.c:  for(i=0;i<scdfilelist->num;i++) {
+./schedule.c:    printf("%d : %s\n",i,scdfilelist->txt[i]);
+./schedule.c:  schedule.pid=-1;
+./schedule.c:    exit(-1);
+./schedule.c:    exit(-1);
+./schedule.c:      if (schedule.pid ==-1) {
+./schedule.c:        log_info(0,"Control program not running - Failed or Died\n");
+./set_schedule.c: (c) 2010 JHU/APL & Others - Please Consult LICENSE.superdarn-rst.3.1-beta-18-gf704e97.txt for more information.
+./set_schedule.c:  for (c=0;c<ptr->num;c++) {
+./set_schedule.c:    if(current_time>=ptr->entry[c].stime) {
+./set_schedule.c:      if(ptr->entry[c].duration_minutes>0) {
+./set_schedule.c:        etime=ptr->entry[c].stime+ptr->entry[c].duration_minutes*60.;
+./set_schedule.c:    if(ptr->entry[c].priority >=max_prio){
+./set_schedule.c:      max_prio=ptr->entry[c].priority;
+./set_schedule.c:    best_entry,ptr->entry[best_entry].stime,
+./set_schedule.c:    ptr->entry[best_entry].priority);
+./test_schedule.c: (c) 2010 JHU/APL & Others - Please Consult LICENSE.superdarn-rst.3.1-beta-18-gf704e97.txt for more information.
+./test_schedule.c:  fprintf(stdout,"Testing Entry: %d\n",ptr->cnt);
+./test_schedule.c:  if (ptr->cnt<0) return 0;  
+./test_schedule.c:  if (ptr->cnt==ptr->num) return 0;
+./test_schedule.c:  if (current_time>=ptr->entry[ptr->cnt].stime) return 1;

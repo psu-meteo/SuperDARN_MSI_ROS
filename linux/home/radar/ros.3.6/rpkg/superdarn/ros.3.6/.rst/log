@@ -1,0 +1,173 @@
+commit e4e43e833f6d2f2f37bec42003d47921aa180504
+Author: Code Development Account <code@morpheus.jhuapl.edu>
+Date:   Mon Jun 18 14:53:49 2012 -0400
+
+    Update to profile.
+
+commit 6dcbbf0d237ad2547b35c89d49326c4b58732a0d
+Author: Code Development Account <code@morpheus.jhuapl.edu>
+Date:   Mon Jun 18 14:51:42 2012 -0400
+
+    Updated profile information.
+
+commit f952b32d6f2e5c88c3159ca5c82bf04315c928aa
+Author: Code Development Account <code@morpheus.jhuapl.edu>
+Date:   Mon Jun 18 14:18:09 2012 -0400
+
+    Final update for LGPL licensing.
+
+commit 68ab0eb2968e15c7b322c6a2ef4ac8bc02a45dc1
+Author: Code Development Account <code@morpheus.jhuapl.edu>
+Date:   Mon Jun 18 14:17:50 2012 -0400
+
+    Removed redundant licensing.
+
+commit 80a7ccd923d7cfa2b250009431c7be8a4155b448
+Author: Code Development Account <code@morpheus.jhuapl.edu>
+Date:   Mon Jun 18 13:41:55 2012 -0400
+
+    Updated license
+
+commit 6aa3357f84c4b2fc1dbee54571ddd364ee866aae
+Author: Code Development Account <code@morpheus.jhuapl.edu>
+Date:   Sun Jun 17 09:24:55 2012 -0400
+
+    Update for change in licensing.
+
+commit 1c4c4716fafa0cf83c0d9557826043af0fb3c36d
+Author: Code Development Account <code@morpheus.jhuapl.edu>
+Date:   Sun Jun 17 09:24:24 2012 -0400
+
+    Updated module list to correct for build directory changes.
+
+commit 1a8df3c3c24d66affd50370676e0e7aa283867b4
+Author: Code Development Account <code@morpheus.jhuapl.edu>
+Date:   Fri Jun 15 21:45:24 2012 -0400
+
+    Changed license to LGPL
+
+commit 70a0e8a46f6e503cc014c7ca9638ce90f5d60125
+Author: Code Development Account <code@morpheus.jhuapl.edu>
+Date:   Fri Mar 9 03:32:05 2012 -0500
+
+    2012 Sanity check.
+
+commit d15b6e44bfe83c2742d564aa4daad0449f3380f3
+Author: Code Development Account <code@morpheus.jhuapl.edu>
+Date:   Thu Mar 8 21:50:35 2012 -0500
+
+    2012 sanity check.
+
+commit 4d74c8e898490bd8d685c3a91efe0293a4f06130
+Author: Code Development Account <code@linux-pc.jhuapl.edu>
+Date:   Wed Dec 8 20:26:02 2010 -0500
+
+    Integrated changes from Oregon and dynamic site library loading.
+
+commit 4e011d58c1c87552db80e3e934fe6424d7cd86b8
+Author: Code Development Account <code@morpheus.jhuapl.edu>
+Date:   Mon Sep 27 12:51:10 2010 -0400
+
+    Update for Fort Hays code fold in.
+
+commit a8f2f2f850fbedc2dbd26ecdb8ad085b9d2c3669
+Author: Code Development Account <code@morpheus.jhuapl.edu>
+Date:   Fri Sep 24 14:19:55 2010 -0400
+
+    Update for tauscan build.
+
+commit 86f98ce5e098cea6cd45d8a72a656d37dd8eb710
+Author: Code Development Account <code@linux-pc.jhuapl.edu>
+Date:   Fri Aug 6 16:52:51 2010 -0400
+
+    Corrected build file.
+
+commit b02dd1417e5b7bb20a512aa0676ab1b2846213af
+Author: Code Development Account <code@linux-pc.jhuapl.edu>
+Date:   Fri Aug 6 16:52:37 2010 -0400
+
+    Corrected build file.
+
+commit becb2d24f6c044e70927d27564abd8f32dd62e0b
+Author: Code Development Account <code@linux-pc.jhuapl.edu>
+Date:   Fri Aug 6 16:46:05 2010 -0400
+
+    Added missing libraries to build.txt
+
+commit 4af89110dfe11e3d6fed392bf9f7c0951a21566c
+Author: Code Development Account <code@linux-pc.jhuapl.edu>
+Date:   Fri Aug 6 16:43:05 2010 -0400
+
+    Added missing libraries.
+
+commit 07dbd7bb10d07e338501cf4dcd1184c7eabe377d
+Author: Code Development Account <code@linux-pc.jhuapl.edu>
+Date:   Fri Aug 6 16:42:34 2010 -0400
+
+    Added missing tk libraries under usr.
+
+commit ddeccd8ac15e253c49143030549c578ec840ffd4
+Author: Code Development Account <code@linux-pc.jhuapl.edu>
+Date:   Fri Aug 6 16:29:54 2010 -0400
+
+    Update for tauscan.
+
+commit d43cfcca2c30744c2b382ce24c9c2c670ee4c399
+Author: Code Development Account <code@linux-pc.jhuapl.edu>
+Date:   Fri Aug 6 16:29:32 2010 -0400
+
+    Updated profile.
+
+commit 403d6307bac8f0476a1a411fcc8055f60d1a18c5
+Author: Rob Barnes <robin.barnes@jhuapl.edu>
+Date:   Wed Jun 16 17:23:03 2010 -0400
+
+    Final release
+
+commit fb79cebca87909c3ead9ccbc5ee732a290dae4f7
+Author: Rob Barnes <robin.barnes@jhuapl.edu>
+Date:   Wed Jun 16 16:00:47 2010 -0400
+
+    Updated profile conditionals
+
+commit 85f0feaddf1716c02e930b9de5414dab58a03d4c
+Author: Rob Barnes <robin.barnes@jhuapl.edu>
+Date:   Tue Jun 15 21:44:52 2010 -0400
+
+    Fixed bug in packager
+
+commit 35229792eddcef8ad616b15a412edc0a6aad0689
+Author: Rob Barnes <robin.barnes@jhuapl.edu>
+Date:   Tue Jun 15 21:38:28 2010 -0400
+
+    Fixed bug in scheduler
+
+commit 8c6ca36a08ee0d6527a7fb14ed846db14eccc84d
+Author: Rob Barnes <robin.barnes@jhuapl.edu>
+Date:   Tue Jun 15 20:23:10 2010 -0400
+
+    Cleanup for release.
+
+commit 08c0ca0adc581f8dba24d56d7e1a473eeadb339a
+Author: Rob Barnes <robin.barnes@jhuapl.edu>
+Date:   Tue Jun 15 16:27:21 2010 -0400
+
+    Cleaned README text.
+
+commit 16f61de51d062f2c3da82cc06eec08af02f4f84d
+Author: Rob Barnes <robin.barnes@jhuapl.edu>
+Date:   Tue Jun 15 16:26:45 2010 -0400
+
+    Added script to copy start scripts.
+
+commit 17401b8e5d61a3e01f443e600209ae4c5e6925c8
+Author: Rob Barnes <robin.barnes@jhuapl.edu>
+Date:   Tue Jun 15 16:20:31 2010 -0400
+
+    Update to socket handling.
+
+commit 90ed3341c089e3e66a1e18a998a8118f7dcb7701
+Author: Code Development Account <code@virtual-debian.localdomain>
+Date:   Mon Jun 14 16:09:54 2010 -0400
+
+    Initial commit.

@@ -1,0 +1,11 @@
+#!/bin/sh
+cd $HOME
+$HOME/scripts/cp_files dat dat
+$HOME/scripts/cp_files fitacf fit
+$HOME/scripts/cp_files fitacf inx
+$HOME/scripts/cp_files rawacf rawacf
+$HOME/scripts/cp_files fitacf fitacf
+$HOME/scripts/cp_files snd snd
+#
+#$HOME/script/cdproc
+

@@ -1,0 +1,16 @@
+make.version /home/radar/ros.3.6/codebase/superdarn/src.lib/tk/fit.1.35/src/..
+make.hdr /home/radar/ros.3.6/codebase/superdarn/src.lib/tk/fit.1.35/src/../include /home/radar/ros.3.6//include/superdarn 
+/home/radar/ros.3.6/codebase/superdarn/src.lib/tk/fit.1.35/src/../include/fitcfit.h
+`/home/radar/ros.3.6/codebase/superdarn/src.lib/tk/fit.1.35/src/../include/fitcfit.h' -> `/home/radar/ros.3.6//include/superdarn/fitcfit.h'
+/home/radar/ros.3.6/codebase/superdarn/src.lib/tk/fit.1.35/src/../include/fitwrite.h
+`/home/radar/ros.3.6/codebase/superdarn/src.lib/tk/fit.1.35/src/../include/fitwrite.h' -> `/home/radar/ros.3.6//include/superdarn/fitwrite.h'
+/home/radar/ros.3.6/codebase/superdarn/src.lib/tk/fit.1.35/src/../include/fitdata.h
+`/home/radar/ros.3.6/codebase/superdarn/src.lib/tk/fit.1.35/src/../include/fitdata.h' -> `/home/radar/ros.3.6//include/superdarn/fitdata.h'
+/home/radar/ros.3.6/codebase/superdarn/src.lib/tk/fit.1.35/src/../include/fitscan.h
+`/home/radar/ros.3.6/codebase/superdarn/src.lib/tk/fit.1.35/src/../include/fitscan.h' -> `/home/radar/ros.3.6//include/superdarn/fitscan.h'
+/home/radar/ros.3.6/codebase/superdarn/src.lib/tk/fit.1.35/src/../include/fitread.h
+`/home/radar/ros.3.6/codebase/superdarn/src.lib/tk/fit.1.35/src/../include/fitread.h' -> `/home/radar/ros.3.6//include/superdarn/fitread.h'
+/home/radar/ros.3.6/codebase/superdarn/src.lib/tk/fit.1.35/src/../include/fitindex.h
+`/home/radar/ros.3.6/codebase/superdarn/src.lib/tk/fit.1.35/src/../include/fitindex.h' -> `/home/radar/ros.3.6//include/superdarn/fitindex.h'
+/home/radar/ros.3.6/codebase/superdarn/src.lib/tk/fit.1.35/src/../include/fitseek.h
+make: *** [hdr] Interrupt

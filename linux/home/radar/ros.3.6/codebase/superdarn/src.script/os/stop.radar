@@ -1,0 +1,14 @@
+#!/bin/bash
+
+
+killall rtserver
+killall fitacfwrite
+killall rawacfwrite
+killall iqwrite
+
+killall shellserver
+killall errlog
+
+killall radar
+
+
