@@ -2,6 +2,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 #include <sys/time.h>
 #include "control_program.h"
 #include "global_server_variables.h"
@@ -13,7 +14,7 @@ extern int verbose;
 extern pthread_mutex_t settings_lock;
 extern dictionary *Site_INI;
 extern int trigger_type;
-extern int32 gpsrate;
+extern int32_t gpsrate;
 
 void *settings_parse_ini_file(struct SiteSettings *ros_settings) {
      char ini_name[80]="/root/test.ini";

@@ -60,7 +60,7 @@ int txread[MAX_RADARS];
 struct SiteSettings site_settings;
 struct GPSStatus gpsstatus;
 struct TRTimes bad_transmit_times;
-int32 gpsrate=GPS_DEFAULT_TRIGRATE;
+int32_t gpsrate=GPS_DEFAULT_TRIGRATE;
 int verbose=0;
 
 struct timeval t_pre_start,t_pre_end,t_ready_first,t_ready_final,t_post_start,t_post_end;
@@ -182,7 +182,7 @@ int main()
 /* end DIO */
   int policy;
   struct sched_param sp;
-
+#ifdef __QNX__
   fprintf(stdout,"Policy Options F: %d R:%d O:%d S: %d\n",SCHED_FIFO,SCHED_RR,SCHED_OTHER,SCHED_SPORADIC);
   pthread_getschedparam(pthread_self(),&policy,&sp);
   fprintf(stdout,"Policy %d Prio: %d\n",policy,sp.sched_priority);
@@ -194,7 +194,7 @@ int main()
      sched_get_priority_min(SCHED_RR),
      sched_get_priority_max(SCHED_RR));
   fflush(stdout);
-
+#endif
 
 
   gettimeofday(&t_ready_first,NULL);
@@ -272,25 +272,29 @@ int main()
   bad_transmit_times.duration_usec=NULL;
   blacklist_count_pointer=malloc(sizeof(int));
   blacklist_count=0;
+  restrict_count=0;
   sprintf(restrict_file,"%s/restrict.dat",SITE_DIR);
   fprintf(stdout,"Opening restricted file: %s\n",restrict_file);
   fd=fopen(restrict_file,"r+");
-  restrict_count=0;
-  s=fgets(hmm,120,fd);
-  while (s!=NULL) {
-    restrict_count++;
+  if (fd!=NULL) {
+    restrict_count=0;
     s=fgets(hmm,120,fd);
+    while (s!=NULL) {
+      restrict_count++;
+      s=fgets(hmm,120,fd);
+    }
+    fclose(fd);
   }
   fprintf(stdout,"Number of restricted windows: %d\n",restrict_count);
   fprintf(stdout,"max blacklist: %d\n",restrict_count+Max_Control_THREADS*4);
-  fclose(fd);
   blacklist = (struct BlackList*) malloc(sizeof(struct BlackList) * (restrict_count+Max_Control_THREADS*4));
   fprintf(stdout,"Blacklist : %p\n",blacklist);
   
   sprintf(restrict_file,"%s/restrict.dat",SITE_DIR);
   fd=fopen(restrict_file,"r+");
-  s=fgets(hmm,120,fd);
-  while (s!=NULL) {
+  if (fd!=NULL) {
+    s=fgets(hmm,120,fd);
+    while (s!=NULL) {
       if(s[0]=='#') {
 //        //printf("found a comment :%s\n",s);
       } else {
@@ -309,8 +313,9 @@ int main()
         }
       }
       s=fgets(hmm,120,fd);
+    }
+    fclose(fd);
   }
-  fclose(fd);
   *blacklist_count_pointer=blacklist_count; 
 /*
  * Setup DIO State Variables
