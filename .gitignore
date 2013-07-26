@@ -8,4 +8,8 @@ temp.out*
 # make and build files
 *.o
 *.so
+*.so.0
 *.a
+# binaries
+*/bin/*
+qnx/root/operational_radar_code/kod.imaging/ros/server/arby_server
