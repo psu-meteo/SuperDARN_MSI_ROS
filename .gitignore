@@ -11,5 +11,6 @@ temp.out*
 *.so.0
 *.a
 # binaries
-*/bin/*
+linux/home/radar/ros.3.6/bin/
+linux/home/radar/ros.3.6/usr/bin/
 qnx/root/operational_radar_code/kod.imaging/ros/server/arby_server

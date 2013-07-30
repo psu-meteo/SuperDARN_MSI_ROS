@@ -27,6 +27,7 @@ codebase/superdarn/src.lib/tk/radar
 codebase/superdarn/src.lib/tk/raw
 codebase/superdarn/src.lib/tk/scan
 codebase/superdarn/src.lib/tk/tsg
+codebase/analysis/src.lib
 codebase/superdarn/src.script/os
 usr/codebase/superdarn/src.lib/tk
 usr/codebase/superdarn/src.lib/os
