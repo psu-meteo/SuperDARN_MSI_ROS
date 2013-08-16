@@ -1,6 +1,6 @@
 /* normalscan.c
    ============
-   Author: R.J.Barnes & J.Spaleta
+   Author: R.J.Barnes & J.Spaleta & J.Klein
 */
 
 /*
@@ -58,14 +58,6 @@
  *       will have to be adjusted to make room for correct operation of an
  *       early Site* function. 
  *
- *    Convert existing cmdline option parsing from RST provided functions to
- *      standard GNU long option parsing.
- *
- *      Benefit: better tested option parsing code, which:
- *         1) correctly handles when an unknown argument is used.
- *         2) provides a standard way to provide a --usage and --help message
- *           to discover what options are supported.
- *
  *    Re-engineer Day/Night variable parsing to work with multi-site radars:
  *      Problem statement:
  *        Multi-site radars must use a common TR for both east and west radars
@@ -90,8 +82,9 @@
 #include <time.h>
 #include <unistd.h>
 #include <zlib.h>
+#include <argtable2.h>
+
 #include "rtypes.h"
-#include "option.h"
 #include "rtime.h"
 #include "dmap.h"
 #include "limit.h"
@@ -125,6 +118,8 @@
 #include "rosmsg.h"
 #include "tsg.h"
 
+#define ARG_MAXERRORS 30
+
 char *ststr=NULL;
 char *dfststr="tst";
 
@@ -135,7 +130,6 @@ char progid[80]={"normalscan"};
 char progname[256];
 
 int arg=0;
-struct OptionData opt;
 
 char *roshost=NULL;
 char *droshost={"127.0.0.1"};
@@ -157,6 +151,7 @@ struct TCPIPMsgHost task[4]={
 int main(int argc,char *argv[]) {
 
   int ptab[8] = {0,14,22,24,27,31,42,43};
+  int nerrors;
   int *bcode=NULL;
   int bcode1[1]={1};
   int bcode2[2]={1,-1};
@@ -225,6 +220,45 @@ int main(int argc,char *argv[]) {
   int total_integration_usecs=0;
   int fixfrq=-1;
 
+  /* create arguement structs */
+  struct arg_lit  *al_discretion = arg_lit0(NULL, "di",               "TODO"); /*OptionAdd(&opt,"di",'x',&discretion); */
+  struct arg_lit  *al_fast       = arg_lit0(NULL, "fast",             "TODO"); /*OptionAdd(&opt,"fast",'x',&fast); */
+  struct arg_lit  *al_nowait     = arg_lit0(NULL, "nowait",           "TODO"); /*OptionAdd(&opt, "nowait", 'x', &scannowait); */
+  struct arg_lit  *al_help       = arg_lit0(NULL, "help",             "Prints help infomation and then exits");
+  struct arg_lit  *al_onesec     = arg_lit0(NULL, "onesec",           "TODO"); /*OptionAdd( &opt, "onesec", 'x', &onesec);*/
+  struct arg_lit  *al_clrscan    = arg_lit0(NULL, "clrscan",          "TODO"); /*OptionAdd( &opt, "clrscan", 'x', &do_clr_scan_start);*/
+
+  struct arg_int  *ai_baud       = arg_int0(NULL, "baud", NULL,       "TODO"); /*OptionAdd( &opt, "baud", 'i', &nbaud);*/
+  struct arg_int  *ai_tau        = arg_int0(NULL, "tau", NULL,        "TODO"); /*OptionAdd( &opt, "tau", 'i', &mpinc);*/
+  struct arg_int  *ai_nrang      = arg_int0(NULL, "nrang", NULL,      "TODO"); /*OptionAdd(&opt,"nrang",'i',&nrang);*/
+  struct arg_int  *ai_cpid       = arg_int0(NULL, "cpid", NULL,       "TODO"); /*OptionAdd( &opt, "cpid", 'i', &cpid);*/
+  struct arg_int  *ai_clrskip    = arg_int0(NULL, "clrskip", NULL,    "TODO"); /*OptionAdd( &opt, "clrskip", 'i', &clrskip_secs);*/
+  
+  struct arg_int  *ai_frang      = arg_int0(NULL, "frang", NULL,      "TODO"); /*OptionAdd(&opt,"frang",'i',&frang); */
+  struct arg_int  *ai_rsep       = arg_int0(NULL, "rsep", NULL,       "TODO"); /*OptionAdd(&opt,"rsep",'i',&rsep); */
+  struct arg_int  *ai_dt         = arg_int0(NULL, "dt", NULL,         "TODO"); /*OptionAdd( &opt, "dt", 'i', &day); */
+  struct arg_int  *ai_nt         = arg_int0(NULL, "nt", NULL,         "TODO"); /*OptionAdd( &opt, "nt", 'i', &night); */
+  struct arg_int  *ai_df         = arg_int0(NULL, "df", NULL,         "TODO"); /*OptionAdd( &opt, "df", 'i', &dfrq); */
+  struct arg_int  *ai_nf         = arg_int0(NULL, "nf", NULL,         "TODO"); /*OptionAdd( &opt, "nf", 'i', &nfrq); */
+  struct arg_int  *ai_fixfrq     = arg_int0(NULL, "fixfrq", NULL,     "Fixes the transmit frequency of the radar to one frequency, in KHz"); /*OptionAdd( &opt, "fixfrq", 'i', &fixfrq); */
+  struct arg_int  *ai_xcf        = arg_int0(NULL, "xcf", NULL,        "TODO"); /*OptionAdd( &opt, "xcf", 'i', &xcnt); */
+  struct arg_int  *ai_ep         = arg_int0(NULL, "ep", NULL,         "TODO"); /*OptionAdd(&opt,"ep",'i',&errlog.port); */
+  struct arg_int  *ai_sp         = arg_int0(NULL, "sp", NULL,         "TODO"); /*OptionAdd(&opt,"sp",'i',&shell.port); */
+  struct arg_int  *ai_bp         = arg_int0(NULL, "bp", NULL,         "TODO"); /*OptionAdd(&opt,"bp",'i',&baseport); */
+  struct arg_int  *ai_sb         = arg_int0(NULL, "sb", NULL,         "Limits the minimum beam to the given value."); /*OptionAdd(&opt,"sb",'i',&sbm); */
+  struct arg_int  *ai_eb         = arg_int0(NULL, "eb", NULL,         "Limits the maximum beam number to the given value."); /*OptionAdd(&opt,"eb",'i',&ebm); */
+  struct arg_int  *ai_c          = arg_int0(NULL, "c", NULL,          "TODO"); /*OptionAdd(&opt,"c",'i',&cnum); */
+
+  struct arg_str  *as_ros        = arg_str0(NULL, "ros", NULL,        "TODO"); /* OptionAdd(&opt,"ros",'t',&roshost); */
+  struct arg_str  *as_ststr      = arg_str0(NULL, "stid", NULL,       "The station ID string. For example, use aze for azores east."); /* OptionAdd(&opt,"stid",'t',&ststr); */
+
+  struct arg_end  *ae_argend     = arg_end(ARG_MAXERRORS);
+
+  /* create list of all arguement structs */
+  void* argtable[] = {al_discretion, al_fast, al_nowait, al_help, al_onesec, al_clrscan,\
+                      ai_baud, ai_tau, ai_nrang, ai_cpid, ai_clrskip, ai_frang, ai_rsep, ai_dt, ai_nt, ai_df, ai_nf, ai_fixfrq, ai_xcf, ai_ep, ai_sp, ai_bp, ai_sb, ai_eb, ai_c, \
+                      as_ros, as_ststr, ae_argend};
+
 /*
   printf("Size of int %d\n",(int)sizeof(int));
   printf("Size of long %d\n",(int)sizeof(long));
@@ -252,50 +286,96 @@ int main(int argc,char *argv[]) {
   txpl=300;
   nbaud=1;
 
-  /* ========= PROCESS COMMAND LINE ARGUMENTS ============= */
+  /* set defaults to arguements */
+  al_discretion->count = discretion;
+  al_fast->count = 0;
+  al_nowait->count = 0;
+  al_clrscan->count = do_clr_scan_start;
+  al_onesec->count = onesec;
+  ai_baud->ival[0] = nbaud;
+  ai_tau->ival[0] = mpinc;
+  ai_nrang->ival[0] = nrang;
+  ai_cpid->ival[0] = cpid;
+  ai_clrskip->ival[0] = clrskip_secs; 
+  ai_frang->ival[0] = frang;
+  ai_rsep->ival[0] = rsep;
+  ai_dt->ival[0] = day;
+  ai_nt->ival[0] = night;
+  ai_df->ival[0] = dfrq;
+  ai_nf->ival[0] = nfrq;
+  ai_fixfrq->ival[0] = fixfrq;
+  ai_xcf->ival[0] = xcnt;
+  ai_ep->ival[0] = errlog.port;
+  ai_sp->ival[0] = shell.port;
+  ai_bp->ival[0] = baseport;
+  ai_sb->ival[0] = sbm;
+  ai_eb->ival[0] = ebm;
+  ai_c->ival[0] = cnum;
+ /* ========= PROCESS COMMAND LINE ARGUMENTS ============= */
 
-  OptionAdd(&opt,"di",'x',&discretion);
 
-  OptionAdd(&opt,"frang",'i',&frang);
-  OptionAdd(&opt,"rsep",'i',&rsep);
-  OptionAdd(&opt,"nrang",'i',&nrang);
+  nerrors = arg_parse(argc,argv,argtable);
 
-  OptionAdd( &opt, "dt", 'i', &day);
-  OptionAdd( &opt, "nt", 'i', &night);
-  OptionAdd( &opt, "df", 'i', &dfrq);
-  OptionAdd( &opt, "nf", 'i', &nfrq);
-  OptionAdd( &opt, "fixfrq", 'i', &fixfrq);
-  OptionAdd( &opt, "xcf", 'i', &xcnt);
-  OptionAdd( &opt, "baud", 'i', &nbaud);
-  OptionAdd( &opt, "tau", 'i', &mpinc);
+  if (nerrors > 0) {
+    arg_print_errors(stdout,ae_argend,"normalscan");
+  }
 
-  OptionAdd(&opt,"ep",'i',&errlog.port);
-  OptionAdd(&opt,"sp",'i',&shell.port); 
+  if (argc == 1) {
+    printf("No arguements found, try running %s with --help for more information.\n", progid);
+  }
 
-  OptionAdd(&opt,"bp",'i',&baseport); 
+  if(al_help->count > 0) {
+    printf("Usage: %s", progid);
+    arg_print_syntax(stdout,argtable,"\n");
+    printf("Put some useful help text here.\n");
+    arg_print_glossary(stdout,argtable,"  %-25s %s\n");
+    arg_freetable(argtable, sizeof(argtable)/sizeof(argtable[0]));
+    return 0;
+  }
+  
+  discretion = al_discretion->count;
+  fast = al_fast->count;
+  scannowait = al_nowait->count;
+  do_clr_scan_start = al_clrscan->count;
+  onesec = al_onesec->count;
 
-  OptionAdd(&opt,"ros",'t',&roshost);
+  nbaud = ai_baud->ival[0];
+  mpinc = ai_tau->ival[0];
+  nrang = ai_nrang->ival[0];
+  cpid = ai_cpid->ival[0];
+  clrskip_secs = ai_clrskip->ival[0]; 
+  frang = ai_frang->ival[0];
+  rsep = ai_rsep->ival[0];
+  day = ai_dt->ival[0];
+  night = ai_nt->ival[0];
+  dfrq = ai_df->ival[0];
+  nfrq = ai_nf->ival[0];
+  fixfrq = ai_fixfrq->ival[0];
+  xcnt = ai_xcf->ival[0];
+  errlog.port = ai_ep->ival[0];
+  shell.port = ai_sp->ival[0];
+  baseport = ai_bp->ival[0];
+  sbm = ai_sb->ival[0];
+  ebm = ai_eb->ival[0];
+  cnum = ai_c->ival[0];
 
-  OptionAdd(&opt,"stid",'t',&ststr); 
- 
-  OptionAdd(&opt,"fast",'x',&fast);
+  /* strings are a little messier */
+  /* sval is const array pointing to argv, so we malloc some space to copy it the contents to avoid warnings... */
+  if(strlen(as_ros->sval[0])) {
+    roshost = malloc((strlen(as_ros->sval[0]) + 1) * sizeof(char));
+    strcpy(roshost, as_ros->sval[0]);
+  } else {
+    roshost = getenv("ROSHOST");
+    if (roshost == NULL) roshost = droshost;
+  }
 
-  OptionAdd( &opt, "nowait", 'x', &scannowait);
-  OptionAdd( &opt, "onesec", 'x', &onesec);
+  if(strlen(as_ststr->sval[0])) {
+    ststr = malloc((strlen(as_ststr->sval[0]) + 1) * sizeof(char));
+    strcpy(ststr, as_ststr->sval[0]);
+  } else {
+    ststr = dfststr;
+  }
 
-  OptionAdd(&opt,"sb",'i',&sbm);
-  OptionAdd(&opt,"eb",'i',&ebm);
-  OptionAdd(&opt,"c",'i',&cnum);
-  OptionAdd( &opt, "clrskip", 'i', &clrskip_secs);
-  OptionAdd( &opt, "clrscan", 'x', &do_clr_scan_start);
-  OptionAdd( &opt, "cpid", 'i', &cpid);
-   
-  arg=OptionProcess(1,argc,argv,&opt,NULL);  
- 
-  if (ststr==NULL) ststr=dfststr;
-
-  if (roshost==NULL) roshost=getenv("ROSHOST");
-  if (roshost==NULL) roshost=droshost;
 
   if ((errlog.sock=TCPIPMsgOpen(errlog.host,errlog.port))==-1) {    
     fprintf(stderr,"Error connecting to error log.\n");
@@ -317,7 +397,8 @@ int main(int argc,char *argv[]) {
   }
 
   SiteStart(roshost);
-  arg=OptionProcess(1,argc,argv,&opt,NULL);  
+  /* TODO: Figure out why OptionProcess is called twice..
+  arg=OptionProcess(1,argc,argv,&opt,NULL);*/
 
   printf("Station ID: %s  %d\n",ststr,stid);
 
@@ -663,7 +744,11 @@ int main(int argc,char *argv[]) {
   
   for (n=0;n<tnum;n++) RMsgSndClose(task[n].sock);
   
-
+  /* free argtable and space allocated for arguements */
+  arg_freetable(argtable, sizeof(argtable)/sizeof(argtable[0]));
+  free(ststr);
+  free(roshost);
+  
   ErrLog(errlog.sock,progname,"Ending program.");
 
 
