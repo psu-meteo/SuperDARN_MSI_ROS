@@ -154,6 +154,7 @@ int main(int argc,char *argv[]) {
   /* ========= PROCESS COMMAND LINE ARGUMENTS ============= */
 
   OptionAdd(&opt,"di",'x',&discretion);
+  OptionAdd(&opt,"c",'i',&cnum);
 
   OptionAdd(&opt,"frang",'i',&frang);
   OptionAdd(&opt,"rsep",'i',&rsep);

@@ -105,6 +105,7 @@ int mppul=DEFAULT_MPPUL;
 int mplgs=DEFAULT_MPLGS;
 int mplgexs=0;
 int ifmode=0;
+int invert=0;
 int nrang=DEFAULT_NRANG;
 int frang=DEFAULT_FRANG;
 int rsep=DEFAULT_RSEP;

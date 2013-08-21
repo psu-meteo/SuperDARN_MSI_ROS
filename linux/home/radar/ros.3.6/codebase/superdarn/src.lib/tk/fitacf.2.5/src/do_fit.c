@@ -84,22 +84,8 @@ int do_fit(struct FitBlock *iptr,int lag_lim,int goose,
     return -1;
   }
 
-/* 
- * JDS: July 2013: 
- * FitACFBadlagsStereo is only valid if offset!=0
- *   This is used for the UK Stereo radar design which interleaves channels inside
- *   a pulse sequence. See badlag_s.c file for specifics on how "offset" is used
- *   to calculate transmit pulse locations.
- * UAF MSI-like radars use independent channels with offset=0 and use the 
- *   standard Badlags calculation when in multi-channel operation channel!=0.
- *
-*/ 
   if (iptr->prm.channel==0) FitACFBadlags(&iptr->prm,&badsmp);	
-  else {
-    if (iptr->prm.offset!=0) FitACFBadlagsStereo(&iptr->prm,&badsmp);  
-/* JDS: Added for UAF "multi-channel" radar design" */
-    else FitACFBadlags(&iptr->prm,&badsmp);
-  }
+  else FitACFBadlagsStereo(&iptr->prm,&badsmp);  
 
 
   /* Determine the lag_0 noise level (0 dB reference) and the noise level at 

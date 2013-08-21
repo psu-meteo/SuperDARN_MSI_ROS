@@ -88,6 +88,7 @@ extern int mppul;
 extern int mplgs;
 extern int mplgexs;
 extern int ifmode;
+extern int invert;
 extern int nrang;
 extern int frang;
 extern int rsep;

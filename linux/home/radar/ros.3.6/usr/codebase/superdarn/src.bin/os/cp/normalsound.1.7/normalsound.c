@@ -32,7 +32,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <math.h>
 #include <string.h>
 #include <time.h>
@@ -79,12 +78,6 @@
 #define SND_NFBIN 26
 #define MAX_SND_FREQS 12
 
-struct scatter_struct
-  {
-    int freq_bin;
-    double average_scatter;
-  };
-
 
 struct sounder_struct
   {
@@ -104,13 +97,13 @@ struct sounder_struct
   int qflg[ SND_NRANG];
   };
 
-void average_scatter_percentages( float iscat_percent[ MAX_SND_FREQS][ SND_NBM], int sft, float average_iscat_percent[ MAX_SND_FREQS], struct scatter_struct *scatter_data, int fw );
-int find_optimal_freq(int start_freq, int freq_dwell, int cutlass, int fw, int sounder_freqs[], int sft, struct sounder_struct *sounder_data,  struct scatter_struct *scatter_data, int act_snd_rec,int rank);
+
+void average_scatter_percentages( float iscat_percent[ MAX_SND_FREQS][ SND_NBM], int sft, float average_iscat_percent[ MAX_SND_FREQS], int fw );
+int find_optimal_freq(int start_freq, int cutlass, int fw, int sounder_freqs[], int sft, struct sounder_struct *sounder_data, int act_snd_rec);
 void write_sounding_record( char *progname, struct RadarParm *prm, struct FitData *fit, struct sounder_struct *sounder_data, int *act_snd_rec);
 void write_sounding_record_new( char *progname, struct RadarParm *prm, struct FitData *fit, struct sounder_struct *sounder_data, int *act_snd_rec);
-int compare_scatter_struct(const void *a, const void *b); 
 
-#define RT_TASK 3
+#define RT_TASK 2
 
 char *ststr=NULL;
 char *dfststr="tst";
@@ -133,9 +126,9 @@ struct TCPIPMsgHost errlog={"127.0.0.1",44100,-1};
 
 struct TCPIPMsgHost shell={"127.0.0.1",44101,-1};
 
-int tnum=4;      
-struct TCPIPMsgHost task[4]={
-  {"127.0.0.1",0,-1}, /* iqwrite */
+int tnum=3;      
+struct TCPIPMsgHost task[3]={
+  /*  {"127.0.0.1",0,-1}, iqwrite */
   {"127.0.0.1",2,-1}, /* rawacfwrite */
   {"127.0.0.1",3,-1}, /* fitacfwrite */
   {"127.0.0.1",4,-1}  /* rtserver */
@@ -177,11 +170,10 @@ int main(int argc,char *argv[]) {
 
     {43,43}};		/* alternate lag-0  */
 
-  char logtxt[1024];
+    char logtxt[1024];
 
   int exitpoll=0;
   int scannowait=0;
-  int rank=0;
  
   int scnsc=120;
   int scnus=0;
@@ -200,21 +192,8 @@ int main(int argc,char *argv[]) {
   /* If the file $SD_HDWPATH/sounder.dat exists, the next three parameters are read from it */
   /* the file contains one integer value per line */
   int freq_dwell=15; /* after so many minutes a new optimal frequency is evaluated */
-
-/* MCM*/
-/*
- *   int sounder_freqs_total=9;
- *     int sounder_freqs[ MAX_SND_FREQS]= { 9350, 10750 , 11600, 12500, 13750, 14550, 15250, 16650, 17850, 0,0, 0 };
-*/
-/* KOD */
   int sounder_freqs_total=8;
-  int sounder_freqs[ MAX_SND_FREQS]= { 10400 , 11500, 12100, 13500, 14600, 15800, 16200, 17200, 0, 0, 0 };
-/* ADAK */
-/*
-*  int sounder_freqs_total=8;
-*  int sounder_freqs[ MAX_SND_FREQS]= { 10400,10900, 12000, 13000, 14500, 15000, 16000, 17000, 18000, 0, 0, 0 };
-*/
-
+  int sounder_freqs[ MAX_SND_FREQS]= { 10400,10900, 12000, 13000, 14500, 15000, 16000, 17000, 18000, 0, 0, 0 };
   time_t last_freq_search, t_now;
   int fw=0; /* frequency weighting flag used in selecting the optimal freq */
   int sounder_beams[]={0,2,4,6,8,10,12,14};
@@ -222,30 +201,18 @@ int main(int argc,char *argv[]) {
   int sounder_beams_total=8, odd_beams=0;
   int sounder_freq;
   int sounder_beam_loop=1;
-  int normal_intt=6;
-  int fast_intt=3;
+  int normal_intt=5;
+  int fast_intt=2;
   int sounder_intt=2;
   int do_new_freq_search=0;
-  struct stat file_stat;
-  int rval=0,last_mtime=0;
   float sounder_time, time_needed=1.25;
   int cutlass=0;
   struct sounder_struct *sounder_data;
-  struct scatter_struct *scatter_data;
   int act_snd_rec= 0;
 
   char *snd_dir;
   char data_path[100];
   time(&last_freq_search);
-
-  rval=stat("/tmp/freq_qsort_01.dat",&file_stat);
-  if(rval==0) {
-    last_mtime=file_stat.st_mtime; 
-  } else { 
-    last_mtime=last_freq_search; 
-    file_stat.st_mtime=last_mtime;
-  }
-
   snd_dir= getenv("SD_SND_PATH");
   if( snd_dir==NULL )
     sprintf( data_path,"/data/ros/snd/");
@@ -267,7 +234,7 @@ int main(int argc,char *argv[]) {
     fprintf(stderr,"Sounder File: %s not found\n",snd_filename);
   }
   sounder_data= ( struct sounder_struct *) calloc( sizeof( struct sounder_struct), NUM_SND_DATA);
-  scatter_data= ( struct scatter_struct *) calloc( sizeof( struct scatter_struct), MAX_SND_FREQS+1);
+
 
   cp=155;
   intsc=normal_intt;
@@ -294,16 +261,24 @@ int main(int argc,char *argv[]) {
   OptionAdd( &opt, "nf", 'i', &nfrq);
   OptionAdd( &opt, "xcf", 'i', &xcnt);
 
+
+
+
   OptionAdd(&opt,"ep",'i',&errlog.port);
   OptionAdd(&opt,"sp",'i',&shell.port); 
+
   OptionAdd(&opt,"bp",'i',&baseport); 
+
   OptionAdd(&opt,"ros",'t',&roshost);
+
+
   OptionAdd(&opt,"stid",'t',&ststr); 
+ 
   OptionAdd(&opt,"fast",'x',&fast);
+
   OptionAdd( &opt, "nowait", 'x', &scannowait);
   OptionAdd(&opt,"sb",'i',&sbm);
   OptionAdd(&opt,"eb",'i',&ebm);
-  OptionAdd(&opt,"rank",'i',&rank);
    
   arg=OptionProcess(1,argc,argv,&opt,NULL);  
  
@@ -387,17 +362,6 @@ int main(int argc,char *argv[]) {
   
   OpsFitACFStart();
   tsgid=SiteTimeSeq(ptab);
-  TimeReadClock(&yr,&mo,&dy,&hr,&mt,&sc,&us);
-/*  Since we are sounding we only want to check Night/Day at operation startup */
-  if (OpsDayNight()==1) {
-        stfrq=dfrq;
-        mpinc=dmpinc;
-        frang=dfrang;
-  } else {
-        stfrq=nfrq;
-        mpinc=nmpinc;
-        frang=nfrang;
-  }        
 
   do {
 
@@ -436,7 +400,7 @@ int main(int argc,char *argv[]) {
     do {
 
       TimeReadClock(&yr,&mo,&dy,&hr,&mt,&sc,&us);
-/*  Since we are sounding we only want to check Night/Day at operation startup      
+      
       if (OpsDayNight()==1) {
         stfrq=dfrq;
         mpinc=dmpinc;
@@ -446,7 +410,7 @@ int main(int argc,char *argv[]) {
         mpinc=nmpinc;
         frang=nfrang;
       }        
-*/
+
       sprintf(logtxt,"Integrating beam:%d intt:%ds.%dus (%d:%d:%d:%d)",bmnum,
                       intsc,intus,hr,mt,sc,us);
       ErrLog(errlog.sock,progname,logtxt);
@@ -530,17 +494,17 @@ int main(int argc,char *argv[]) {
       else bmnum++;
 
     } while (1);
-/*
+
     ErrLog(errlog.sock,progname,"Waiting for scan boundary."); 
-    if ((exitpoll==0) && (scannowait==0)) SiteEndScan(scnsc,scnus);
-*/
+    /*if ((exitpoll==0) && (scannowait==0)) SiteEndScan(scnsc,scnus);*/
+
 
    if (exitpoll==0) {
       /* In here comes the sounder code */
       /* see if it's time for a new freq search */
       time(&t_now);
       do_new_freq_search= ( freq_dwell>0 && freq_dwell<=((t_now-last_freq_search)/60.) );
-      fprintf(stdout,"SND Code 0: %d %d %lf\n",do_new_freq_search,freq_dwell,(double)(t_now-last_freq_search)/60.);
+      printf("SND Code 0: %d %d %lf\n",do_new_freq_search,freq_dwell,(double)(t_now-last_freq_search)/60.);
       /* set the "sounder mode" scan variable */
       scan=-2;
       /* set the xcf variable to do cross-correlations (AOA) */
@@ -553,11 +517,10 @@ int main(int argc,char *argv[]) {
       /* do a new frequency search if it's time */
       if( do_new_freq_search && sounder_time>=5 ) {
             do_new_freq_search=0;
-            stfrq= find_optimal_freq( stfrq, freq_dwell,cutlass, fw, sounder_freqs, sounder_freqs_total, sounder_data, 
-                                      scatter_data,act_snd_rec,rank);
+            stfrq= find_optimal_freq( stfrq, cutlass, fw, sounder_freqs, sounder_freqs_total, sounder_data, act_snd_rec);
             sprintf( logtxt,"New Opt Freq; %d\n", stfrq);
             ErrLog( errlog.sock, progname, logtxt);
-            last_freq_search= t_now;
+              last_freq_search= t_now;
       }
       sounder_beam_loop= ( sounder_time-(float)sounder_intt > time_needed );
       while( sounder_beam_loop ) {
@@ -579,12 +542,15 @@ int main(int argc,char *argv[]) {
           ErrLog(errlog.sock,progname,logtxt);
           ErrLog(errlog.sock,progname,"Setting SND beam.");
           SiteStartIntt(intsc,intus);
+          /*SiteSetIntt(intsc,intus); */
+          /*SiteSetBeam(bmnum); */
           ErrLog( errlog.sock, progname, "Doing SND clear frequency search.");
           sprintf(logtxt, "FRQ: %d %d", sounder_freq, frqrng);
           ErrLog(errlog.sock,progname, logtxt);
           tfreq=SiteFCLR( sounder_freq, sounder_freq+frqrng);
-          sprintf(logtxt,"Transmitting SND on: %d (Noise=%g)",tfreq,noise);
-          ErrLog( errlog.sock, progname, logtxt);
+          /*SiteSetFreq(tfreq);*/
+            sprintf(logtxt,"Transmitting SND on: %d (Noise=%g)",tfreq,noise);
+                      ErrLog( errlog.sock, progname, logtxt);
 /* JDS: Remove unncessary and costly SiteTimeSeq allocation here */
 /*          tsgid= SiteTimeSeq(ptab); */
           nave= SiteIntegrate( lags);
@@ -665,22 +631,6 @@ int main(int argc,char *argv[]) {
           sounder_time= 60.0 - ( sc + us/ 1000000.0);
           sounder_beam_loop= ( sounder_time-(float)sounder_intt > time_needed );
       }
-     /* Check to see if new sounding data was recorded */
-
-      if(rank > 1 ) {
-        rval=stat("/tmp/freq_qsort_01.dat",&file_stat);
-        sprintf( logtxt,"Rank %d : rval: %d last mtime %d file_mtime: %d\n", rank,rval,last_mtime,(int)file_stat.st_mtime);
-        ErrLog( errlog.sock, progname, logtxt);
-        if(rval==0) {
-          if(file_stat.st_mtime != last_mtime) {
-            last_mtime=file_stat.st_mtime; 
-            stfrq= find_optimal_freq( stfrq, freq_dwell,cutlass, fw, sounder_freqs, sounder_freqs_total, sounder_data, scatter_data,act_snd_rec,rank);
-            sprintf( logtxt,"Rank 1 sounding data modified: New Opt Freq; %d\n", stfrq);
-            ErrLog( errlog.sock, progname, logtxt);
-          }
-        }
-      }
-
       /* now wait for the next normal_scan */
       intsc=normal_intt;
       if ( fast) intsc= fast_intt;
@@ -735,7 +685,7 @@ void write_sounding_record( char *progname, struct RadarParm *prm, struct FitDat
         } data;
   char data_path[100], data_filename[50], filename[80];
 
-  int byte, good_ranges[300];
+  int byte, good_ranges[75];
 
   double min_vel=-3000, max_vel=3000;
   double max_width=1000;
@@ -868,24 +818,24 @@ void write_sounding_record_new( char *progname, struct RadarParm *prm, struct Fi
 
   struct header_struct
         {
-        int32_t stime;
-        int16_t  site_id;
-        int16_t beam_no;
-        int16_t freq;
-        int16_t noise;
-        int16_t frange;
-        int16_t rsep;
-        int16_t gsct[ SND_NRANG];
-        int16_t qflg[ SND_NRANG];
+        long int stime;
+        short int  site_id;
+        short int beam_no;
+        short int freq;
+        short int noise;
+        short int frange;
+        short int rsep;
+        short int gsct[ SND_NRANG];
+        short int qflg[ SND_NRANG];
         char program_name[40];
         } header;
 
   struct data_struct
         {
-        int16_t pwr;
-        int16_t vel;
-        int16_t width;
-        int16_t AOA;
+        short int pwr;
+        short int vel;
+        short int width;
+        short int AOA;
         } data;
 
   char data_path[100], data_filename[50], filename[80];
@@ -993,8 +943,6 @@ void compute_scatter_percentage( struct sounder_struct *sounder_data, int act_sn
   struct sounder_struct *act_snd_data;
   int isnd, jsnd, ifrq, i;
   int returns=0, gscat_returns=0;
-  int notisolated[SND_NRANG]; /* added by Bristow 4/21/2011 for crude median filtering */
-
   for ( jsnd=0; jsnd< NUM_SND_DATA/ 4; jsnd++) {
     isnd= act_snd_rec - jsnd;
     if (isnd < 0) isnd= isnd + NUM_SND_DATA;
@@ -1003,24 +951,8 @@ void compute_scatter_percentage( struct sounder_struct *sounder_data, int act_sn
     if (act_snd_data->stime > 0 ) {
       returns=0;
       gscat_returns=0;
-
-      /* start added by Bristow 4/21/2011 for crude median filtering */
-      for( i=1; i< SND_NRANG-1; i++ ){
-        notisolated[i]=0;
-        if ((act_snd_data->qflg[i] == 1) && act_snd_data->pwr[i] >= 3.0 && act_snd_data->width[i] < 500.0 ) {
-          if ((act_snd_data->qflg[i+1] == 1) && act_snd_data->pwr[i+1] >= 3.0 && act_snd_data->width[i+1] < 500.0 ) {
-            notisolated[i]=1;
-          }
-          if ((act_snd_data->qflg[i-1] == 1) && act_snd_data->pwr[i-1] >= 3.0 && act_snd_data->width[i-1] < 500.0 ) {
-            notisolated[i]=1;
-          }
-        }
-      }
-       /* end added by Bristow 4/21/2011 for crude median filtering */
-
-
       for( i=0; i< SND_NRANG; i++ ) {
-        if( ( act_snd_data->qflg[i] == 1) && act_snd_data->pwr[i] >= 3.0 && act_snd_data->width[i] < 500.0 && notisolated[i]==1 ) {
+        if( ( act_snd_data->qflg[i] == 1) && act_snd_data->pwr[i] >= 3.0 && act_snd_data->width[i] < 500.0 ) {
           returns++;
           if( act_snd_data->gsct[i] ) gscat_returns++;
         }
@@ -1036,7 +968,7 @@ void compute_scatter_percentage( struct sounder_struct *sounder_data, int act_sn
 /****************** function average_scatter_percentage *************************/
 /* what is fw good for ?? */
 
-void average_scatter_percentages( float iscat_percent[ MAX_SND_FREQS][ SND_NBM], int sft, float average_iscat_percent[ MAX_SND_FREQS], struct scatter_struct *scatter_data, int fw )
+void average_scatter_percentages( float iscat_percent[ MAX_SND_FREQS][ SND_NBM], int sft, float average_iscat_percent[ MAX_SND_FREQS], int fw )
 {
 int ifrq, ibm;
 
@@ -1047,24 +979,8 @@ int ifrq, ibm;
       average_iscat_percent[ ifrq]+= iscat_percent[ ifrq][ ibm];
     average_iscat_percent[ ifrq]/= 16.0;
     if( fw ) average_iscat_percent[ ifrq]*= ifrq;
-    scatter_data[ifrq].freq_bin=ifrq;
-    scatter_data[ifrq].average_scatter=average_iscat_percent[ ifrq];
-
   }
 }
-
-int compare_scatter_struct(const void *a, const void *b)
-{
-    struct scatter_struct *struct_a = (struct scatter_struct *) a;
-    struct scatter_struct *struct_b = (struct scatter_struct *) b;
-
-    if (struct_a->average_scatter > struct_b->average_scatter) return 1;
-    else if (struct_a->average_scatter == struct_b->average_scatter) return 0;
-    else return -1;             
-}
-
-
-
 /******************* function find_optimal_freq_local() ************************/
 /* our frequency optimization scheme is this:                          */
 /*                                                                     */
@@ -1074,11 +990,8 @@ int compare_scatter_struct(const void *a, const void *b)
 /* average over all beams at each frequency and look for the freq      */
 /* with the highest percentage of ionsopheric backscatter.             */
 
-int find_optimal_freq(int start_freq, int freq_dwell,int cutlass, int fw, int sounder_freqs[], int sft, struct sounder_struct *sounder_data, 
-                      struct scatter_struct *scatter_data,int act_snd_rec,int rank)
-
+int find_optimal_freq(int start_freq, int cutlass, int fw, int sounder_freqs[], int sft, struct sounder_struct *sounder_data, int act_snd_rec)
 {
-  char filename[120];
   int i,j;
   int def_freq, def_freq_bin=0;
   /* array of iono scatter percentages (freq and beam number) */
@@ -1087,11 +1000,7 @@ int find_optimal_freq(int start_freq, int freq_dwell,int cutlass, int fw, int so
   float max_scatter=-10;
   int max_freq_bin=0;
   int dlf;
-  int save_time=0,time_diff=0;
-  int num_freqs_saved=0;
-  int use_file_data=0;
-  int save_scatter_data=0;
-  FILE *in, *out;
+  FILE *out;
 
   /* set the optimal freq to the sounder frequency closest to start_freq in case we don't find a good one; 20060308 DAndre */
   if( !cutlass ) {
@@ -1106,68 +1015,13 @@ int find_optimal_freq(int start_freq, int freq_dwell,int cutlass, int fw, int so
 /*
  *   else
  *       def_freq_bin=lsfreq[def_freq]/1000;
-*/
-
-  if(rank==1) save_scatter_data=1;
-  if(rank<=0) rank=1;
-  if(rank>=sft) rank=sft;
-  if(rank!=1) {
-  /* Read in saved rank 1 scatter data if available */ 
-    sprintf(filename,"/tmp/freq_qsort_01.dat");
-    in=fopen(filename,"r");
-    if( in != NULL ) {
-      fread(&save_time,sizeof(int),1,in);
-      time_diff=(int)time(NULL)-save_time;
-      /* If the data is fresh read it in and make use of it */ 
-      if((time_diff < freq_dwell/2*60) && (time_diff >= 0) ) {
-        fread(&num_freqs_saved,sizeof(int),1,in);
-        fread(scatter_data,sizeof(struct scatter_struct),num_freqs_saved,in);
-        use_file_data=1;
-      }
+ *       */
+  /* initialize the arrays */
+  for( i=0; i<MAX_SND_FREQS; i++ )
+    for( j=0; j<SND_NBM; j++ ) {
+      iscat_percent[i][j]=0;
     }
-    fclose(in);
-  }
-  if(use_file_data==0) {
-    /* initialize the arrays */
-    for( i=0; i<MAX_SND_FREQS; i++ ) {
-      for( j=0; j<SND_NBM; j++ ) {
-        iscat_percent[i][j]=0;
-      }
-    }
-    compute_scatter_percentage( sounder_data, act_snd_rec, sounder_freqs, sft, iscat_percent);
-    average_scatter_percentages( iscat_percent, sft, average_iscat_percent, scatter_data,fw );
-    qsort(scatter_data, sft, sizeof(struct scatter_struct), compare_scatter_struct);
-  }
 
-  if(rank==1 && save_scatter_data==1) {
-  /* Save rank 1 scatter data */ 
-    sprintf(filename,"/tmp/freq_qsort_01.dat");
-    out=fopen(filename,"w");
-    if( out != NULL ) {
-      save_time=(int)time(NULL);
-      fwrite(&save_time,sizeof(int),1,out);
-      fwrite(&sft,sizeof(int),1,out);
-      fwrite(scatter_data,sizeof(struct scatter_struct),sft,out);
-    }
-    fclose(out);
-  }
-  max_freq_bin=scatter_data[sft-rank].freq_bin;
-  max_scatter=scatter_data[sft-rank].average_scatter;
-  sprintf(filename,"/tmp/freq_qsort_%02d.out",rank);
-  out=fopen(filename,"w");
-  if( out != NULL ) {
-    for( i= 0; i < sft; i++ ) {
-      fprintf(out,"\n i:%2d freq_bin:%2d freq:%d scatter:%10.7lf", i, scatter_data[i].freq_bin, 
-        sounder_freqs[scatter_data[i].freq_bin ], scatter_data[i].average_scatter);
-    }
-    fprintf(out,"\n rank: %2d max_freq_bin:%2d max_scatter:%10.7lf", rank, max_freq_bin,max_scatter); 
-    fprintf( out, "\n");
-    fprintf( out,"use_file_data: %d  save_scatter_data: %d\n",use_file_data,save_scatter_data);
-    fclose(out);
-  }
-
-
-/*
   compute_scatter_percentage( sounder_data, act_snd_rec, sounder_freqs, sft, iscat_percent);
   average_scatter_percentages( iscat_percent, sft, average_iscat_percent, fw );
   max_scatter=-10;
@@ -1177,28 +1031,25 @@ int find_optimal_freq(int start_freq, int freq_dwell,int cutlass, int fw, int so
       max_freq_bin=i;
     }
 
-  // set a threshold on the improvement //
+  /* set a threshold on the improvement */
   if( max_scatter < 1.15* average_iscat_percent[def_freq_bin] || ( max_scatter - average_iscat_percent[def_freq_bin]) < 0.75 )
     max_freq_bin=def_freq_bin;
-*/
-
 
   def_freq= sounder_freqs[ max_freq_bin];
-  if(rank==1) {
-    out=fopen("/tmp/freq_search.out","w");
-    if( out != NULL ) {
-      for( i= 0; i < sft; i++ ) {
-        if( !fw )
-          fprintf(out,"\n%2d %d %10.7lf", i, sounder_freqs[ i], average_iscat_percent[i]);
-        else
-          fprintf(out,"\n%2d %d %10.7lf", i, sounder_freqs[ i], average_iscat_percent[i]/ i);
-      }
-      fprintf( out, "\nCutlass: %d",cutlass);
-      fprintf( out, "\nFreq Weighting: %d",fw);
-      fprintf( out, "\nReturned Frequency: %d kHz",def_freq);
-      fprintf( out, "\n");
-      fclose(out);
+
+  out=fopen("/tmp/freq_search.out","w");
+  if( out != NULL ) {
+    for( i= 0; i < sft; i++ ) {
+      if( !fw )
+        fprintf(out,"\n%2d %d %10.7lf", i, sounder_freqs[ i], average_iscat_percent[i]);
+      else
+        fprintf(out,"\n%2d %d %10.7lf", i, sounder_freqs[ i], average_iscat_percent[i]/ i);
     }
+    fprintf( out, "\nCutlass: %d",cutlass);
+    fprintf( out, "\nFreq Weighting: %d",fw);
+    fprintf( out, "\nReturned Frequency: %d kHz",def_freq);
+    fprintf( out, "\n");
+    fclose(out);
   }
 
   return(def_freq);

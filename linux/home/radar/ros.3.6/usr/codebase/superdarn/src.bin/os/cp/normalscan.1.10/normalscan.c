@@ -26,66 +26,11 @@
  
   
 */
-/* TODO:
- *   Redo the logic associated with boilerplate arguments for all tcp 
- *     connections so that we can remove stid,baseport,channel etc... 
- *     from the scheduler commandline. To ease readability, decrease 
- *     fragility of schedule writing and making it possible to ease 
- *     cross-site and mimic radar testing of common modes.
- *
- *     End goal: distribute a common schedule file, generated from the SD
- *       common schedule that works on all radars using the linux/qnx6 
- *       rst/ros system for which the program is designed.
- *       turn this: 
- *         2013 07 31 12 00   normalscan -stid kod -ep 43000 -sp 43001 -bp 43100 -fast -c 3
- *       into this:
- *         2013 07 31 12 00   normalscan -fast  
- *       by making the necessary site operational information discoverable from the running
- *       the environment.
- *
- *     JDS's suggested approach:
- *       Ideally we'd have a way to check environment variables for the
- *       boilerplate arguments at the start of program init. This would be
- *       best done as a new function in the ops library.  If the envvars exist
- *       use those values, else fill values with harmless defaults, then 
- *       reload the variables from commandline arguments if provided.  
- *
- *       At a minimum the stid and channel variables should be tastable from 
- *       the running environment from an Ops* function, which can then be 
- *       processed to to select the correct site library to dlopen. Once you
- *       have the correct site library loaded, specific tcp comm variables
- *       to use can be initialized with a Site* function. Controlprogram flow
- *       will have to be adjusted to make room for correct operation of an
- *       early Site* function. 
- *
- *    Convert existing cmdline option parsing from RST provided functions to
- *      standard GNU long option parsing.
- *
- *      Benefit: better tested option parsing code, which:
- *         1) correctly handles when an unknown argument is used.
- *         2) provides a standard way to provide a --usage and --help message
- *           to discover what options are supported.
- *
- *    Re-engineer Day/Night variable parsing to work with multi-site radars:
- *      Problem statement:
- *        Multi-site radars must use a common TR for both east and west radars
- *        but east and west radars will have different day/night settings in 
- *        their site library. Certain parameters like mpinc cannot be
- *        day/night switched as they impact the TR gate timing.
- *      Goal:
- *        Abstract Day/Night switch logic in this cp such that site operators
- *        can override the cp's request to day/night switch specific parameters.
- *        This way we can continue to add Day/Night parameter logic into the
- *        common controlprogram without disrupting site operations at
- *        multi-site radars. We should be able to day/night switch TR senstive
- *        parameters, we just have to be a little smarter about it.     
-*/
 
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
-#include <sys/time.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
@@ -157,16 +102,6 @@ struct TCPIPMsgHost task[4]={
 int main(int argc,char *argv[]) {
 
   int ptab[8] = {0,14,22,24,27,31,42,43};
-  int *bcode=NULL;
-  int bcode1[1]={1};
-  int bcode2[2]={1,-1};
-  int bcode3[3]={1,1,-1};
-  int bcode4[4]={1,1,-1,1};
-  int bcode5[5]={1,1,1,-1,1};
-  int bcode7[7]={1,1,1,-1,-1,1,-1};
-  int bcode11[11]={1,1,1,-1,-1,-1,1,-1,-1,1,-1};
-  int bcode13[13]={1,1,1,1,1,-1,-1,1,1,-1,1,-1,1};
-
 
   int lags[LAG_SIZE][2] = {
     { 0, 0},		/*  0 */
@@ -201,31 +136,22 @@ int main(int argc,char *argv[]) {
 
   int exitpoll=0;
   int scannowait=0;
-  int onesec=0; 
+ 
   int scnsc=120;
   int scnus=0;
-  int elapsed_secs=0;
-  int default_clrskip_secs=30; 
-  int clrskip_secs=-1;
-  int do_clr_scan_start=0;
-  int cpid=0;
-  int startup=1;
-  struct timeval t0,t1;
-
   int skip;
   int cnt=0;
 
   unsigned char fast=0;
   unsigned char discretion=0;
 
-  int status=0,n,i;
+  int status=0,n;
 
   int beams=0;
   int total_scan_usecs=0;
   int total_integration_usecs=0;
   int fixfrq=-1;
 
-/*
   printf("Size of int %d\n",(int)sizeof(int));
   printf("Size of long %d\n",(int)sizeof(long));
   printf("Size of long long %d\n",(int)sizeof(long long));
@@ -239,7 +165,6 @@ int main(int argc,char *argv[]) {
   printf("Size of Struct CLRFreq  %d\n",(int)sizeof(struct CLRFreqPRM));
   printf("Size of Struct TSGprm  %d\n",(int)sizeof(struct TSGprm));
   printf("Size of Struct SiteSettings  %d\n",(int)sizeof(struct SiteSettings));
-*/
 
   cp=150;
   intsc=7;
@@ -247,10 +172,10 @@ int main(int argc,char *argv[]) {
   mppul=8;
   mplgs=23;
   mpinc=1500;
+  dmpinc=1500;
   nrang=75;
   rsep=45;
   txpl=300;
-  nbaud=1;
 
   /* ========= PROCESS COMMAND LINE ARGUMENTS ============= */
 
@@ -266,8 +191,6 @@ int main(int argc,char *argv[]) {
   OptionAdd( &opt, "nf", 'i', &nfrq);
   OptionAdd( &opt, "fixfrq", 'i', &fixfrq);
   OptionAdd( &opt, "xcf", 'i', &xcnt);
-  OptionAdd( &opt, "baud", 'i', &nbaud);
-  OptionAdd( &opt, "tau", 'i', &mpinc);
 
   OptionAdd(&opt,"ep",'i',&errlog.port);
   OptionAdd(&opt,"sp",'i',&shell.port); 
@@ -281,14 +204,10 @@ int main(int argc,char *argv[]) {
   OptionAdd(&opt,"fast",'x',&fast);
 
   OptionAdd( &opt, "nowait", 'x', &scannowait);
-  OptionAdd( &opt, "onesec", 'x', &onesec);
-
   OptionAdd(&opt,"sb",'i',&sbm);
   OptionAdd(&opt,"eb",'i',&ebm);
   OptionAdd(&opt,"c",'i',&cnum);
-  OptionAdd( &opt, "clrskip", 'i', &clrskip_secs);
-  OptionAdd( &opt, "clrscan", 'x', &do_clr_scan_start);
-  OptionAdd( &opt, "cpid", 'i', &cpid);
+
    
   arg=OptionProcess(1,argc,argv,&opt,NULL);  
  
@@ -325,23 +244,17 @@ int main(int argc,char *argv[]) {
   strncpy(combf,progid,80);   
  
   OpsSetupCommand(argc,argv);
-/*  
- *  FIXME: JDS: RadarShell has a problem with multi-site and multi-channel setups. Disabling for now
-*/
-/*
   OpsSetupShell();
    
-  RadarShellParse(&rstable,"sbm l ebm l dfrq l nfrq l frqrng l xcnt l",                        
+  RadarShellParse(&rstable,"sbm l ebm l dfrq l nfrq l dfrang l nfrang l dmpinc l nmpinc l frqrng l xcnt l",                        
                   &sbm,&ebm,                              
                   &dfrq,&nfrq,                  
+                  &dfrang,&nfrang,                            
+                  &dmpinc,&nmpinc,                            
                   &frqrng,&xcnt);      
-*/  
+  
  
   status=SiteSetupRadar();
-  gettimeofday(&t0,NULL);
-  elapsed_secs=clrskip_secs;
-  gettimeofday(&t0,NULL);
-  gettimeofday(&t1,NULL);
 
   printf("Initial Setup Complete: Station ID: %s  %d\n",ststr,stid);
   
@@ -350,119 +263,33 @@ int main(int argc,char *argv[]) {
     exit (1);
   }
 
-  beams=abs(ebm-sbm)+1;
   if (fast) {
     cp=151;
-    intsc=3;
-    intus=500000;
     scnsc=60;
     scnus=0;
-    sprintf(progname,"normalscan (fast)");
   } else {
     scnsc=120;
     scnus=0;
-    sprintf(progname,"normalscan");
   }
-  if (onesec) {
-    cp=152;
-    intsc=1;
-    intus=0;
-    scnsc=beams+4;
-    scnus=0;
-    sprintf(progname,"normalscan (onesec)");
-    scannowait=1;
-    if(clrskip_secs < 0) clrskip_secs=default_clrskip_secs;
-  }
-  if(beams==1) {
-    /* Camping Beam */
-    sprintf(progname,"normalscan (camp)");
-    scannowait=1;
-    if(clrskip_secs < 0) clrskip_secs=default_clrskip_secs;
-    cp=153;
-    sprintf(logtxt,"Normalscan configured for camping beam");
-    ErrLog(errlog.sock,progname,logtxt);
-    sprintf(logtxt," fast: %d onesec: %d cp: %d clrskip_secs: %d intsc: %d",fast,onesec,cp,clrskip_secs,intsc);
-    ErrLog(errlog.sock,progname,logtxt);
-  }
+
+  beams=abs(ebm-sbm)+1;
   if(beams > 16) {
-      if (scannowait==0 && onesec==0) {
-        total_scan_usecs=(scnsc-3)*1E6+scnus;
-        total_integration_usecs=total_scan_usecs/beams;
-        intsc=total_integration_usecs/1E6;
-        intus=total_integration_usecs -(intsc*1E6);
-      }
-  }
-  switch(nbaud) {
-    case 1:
-      bcode=bcode1;
-    case 2:
-      bcode=bcode2;
-      break;
-    case 3:
-      bcode=bcode3;
-      break;
-    case 4:
-      bcode=bcode4;
-      break;
-    case 5:
-      bcode=bcode5;
-      break;
-    case 7:
-      bcode=bcode7;
-      break;
-    case 11:
-      bcode=bcode11;
-      break;
-    case 13:
-      bcode=bcode13;
-      break;
-    default:
-      ErrLog(errlog.sock,progname,"Error: Unsupported nbaud requested, exiting");
-      SiteExit(0);
-  }
-  pcode=(int *)malloc((size_t)sizeof(int)*mppul*nbaud);
-  for(i=0;i<mppul;i++){
-    for(n=0;n<nbaud;n++){
-      pcode[i*nbaud+n]=bcode[n];
+    if (scannowait==0) {
+      total_scan_usecs=(scnsc-3)*1E6+scnus;
+      total_integration_usecs=total_scan_usecs/beams;
+      intsc=total_integration_usecs/1E6;
+      intus=total_integration_usecs -(intsc*1E6);
     }
   }
-
-
-  if(cpid > 0) cp=cpid;
-
   if (discretion) cp= -cp;
 
-  txpl=(nbaud*rsep*20)/3;
+  txpl=(rsep*20)/3;
 
-  if ((mpinc % txpl) || (mpinc % 10))  {
-    sprintf(logtxt,"Error: mpinc not multiple of txpl... checking to see if it can be adjusted"); 
-    ErrLog(errlog.sock,progname,logtxt);
-    sprintf(logtxt,"Initial: mpinc: %d txpl: %d  nbaud: %d  rsep: %d", mpinc , txpl, nbaud, rsep); 
-    ErrLog(errlog.sock,progname,logtxt);
-    if((txpl % 10)==0) {
+  if (fast) sprintf(progname,"normalscan (fast)");
+  else sprintf(progname,"normalscan");
 
-      sprintf(logtxt,"Attempting to adjust mpinc to correct"); 
-      ErrLog(errlog.sock,progname,logtxt);
-      if (mpinc < txpl) mpinc=txpl;
-      int minus_remain=mpinc % txpl;
-      int plus_remain=txpl -(mpinc % txpl);
-      if (plus_remain > minus_remain)
-        mpinc = mpinc - minus_remain;
-      else
-         mpinc = mpinc + plus_remain;
-      if (mpinc==0) mpinc = mpinc + plus_remain; 
 
-    }
-  } 
-  if ((mpinc % txpl) || (mpinc % 10) || (mpinc==0))  {
-     sprintf(logtxt,"Error: mpinc: %d txpl: %d  nbaud: %d  rsep: %d", mpinc , txpl, nbaud, rsep); 
-     ErrLog(errlog.sock,progname,logtxt);
-     exitpoll=1;
-     SiteExit(0);
-  }
-  sprintf(logtxt,"Adjusted: mpinc: %d txpl: %d  nbaud: %d  rsep: %d", mpinc , txpl, nbaud, rsep); 
-  ErrLog(errlog.sock,progname,logtxt);
-  
+
   OpsLogStart(errlog.sock,progname,argc,argv);  
 
   OpsSetupTask(tnum,task,errlog.sock,progname);
@@ -497,7 +324,7 @@ int main(int argc,char *argv[]) {
     scan=1;
     
     ErrLog(errlog.sock,progname,"Starting scan.");
-    if(do_clr_scan_start) startup=1; 
+   
     if (xcnt>0) {
       cnt++;
       if (cnt==xcnt) {
@@ -506,84 +333,50 @@ int main(int argc,char *argv[]) {
       } else xcf=0;
     } else xcf=0;
 
-    if(scannowait==0) skip=OpsFindSkip(scnsc,scnus);
-    else skip=0;
-
+    skip=OpsFindSkip(scnsc,scnus);
+    
     if (backward) {
       bmnum=sbm-skip;
-      if (bmnum>ebm) bmnum=sbm;
+      if (bmnum<ebm) bmnum=sbm;
     } else {
       bmnum=sbm+skip;
       if (bmnum>ebm) bmnum=sbm;
     }
 
     do {
-      if (backward) {
-        if (bmnum>sbm) bmnum=sbm;
-        if (bmnum<ebm) bmnum=ebm;
-      } else {
-        if (bmnum<sbm) bmnum=sbm;
-        if (bmnum>ebm) bmnum=ebm;
-      }
 
       TimeReadClock(&yr,&mo,&dy,&hr,&mt,&sc,&us);
-      /*
-       * JDS: 201307 
-       * Day/Night parameter switching for any parameters associated with 
-       *  the pulse transmit sequencing can _NOT_ safely be done at multi-site radars. 
-       *  East and West radars may have different day/night settings and controlprograms
-       *  must use the same TR gate signal for correct operation.
-       *  Any parameter which causes the TR gate timing to shift will lead to incorrect operation
-       *  at multi-site radars.
-       *
-       *  Examples of parameters that should not day/night switch on multi-site radars:
-       *    mpinc,txpl,rsep,ptab,lags,pcode,nbaud 
-       *  Examples of paramters that can be day/night switched on multi-site radars:
-       *    tfreq,nrang,frang,sbm,ebm
-       *  Any variables added to the day/night switch logic below should be tested on multi-site
-       *  radars.   
-      */  
-      /* 
-       * FIXME: Find a way to ask the site environment if its okay to day/night switch specific variables 
-      */
+      
       if (OpsDayNight()==1) {
         stfrq=dfrq;
+        mpinc=dmpinc;
+        frang=dfrang;
       } else {
         stfrq=nfrq;
+        mpinc=nmpinc;
+        frang=nfrang;
       }        
       if(fixfrq>0) {
         stfrq=fixfrq;
         tfreq=fixfrq;
         noise=0; 
       }
+      sprintf(logtxt,"Integrating beam:%d intt:%ds.%dus (%d:%d:%d:%d)",bmnum,
+                      intsc,intus,hr,mt,sc,us);
+      ErrLog(errlog.sock,progname,logtxt);
 
       ErrLog(errlog.sock,progname,"Starting Integration.");
-      sprintf(logtxt," Int parameters:: rsep: %d mpinc: %d sbm: %d ebm: %d nrang: %d nbaud: %d scannowait: %d clrskip_secs: %d do_clr_scan_start: %d cpid: %d",
-              rsep,mpinc,sbm,ebm,nrang,nbaud,scannowait,clrskip_secs,do_clr_scan_start,cp);
-      ErrLog(errlog.sock,progname,logtxt);
-
-      sprintf(logtxt,"Integrating beam:%d intt:%ds.%dus (%d:%d:%d:%d) %d %d",bmnum,
-              intsc,intus,hr,mt,sc,us,sbm,ebm);
-      ErrLog(errlog.sock,progname,logtxt);
-
             
-      printf("Entering Site Start Intt Station ID: %s  %d\n",ststr,stid);
+    printf("Entering Site Start Intt Station ID: %s  %d\n",ststr,stid);
       SiteStartIntt(intsc,intus);
-      gettimeofday(&t1,NULL);
-      elapsed_secs=t1.tv_sec-t0.tv_sec;
-      if(elapsed_secs<0) elapsed_secs=0;
-      if((elapsed_secs >= clrskip_secs)||(startup==1)) {
-        startup=0;
-        ErrLog(errlog.sock,progname,"Doing clear frequency search.");
 
-        sprintf(logtxt, "FRQ: %d %d", stfrq, frqrng);
-        ErrLog(errlog.sock,progname, logtxt);
+      ErrLog(errlog.sock,progname,"Doing clear frequency search."); 
+   
+      sprintf(logtxt, "FRQ: %d %d", stfrq, frqrng);
+      ErrLog(errlog.sock,progname, logtxt);
 
-        if(fixfrq<0) {      
-          tfreq=SiteFCLR(stfrq-frqrng/2,stfrq+frqrng/2);
-        }
-        t0.tv_sec=t1.tv_sec;
-        t0.tv_usec=t1.tv_usec;
+      if(fixfrq<0) {      
+        tfreq=SiteFCLR(stfrq-frqrng/2,stfrq+frqrng/2);
       }
       sprintf(logtxt,"Transmitting on: %d (Noise=%g)",tfreq,noise);
       ErrLog(errlog.sock,progname,logtxt);
@@ -641,23 +434,19 @@ int main(int argc,char *argv[]) {
         if (msg.data[n].type==RAW_TYPE) free(msg.ptr[n]);
         if (msg.data[n].type==FIT_TYPE) free(msg.ptr[n]); 
       }          
-/*  
- *  FIXME: JDS: RadarShell has a problem with multi-site and multi-channel setups. Disabling for now
-*/
-/*
+
       RadarShell(shell.sock,&rstable);
-*/
-      if (exitpoll !=0)  break;
+
+      if (exitpoll !=0) break;
       scan=0;
-      if (bmnum==ebm)  break;
+      if (bmnum==ebm) break;
       if (backward) bmnum--;
       else bmnum++;
+
     } while (1);
 
-    if ((exitpoll==0) && (scannowait==0)) {
-      ErrLog(errlog.sock,progname,"Waiting for scan boundary."); 
-      SiteEndScan(scnsc,scnus);
-    }
+    ErrLog(errlog.sock,progname,"Waiting for scan boundary."); 
+    if ((exitpoll==0) && (scannowait==0)) SiteEndScan(scnsc,scnus);
   } while (exitpoll==0);
   
   
