@@ -34,7 +34,7 @@
 #define REAL_BUF_OFFSET 0
 #define IMAG_BUF_OFFSET 1
 #define USEC 1000000.0
-int ADW_exit_flag=0;
+int AZW_exit_flag=0;
 char channame[5]="\0";
 
 FILE *seqlog=NULL;
@@ -49,19 +49,19 @@ FILE *f_diagnostic_ascii=NULL;
 
 int yday=-1;
 
-void SiteAdwExit(int signum) {
+void SiteAzwExit(int signum) {
 
   struct ROSMsg msg;
   switch(signum) {
     case 2:
-      if (debug) printf("SiteAdwExit: Sig %d: %d\n",signum,ADW_exit_flag); 
+      if (debug) printf("SiteAzwExit: Sig %d: %d\n",signum,AZW_exit_flag); 
       cancel_count++;
-      ADW_exit_flag=signum;
+      AZW_exit_flag=signum;
       if (cancel_count < 3 )
         break;
     case 0:
-      if (debug) printf("SiteAdwExit: Sig %d: %d\n",signum,ADW_exit_flag); 
-      if(ADW_exit_flag!=0) {
+      if (debug) printf("SiteAzwExit: Sig %d: %d\n",signum,AZW_exit_flag); 
+      if(AZW_exit_flag!=0) {
         msg.type=QUIT;
         TCPIPMsgSend(sock, &msg, sizeof(struct ROSMsg));
         TCPIPMsgRecv(sock, &msg, sizeof(struct ROSMsg));
@@ -89,11 +89,11 @@ void SiteAdwExit(int signum) {
       } 
       break;
     default:
-      if (debug) printf("SiteAdwExit: Sig %d: %d\n",signum,ADW_exit_flag); 
-      if(ADW_exit_flag==0) {
-        ADW_exit_flag=signum;
+      if (debug) printf("SiteAzwExit: Sig %d: %d\n",signum,AZW_exit_flag); 
+      if(AZW_exit_flag==0) {
+        AZW_exit_flag=signum;
       }
-      if(ADW_exit_flag!=0) {
+      if(AZW_exit_flag!=0) {
         msg.type=QUIT;
         TCPIPMsgSend(sock, &msg, sizeof(struct ROSMsg));
         TCPIPMsgRecv(sock, &msg, sizeof(struct ROSMsg));
@@ -126,10 +126,10 @@ void SiteAdwExit(int signum) {
 
 
 
-int SiteAdwStart(char *host) {
-  signal(SIGPIPE,SiteAdwExit);
-  signal(SIGINT,SiteAdwExit);
-  signal(SIGUSR1,SiteAdwExit);
+int SiteAzwStart(char *host) {
+  signal(SIGPIPE,SiteAzwExit);
+  signal(SIGINT,SiteAzwExit);
+  signal(SIGUSR1,SiteAzwExit);
 
   for(nave=0;nave<MAXNAVE;nave++) {
     seqbadtr[nave].num=0;
@@ -145,7 +145,7 @@ int SiteAdwStart(char *host) {
   tsgbuf=NULL;
   tsgprm.pat=NULL;
   samples=NULL;
-  ADW_exit_flag=0;
+  AZW_exit_flag=0;
   cancel_count=0;
   sock=0;
   fprintf(stderr,"ROS server:%s\n",host);
@@ -159,15 +159,20 @@ int SiteAdwStart(char *host) {
   cnum=1;
 /* Beam Scan Direction settings */
   backward=1;
-  sbm=21;
+  sbm=23;
   ebm=0;
-/* set invert to 1 to account for amp inversion difference */
+/* 
+ *  If you need to correct for inverted phase between main and inter rf signal 
+ *  invert=0  No inversion necessary 
+ *   invert=non-zero  Inversion necassary 
+*/
   invert=1;
+  debug=0;
 /* rxchn number of channels typically 1*/
 /* rngoff argument in ACFCalculate.. is 2*rxchn and is normally set to 2 */
   rxchn=1;
   if (debug) {
-    fprintf(stderr,"SiteAdwStart: rxchn=%d\n",rxchn);
+    fprintf(stderr,"SiteAzwStart: rxchn=%d\n",rxchn);
 
   } 
 
@@ -180,7 +185,7 @@ int SiteAdwStart(char *host) {
 }
 
 
-int SiteAdwSetupRadar() {
+int SiteAzwSetupRadar() {
 
   int32 temp32,data_length;;
   char ini_entry_name[80];
@@ -204,7 +209,7 @@ int SiteAdwSetupRadar() {
   if (rmsg.status < 0) {
     fprintf(stderr,"Requested radar channel unavailable\nSleeping 1 second and exiting\n");
     sleep(1);
-    SiteAdwExit(-1);
+    SiteAzwExit(-1);
   } 
   if (debug) {
     fprintf(stderr,"SET_RADAR_CHAN:type=%c\n",rmsg.type);
@@ -248,14 +253,14 @@ int SiteAdwSetupRadar() {
     fprintf(stderr,"GET_PARAMETERS:status=%d\n",rmsg.status);
   }
 
-  sprintf(sharedmemory,"IQBuff_Adw_%d_%d",rnum,cnum);
+  sprintf(sharedmemory,"IQBuff_Azw_%d_%d",rnum,cnum);
 
 
   samples=(int16 *)
     ShMemAlloc(sharedmemory,IQBUFSIZE,O_RDWR | O_CREAT,1,&shmemfd);
   if(samples==NULL) { 
     fprintf(stderr,"IQBuffer %s is Null\n",sharedmemory);
-    SiteAdwExit(-1);
+    SiteAzwExit(-1);
   }
 /* Setup the seqlog file here*/
   gettimeofday(&currtime,NULL);
@@ -285,7 +290,7 @@ int SiteAdwSetupRadar() {
   msglog_dir = getenv("MSGLOG_DIR");
   if(msglog_dir!=NULL) { 
     fprintf(stdout,"msglog dir: %s\n",msglog_dir);
-    sprintf(msglog_name,"%s/msglog.adw%s.%04d%02d%02d",msglog_dir,channame,tstruct.tm_year+1900,tstruct.tm_mon+1,tstruct.tm_mday);
+    sprintf(msglog_name,"%s/msglog.azw%s.%04d%02d%02d",msglog_dir,channame,tstruct.tm_year+1900,tstruct.tm_mon+1,tstruct.tm_mday);
     fprintf(stdout,"msglog filename: %s\n",msglog_name);
     msglog=fopen(msglog_name,"a+");
   } else {
@@ -300,7 +305,7 @@ int SiteAdwSetupRadar() {
   seqlog_dir = getenv("SEQLOG_DIR");
   if(seqlog_dir!=NULL) { 
     fprintf(stdout,"seqlog dir: %s\n",seqlog_dir);
-    sprintf(seqlog_name,"%s/seqlog.adw%s.%04d%02d%02d",seqlog_dir,channame,tstruct.tm_year+1900,tstruct.tm_mon+1,tstruct.tm_mday);
+    sprintf(seqlog_name,"%s/seqlog.azw%s.%04d%02d%02d",seqlog_dir,channame,tstruct.tm_year+1900,tstruct.tm_mon+1,tstruct.tm_mday);
     fprintf(stdout,"seqlog filename: %s\n",seqlog_name);
     seqlog=fopen(seqlog_name,"a+");
   } else {
@@ -311,7 +316,7 @@ int SiteAdwSetupRadar() {
 }
 
  
-int SiteAdwStartScan() {
+int SiteAzwStartScan() {
   struct ROSMsg smsg,rmsg;
   smsg.type=SET_ACTIVE;
   TCPIPMsgSend(sock, &smsg, sizeof(struct ROSMsg));
@@ -322,14 +327,14 @@ int SiteAdwStartScan() {
 
 
 
-int SiteAdwStartIntt(int sec,int usec) {
+int SiteAzwStartIntt(int sec,int usec) {
 
   struct ROSMsg smsg,rmsg;
   int total_samples=0;
   double secs;
-  SiteAdwExit(0);
+  SiteAzwExit(0);
   if (debug) {
-    fprintf(stderr,"SiteAdwStartInt: start\n");
+    fprintf(stderr,"SiteAzwStartInt: start\n");
   }
   total_samples=tsgprm.samples+tsgprm.smdelay;
   smsg.type=PING; 
@@ -374,7 +379,7 @@ int SiteAdwStartIntt(int sec,int usec) {
   tock.tv_usec+=(secs-floor(secs))*1E6;
 
   if (debug) {
-    fprintf(stderr,"SiteAdwStartInt: end\n");
+    fprintf(stderr,"SiteAzwStartInt: end\n");
   }
   return 0;
 
@@ -382,13 +387,13 @@ int SiteAdwStartIntt(int sec,int usec) {
 }
 
 
-int SiteAdwFCLR(int stfreq,int edfreq) {
+int SiteAzwFCLR(int stfreq,int edfreq) {
   int32 tfreq;
   struct ROSMsg smsg,rmsg;
   struct CLRFreqPRM fprm;
   int total_samples=0;
 
-  SiteAdwExit(0);
+  SiteAzwExit(0);
 
   total_samples=tsgprm.samples+tsgprm.smdelay;
   rprm.tbeam=bmnum;   
@@ -440,14 +445,14 @@ int SiteAdwFCLR(int stfreq,int edfreq) {
 
 
 
-int SiteAdwTimeSeq(int *ptab) {
+int SiteAzwTimeSeq(int *ptab) {
 
   int i;
   int flag,index=0;
   struct ROSMsg smsg,rmsg;
 
   struct SeqPRM tprm;
-  SiteAdwExit(0);
+  SiteAzwExit(0);
   if (tsgbuf !=NULL) TSGFree(tsgbuf);
   if (tsgprm.pat !=NULL) free(tsgprm.pat);
   memset(&tsgprm,0,sizeof(struct TSGprm));
@@ -498,7 +503,7 @@ int SiteAdwTimeSeq(int *ptab) {
   return index;
 }
 
-int SiteAdwIntegrate(int (*lags)[2]) {
+int SiteAzwIntegrate(int (*lags)[2]) {
 
   int *lagtable[2]={NULL,NULL};
   int lagsum[LAG_SIZE];
@@ -523,7 +528,7 @@ int SiteAdwIntegrate(int (*lags)[2]) {
 
   int nave=0;
 
-  int atstp=0;
+  int atstp=0.;
   int thr=0,lmt=0;
   int aflg=0,abflg=0;
 
@@ -533,18 +538,19 @@ int SiteAdwIntegrate(int (*lags)[2]) {
   int temp;
   struct timespec time_now;
 
-  void * dest; /*AJ*/
+  void *dest=NULL; /*AJ*/
   int total_samples=0; /*AJ*/
   int usecs;
   short I,Q;
+  double phi_m,phi_i,phi_d;
   int32 temp32;
   /* phase code declarations */
   int n,nsamp, *code,   Iout, Qout;
   uint32 uI32,uQ32;
   if (debug) {
-    fprintf(stderr,"ADW SiteIntegrate: start\n");
+    fprintf(stderr,"AZW SiteIntegrate: start\n");
   }
-  SiteAdwExit(0);
+  SiteAzwExit(0);
   clock_gettime(CLOCK_REALTIME, &time_now);
   ttime=time_now.tv_sec;
   gmtime_r(&ttime,&tstruct);
@@ -614,12 +620,12 @@ int SiteAdwIntegrate(int (*lags)[2]) {
     lagtable[0]=malloc(sizeof(int)*(mplgs+1));
     if(lagtable[0]==NULL) {
       fprintf(stderr,"Lagtable-0 is Null\n");
-      SiteAdwExit(-1);
+      SiteAzwExit(-1);
     }
     lagtable[1]=malloc(sizeof(int)*(mplgs+1));
     if(lagtable[1]==NULL) {
       fprintf(stderr,"Lagtable-1 is Null\n");
-      SiteAdwExit(-1);
+      SiteAzwExit(-1);
     }
     for (i=0;i<=mplgs;i++) {
       lagtable[0][i]=lags[i][0];
@@ -629,12 +635,12 @@ int SiteAdwIntegrate(int (*lags)[2]) {
     lagtable[0]=malloc(sizeof(int)*(mplgexs+1));
     if(lagtable[0]==NULL) {
       fprintf(stderr,"Lagtable-0 is Null\n");
-      SiteAdwExit(-1);
+      SiteAzwExit(-1);
     }
     lagtable[1]=malloc(sizeof(int)*(mplgexs+1));
     if(lagtable[1]==NULL) {
       fprintf(stderr,"Lagtable-1 is Null\n");
-      SiteAdwExit(-1);
+      SiteAzwExit(-1);
     }
 
     for (i=0;i<=mplgexs;i++) {
@@ -664,7 +670,7 @@ int SiteAdwIntegrate(int (*lags)[2]) {
 
 /* Seq loop to trigger and collect data */
   while (1) {
-    SiteAdwExit(0);
+    SiteAzwExit(0);
     if(f_diagnostic_ascii!=NULL) {
       clock_gettime(CLOCK_REALTIME, &time_now);
       ttime=time_now.tv_sec;
@@ -675,7 +681,7 @@ int SiteAdwIntegrate(int (*lags)[2]) {
 
     seqtval[nave].tv_sec=tick.tv_sec;
     seqtval[nave].tv_nsec=tick.tv_usec*1000;
-    seqatten[nave]=0;
+    seqatten[nave]=0.;
     seqnoise[nave]=0;
     seqbadtr[nave].num=0;
   
@@ -746,26 +752,26 @@ usleep(usecs);
     rdata.back=NULL;
     TCPIPMsgSend(sock,&smsg,sizeof(struct ROSMsg));
     if (debug) {
-      fprintf(stderr,"ADW GET_DATA: recv dprm\n");
+      fprintf(stderr,"AZW GET_DATA: recv dprm\n");
     }
     TCPIPMsgRecv(sock,&dprm,sizeof(struct DataPRM));
     if(rdata.main) free(rdata.main);
     if(rdata.back) free(rdata.back);
     if (debug) 
-        fprintf(stderr,"ADW GET_DATA: samples %d status %d\n",dprm.samples,dprm.status);
+        fprintf(stderr,"AZW GET_DATA: samples %d status %d\n",dprm.samples,dprm.status);
       
     if(dprm.status==0) {
       if (debug) {
-        fprintf(stderr,"ADW GET_DATA: rdata.main: uint32: %ld array: %ld\n",sizeof(uint32),sizeof(uint32)*dprm.samples);
+        fprintf(stderr,"AZW GET_DATA: rdata.main: uint32: %ld array: %ld\n",sizeof(uint32),sizeof(uint32)*dprm.samples);
       }
       rdata.main=malloc(sizeof(uint32)*dprm.samples);
       rdata.back=malloc(sizeof(uint32)*dprm.samples);
       if (debug) {
-        fprintf(stderr,"ADW GET_DATA: recv main\n");
+        fprintf(stderr,"AZW GET_DATA: recv main\n");
       }
       TCPIPMsgRecv(sock, rdata.main, sizeof(uint32)*dprm.samples);
       if (debug) {
-        fprintf(stderr,"ADW GET_DATA: recv back\n");
+        fprintf(stderr,"AZW GET_DATA: recv back\n");
       }
       TCPIPMsgRecv(sock, rdata.back, sizeof(uint32)*dprm.samples);
       if (badtrdat.start_usec !=NULL) free(badtrdat.start_usec);
@@ -773,20 +779,20 @@ usleep(usecs);
       badtrdat.start_usec=NULL;
       badtrdat.duration_usec=NULL;
       if (debug) {
-        fprintf(stderr,"ADW GET_DATA: trtimes length %d\n",badtrdat.length);
+        fprintf(stderr,"AZW GET_DATA: trtimes length %d\n",badtrdat.length);
       }
       TCPIPMsgRecv(sock, &badtrdat.length, sizeof(badtrdat.length));
       if (debug) 
-        fprintf(stderr,"ADW GET_DATA: badtrdat.start_usec: uint32: %ld array: %ld\n",sizeof(uint32),sizeof(uint32)*badtrdat.length);
+        fprintf(stderr,"AZW GET_DATA: badtrdat.start_usec: uint32: %ld array: %ld\n",sizeof(uint32),sizeof(uint32)*badtrdat.length);
       badtrdat.start_usec=malloc(sizeof(uint32)*badtrdat.length);
       badtrdat.duration_usec=malloc(sizeof(uint32)*badtrdat.length);
       if (debug) {
-        fprintf(stderr,"ADW GET_DATA: start_usec\n");
+        fprintf(stderr,"AZW GET_DATA: start_usec\n");
       }
       TCPIPMsgRecv(sock, badtrdat.start_usec,
                  sizeof(uint32)*badtrdat.length);
       if (debug) {
-        fprintf(stderr,"ADW GET_DATA: duration_usec\n");
+        fprintf(stderr,"AZW GET_DATA: duration_usec\n");
       }
       TCPIPMsgRecv(sock, badtrdat.duration_usec,
                  sizeof(uint32)*badtrdat.length);
@@ -796,19 +802,19 @@ usleep(usecs);
     }
     TCPIPMsgRecv(sock, &rmsg, sizeof(struct ROSMsg));
     if (debug) {
-      fprintf(stderr,"ADW GET_DATA:type=%c\n",rmsg.type);
-      fprintf(stderr,"ADW GET_DATA:status=%d\n",rmsg.status);
+      fprintf(stderr,"AZW GET_DATA:type=%c\n",rmsg.type);
+      fprintf(stderr,"AZW GET_DATA:status=%d\n",rmsg.status);
     }
     smsg.type=GET_PARAMETERS;
     TCPIPMsgSend(sock, &smsg, sizeof(struct ROSMsg));
     TCPIPMsgRecv(sock, &rprm, sizeof(struct ControlPRM));
     TCPIPMsgRecv(sock, &rmsg, sizeof(struct ROSMsg));
     if (debug) {
-      fprintf(stderr,"ADW GET_PARAMETERS:type=%c\n",rmsg.type);
-      fprintf(stderr,"ADW GET_PARAMETERS:status=%d\n",rmsg.status);
-      fprintf(stderr,"ADW Number of samples: dprm.samples:%d tsprm.samples:%d total_samples:%d\n",dprm.samples,tsgprm.samples,total_samples);
-      fprintf(stderr,"ADW nave=%d\n",nave);
-      fprintf(stderr,"ADW dprm.status=%d\n",dprm.status);
+      fprintf(stderr,"AZW GET_PARAMETERS:type=%c\n",rmsg.type);
+      fprintf(stderr,"AZW GET_PARAMETERS:status=%d\n",rmsg.status);
+      fprintf(stderr,"AZW Number of samples: dprm.samples:%d tsprm.samples:%d total_samples:%d\n",dprm.samples,tsgprm.samples,total_samples);
+      fprintf(stderr,"AZW nave=%d\n",nave);
+      fprintf(stderr,"AZW dprm.status=%d\n",dprm.status);
     }
     ttime=dprm.event_secs;
     if ( ttime < 100 ) {
@@ -816,7 +822,7 @@ usleep(usecs);
     }
     gmtime_r(&ttime,&tstruct);
     if(seqlog_dir!=NULL) { 
-      sprintf(filename,"%s/seqlog.adw%s.%04d%02d%02d",seqlog_dir,channame,tstruct.tm_year+1900,tstruct.tm_mon+1,tstruct.tm_mday);
+      sprintf(filename,"%s/seqlog.azw%s.%04d%02d%02d",seqlog_dir,channame,tstruct.tm_year+1900,tstruct.tm_mon+1,tstruct.tm_mday);
       if(strcmp(filename,seqlog_name)!=0) {
         strcpy(seqlog_name,filename);
         if (seqlog!=NULL) {
@@ -896,11 +902,13 @@ usleep(usecs);
       fprintf(f_diagnostic_ascii,"\n");
       fprintf(f_diagnostic_ascii,"Sequence: Parameters: END\n");
     }
+    fprintf(f_diagnostic_ascii,"Sequence: Invert %d\n",invert);
 
     if(dprm.status==0) {
       nsamp=(int)dprm.samples;
+     
       if(invert!=0) {
-        for(n=0;n<nsamp;n++) {
+        for(n=0;n<nsamp;n++){
           Q=(short)((rdata.main[n] & 0xffff0000) >> 16);
           I=(short)(rdata.main[n] & 0x0000ffff);
           Q=-Q;
@@ -909,20 +917,27 @@ usleep(usecs);
           uI32=((uint32) I) & 0xFFFF;
           (rdata.main)[n]=uQ32|uI32;
         }
-      }  
+      }
+
       if(f_diagnostic_ascii!=NULL) {
         fprintf(f_diagnostic_ascii,"Sequence : Raw Data : START\n");
         fprintf(f_diagnostic_ascii,"  nsamp: %8d\n",nsamp);
+        fprintf(f_diagnostic_ascii,"index I_m Q_m I_m^2+Q_m^2 phi_m I_i Q_i I_i^2+Q_i^2 phi_i phi_d\n");
         for(n=0;n<nsamp;n++){
           Q=(short)((rdata.main[n] & 0xffff0000) >> 16);
           I=(short)(rdata.main[n] & 0x0000ffff);
+          phi_m=atan2(Q,I);
           if(f_diagnostic_ascii!=NULL) {
-            fprintf(f_diagnostic_ascii,"%8d %8d %8d %8d ", n, I, Q, (int)sqrt(I*I+Q*Q));
+            fprintf(f_diagnostic_ascii,"%8d %8d %8d %8d %8.3lf ", n, I, Q, (int)(I*I+Q*Q), phi_m);
            }
           Q=(short)((rdata.back[n] & 0xffff0000) >> 16);
           I=(short)(rdata.back[n] & 0x0000ffff);
+          phi_i=atan2(Q,I);
+          phi_d=phi_i-phi_m;
+          if(phi_d >=  M_PI ) phi_d=phi_d-(2.*M_PI);
+          if(phi_d < -M_PI ) phi_d=phi_d+(2.*M_PI);
           if(f_diagnostic_ascii!=NULL) {
-            fprintf(f_diagnostic_ascii,"%8d %8d %8d\n", I, Q, (int)sqrt(I*I+Q*Q));
+            fprintf(f_diagnostic_ascii,"%8d %8d %8d %8.3lf %8.3lf\n", I, Q, (int)(I*I+Q*Q),phi_i,phi_d);
           }
         }
         fprintf(f_diagnostic_ascii,"Sequence: Raw Data: END\n");
@@ -938,8 +953,6 @@ usleep(usecs);
         nsamp=(int)dprm.samples;
         code=pcode;
         for(n=0;n<(nsamp-nbaud);n++){
-          Q=((rdata.main)[n+i] & 0xffff0000) >> 16;
-          I=(rdata.main)[n+i] & 0x0000ffff;
           Iout=0;
           Qout=0;
           for(i=0;i<nbaud;i++){
@@ -953,14 +966,14 @@ usleep(usecs);
           Qout/=nbaud;
           I=(short)Iout;
           Q=(short)Qout;
+
+          if(f_diagnostic_ascii!=NULL) {
+            fprintf(f_diagnostic_ascii,"%8d %8d %8d %8d ", n, I, Q, (int)sqrt(I*I+Q*Q));
+          }
           uQ32=((uint32) Q) << 16;
           uI32=((uint32) I) & 0xFFFF;
           (rdata.main)[n]=uQ32|uI32;
-          if(f_diagnostic_ascii!=NULL) {
-            Q=((rdata.main)[n] & 0xffff0000) >> 16;
-            I=(rdata.main)[n] & 0x0000ffff;
-            fprintf(f_diagnostic_ascii,"%8d %8d %8d %8d ", n, I, Q, (int)sqrt(I*I+Q*Q));
-          }
+                
 
           Iout=0;
           Qout=0;
@@ -974,14 +987,12 @@ usleep(usecs);
           Qout/=nbaud;
           I=(short)Iout;
           Q=(short)Qout;
+          if(f_diagnostic_ascii!=NULL) {
+            fprintf(f_diagnostic_ascii,"%8d %8d %8d\n", I, Q, (int)sqrt(I*I+Q*Q));
+          }
           uQ32=((uint32) Q) << 16;
           uI32=((uint32) I) & 0xFFFF;
           (rdata.back)[n]=uQ32|uI32;
-          if(f_diagnostic_ascii!=NULL) {
-            Q=((rdata.back)[n] & 0xffff0000) >> 16;
-            I=(rdata.back)[n] & 0x0000ffff;
-            fprintf(f_diagnostic_ascii,"%8d %8d %8d\n", n, I, Q, (int)sqrt(I*I+Q*Q));
-          }
         }
         if(f_diagnostic_ascii!=NULL) fprintf(f_diagnostic_ascii,"PCODE: DECODE_END\n");
 
@@ -1030,25 +1041,26 @@ usleep(usecs);
       }
       iqsze+=dprm.samples*sizeof(uint32)*2;  /*  Total of number bytes so far copied into samples array */
       if (debug) {
-        fprintf(stderr,"ADW seq %d :: ioff: %8d\n",nave,iqoff);
-        fprintf(stderr,"ADW seq %d :: rdata.main 16bit :\n",nave);
-        fprintf(stderr," [  n  ] :: [  I  ] [  Q  ]\n");
+        fprintf(stderr,"AZW seq %d :: ioff: %8d\n",nave,iqoff);
+        fprintf(stderr,"AZW seq %d :: rdata.main 16bit :\n",nave);
+        fprintf(stderr," [  n  ] :: [  Im  ] [  Qm  ] :: [ Ii ] [ Qi ]\n");
         nsamp=(int)dprm.samples;
         for(n=0;n<(nsamp);n++){
           Q=((rdata.main)[n] & 0xffff0000) >> 16;
           I=(rdata.main)[n] & 0x0000ffff;
-          fprintf(stderr," %7d :: %7d %7d\n",n,(int)I,(int)Q);
+          fprintf(stderr," %7d :: %7d %7d ",n,(int)I,(int)Q);
+          Q=((rdata.back)[n] & 0xffff0000) >> 16;
+          I=(rdata.back)[n] & 0x0000ffff;
+          fprintf(stderr,":: %7d %7d\n",(int)I,(int)Q);
         }
         dest = (void *)(samples);
         dest += iqoff;
-        fprintf(stderr,"ADW seq %d :: rdata.back 16bit 8-11: %8d %8d %8d %8d\n",nave,
-           ((int16 *)rdata.back)[8],((int16 *)rdata.back)[9],
-           ((int16 *)rdata.back)[10],((int16 *)rdata.back)[11]);
-        dest += dprm.samples*4;
-        fprintf(stderr,"ADW seq %d :: samples    16bit 8-11: %8d %8d %8d %8d\n",nave,
-           ((int16 *)dest)[8],((int16 *)dest)[9],
-           ((int16 *)dest)[10],((int16 *)dest)[11]);
-        fprintf(stderr,"ADW seq %d :: iqsze: %8d\n",nave,iqsze);
+        fprintf(stderr,"AZW seq %d :: rdata.back 16bit 30: %8d %8d\n",nave,
+           ((int16 *)rdata.back)[60],((int16 *)rdata.back)[61]);
+        dest += dprm.samples*sizeof(uint32);
+        fprintf(stderr,"AZW seq %d :: samples    16bit 30: %8d %8d\n",nave,
+           ((int16 *)dest)[60],((int16 *)dest)[61]);
+        fprintf(stderr,"AZW seq %d :: iqsze: %8d\n",nave,iqsze);
       }
 
     /* calculate ACF */   
@@ -1057,37 +1069,37 @@ usleep(usecs);
         dest += iqoff;
         rngoff=2*rxchn; 
         if (debug) 
-        fprintf(stderr,"ADW seq %d :: rngoff %d rxchn %d\n",nave,rngoff,rxchn);
+        fprintf(stderr,"AZW seq %d :: rngoff %d rxchn %d\n",nave,rngoff,rxchn);
         if (debug) 
-        fprintf(stderr,"ADW seq %d :: ACFSumPower\n",nave);
+        fprintf(stderr,"AZW seq %d :: ACFSumPower\n",nave);
         aflg=ACFSumPower(&tsgprm,mplgs,lagtable,pwr0,
 		     (int16 *) dest,rngoff,skpnum!=0,
                      roff,ioff,badrng,
                      noise,mxpwr,seqatten[nave]*atstp,
                      thr,lmt,&abflg);
         if (debug) 
-        fprintf(stderr,"ADW seq %d :: rngoff %d rxchn %d\n",nave,rngoff,rxchn);
+        fprintf(stderr,"AZW seq %d :: rngoff %d rxchn %d\n",nave,rngoff,rxchn);
         if (debug) 
-        fprintf(stderr,"ADW seq %d :: ACFCalculate acf\n",nave);
+        fprintf(stderr,"AZW seq %d :: ACFCalculate acf\n",nave);
         ACFCalculate(&tsgprm,(int16 *) dest,rngoff,skpnum!=0,
           roff,ioff,mplgs,lagtable,acfd,ACF_PART,2*dprm.samples,badrng,seqatten[nave]*atstp,NULL);
         if (xcf ==1 ){
         if (debug) 
-        fprintf(stderr,"ADW seq %d :: rngoff %d rxchn %d\n",nave,rngoff,rxchn);
+        fprintf(stderr,"AZW seq %d :: rngoff %d rxchn %d\n",nave,rngoff,rxchn);
         if (debug) 
-          fprintf(stderr,"ADW seq %d :: ACFCalculate xcf\n",nave);
+          fprintf(stderr,"AZW seq %d :: ACFCalculate xcf\n",nave);
           ACFCalculate(&tsgprm,(int16 *) dest,rngoff,skpnum!=0,
                     roff,ioff,mplgs,lagtable,xcfd,XCF_PART,2*dprm.samples,badrng,seqatten[nave]*atstp,NULL);
         }
         if ((nave>0) && (seqatten[nave] !=seqatten[nave])) {
         if (debug) 
-        fprintf(stderr,"ADW seq %d :: rngoff %d rxchn %d\n",nave,rngoff,rxchn);
+        fprintf(stderr,"AZW seq %d :: rngoff %d rxchn %d\n",nave,rngoff,rxchn);
         if (debug) 
-          fprintf(stderr,"ADW seq %d :: ACFNormalize\n",nave);
+          fprintf(stderr,"AZW seq %d :: ACFNormalize\n",nave);
               ACFNormalize(pwr0,acfd,xcfd,tsgprm.nrang,mplgs,atstp); 
         }  
         if (debug) 
-        fprintf(stderr,"ADW seq %d :: rngoff %d rxchn %d\n",nave,rngoff,rxchn);
+        fprintf(stderr,"AZW seq %d :: rngoff %d rxchn %d\n",nave,rngoff,rxchn);
 
 
       }
@@ -1133,8 +1145,8 @@ usleep(usecs);
    free(lagtable[0]);
    free(lagtable[1]);
    if (debug) {
-     fprintf(stderr,"ADW SiteIntegrate: iqsize in bytes: %ld in 16bit samples:  %ld in 32bit samples: %ld\n",(long int)iqsze,(long int)iqsze/2,(long int)iqsze/4);
-     fprintf(stderr,"ADW SiteIntegrate: end: nave: %d\n",nave);
+     fprintf(stderr,"AZW SiteIntegrate: iqsize in bytes: %ld in 16bit samples:  %ld in 32bit samples: %ld\n",(long int)iqsze,(long int)iqsze/2,(long int)iqsze/4);
+     fprintf(stderr,"AZW SiteIntegrate: end: nave: %d\n",nave);
    }
    if(f_diagnostic_ascii!=NULL) fprintf(f_diagnostic_ascii,"SiteIntegrate: END\n");
    if(f_diagnostic_ascii!=NULL){
@@ -1142,11 +1154,11 @@ usleep(usecs);
      f_diagnostic_ascii=NULL;
    }
 
-   SiteAdwExit(0);
+   SiteAzwExit(0);
    return nave;
 }
 
-int SiteAdwEndScan(int bsc,int bus) {
+int SiteAzwEndScan(int bsc,int bus) {
 
   struct ROSMsg smsg,rmsg;
   
@@ -1155,7 +1167,7 @@ int SiteAdwEndScan(int bsc,int bus) {
   double bnd;
   double tme;
   int count=0;
-  SiteAdwExit(0);
+  SiteAzwExit(0);
   bnd=bsc+bus/USEC;
 
   if (gettimeofday(&tock,NULL)==-1) return -1;
@@ -1184,9 +1196,9 @@ int SiteAdwEndScan(int bsc,int bus) {
       fflush(stderr);
     }
     count++;
-    SiteAdwExit(0);
+    SiteAzwExit(0);
     usleep(50000);
-    SiteAdwExit(0);
+    SiteAzwExit(0);
     gettimeofday(&tick,NULL);
   }
 /*

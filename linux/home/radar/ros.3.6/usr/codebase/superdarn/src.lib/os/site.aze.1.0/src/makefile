@@ -12,6 +12,7 @@ OBJS = site.o
 INC=${USR_IPATH}/superdarn
 LINK="1"
 DSTPATH=$(USR_LIBPATH)
-OUTPUT = site.ade
+OUTPUT = site.aze
+LIBS=-lacf.1 -ltsg.1 -lacfex.1 -lshmem.1 
 
 include $(MAKELIB).$(SYSTEM)
