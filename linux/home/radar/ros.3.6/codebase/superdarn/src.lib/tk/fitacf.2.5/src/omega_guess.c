@@ -37,7 +37,7 @@
    The error on any given point is estimated to be
    delta_phase[i] = <delta_phase>*<P>/P[i]
 */
-
+#include <stdio.h>
 #include <math.h>
 #include "rmath.h"
 
@@ -46,56 +46,92 @@ double omega_guess(struct complex *acf,double *tau,
                    double *omega_err,int mpinc,int mplgs) {
 
   int i,j,nave=0;
-  double delta_tau, delta_phi, omega=0.0, 
+  double delta_tau, delta_phi, omega=0.0,first_omega=0.0,first_omega_err=0.0, 
          omega2=0.0, average=0.0, sigma, tau_lim=1.0;
   double sum_W=0.0, W;
   register double temp;
   double two_sigma;
-
+  int repeat_while=1,first_pass=1;
+  double average_delta_tau=0.0;
+  for (i=0; i < mplgs-1 ; ++i) {
+    average_delta_tau+=fabs(tau[i+1] - tau[i]);
+  }
+  tau_lim=2.*average_delta_tau/(mplgs-1);
+  if (tau_lim < 3) tau_lim=3;
   two_sigma = sigma = 2*PI;
   *omega_err = 9999.;
+  while (repeat_while && nave < 3) {
+    repeat_while=0;
+    for (i=0; i < mplgs-1 ; ++i) {
+      for (j=i+1; j< mplgs; ++j) {
+        if (badlag[j] || badlag[i]) continue;
+        delta_tau = tau[j] - tau[i];
+/*
+        if (fabs(delta_tau) > tau_lim) continue;
+*/
+        delta_phi = phi_res[j] - phi_res[i];
+/*
+        W = (cabs(acf[j]) + cabs(acf[i]))/2.0;
+*/
+        W = 1.;
+        W = W*W;
 
-  while (tau_lim < 3 && nave < 3) {
-    for (j=1; j<=tau_lim; ++j)
-      for (i=0; i< mplgs - j; ++i) {
-	    if (badlag[i+j] || badlag[i]) continue;
-	    delta_tau = tau[i+j] - tau[i];
-	    if (delta_tau != tau_lim) continue;
-	    delta_phi = phi_res[i+j] - phi_res[i];
-	    W = (cabs(acf[i]) + cabs(acf[i+j]))/2.0;
-	    W = W*W;
+        if (delta_phi > PI) delta_phi = delta_phi - 2*PI;
+        if (delta_phi < -PI) delta_phi = delta_phi + 2*PI;
 
-	    if (delta_phi > PI) delta_phi = delta_phi - 2*PI;
-	    if (delta_phi < -PI) delta_phi = delta_phi + 2*PI;
-
-	    if ((average != 0.0) && (fabs(delta_phi - average) > two_sigma)) 
-          continue;
-	    temp = delta_phi/tau_lim;
-	    omega = omega + temp*W;
-	    omega2 = omega2 + W*(temp*temp);
-	    sum_W = sum_W + W;
-	    nave++;
-	  }
-
-    if (nave >= 3 && (sigma == 2*PI)) {
+/* Slope dphi/dtau is an estimate of omega */
+        temp = delta_phi/delta_tau;
+/* First time through average==0
+ * Second time through average!=0 and we strip out any slopes more than 2sigma from the average
+*/
+        if (first_pass) {
+          if (fabs(temp - average) > two_sigma) continue;
+        } 
+/* Take a weighed sum of the omega estimates */
+        omega = omega + temp*W;
+        omega2 = omega2 + W*(temp*temp);
+        sum_W = sum_W + W;
+        nave++;
+      }
+    }
+    if(first_pass) {
+/* First pass: lets calculate the average omega and sigma, then run through the while loop again */
+      first_pass=0;
+      if (nave >= 3) {
 	  average = omega/sum_W;
 	  sigma = ((omega2/sum_W) - average*average)/(nave-1);
 	  sigma = (sigma > 0.0) ? sqrt(sigma) : 0.0;
 	  two_sigma = 2.0*sigma;
+	  omega = omega/sum_W;
+	  omega = omega/(mpinc*1.0e-6);
+	  *omega_err = sigma/(mpinc*1.0e-6);
+          first_omega=omega;
+          first_omega_err=*omega_err;
 	  omega = 0.0;
 	  omega2 = 0.0; 
 	  sum_W = 0;
 	  nave = 0;
-	  tau_lim = 1;
-	} else if (nave >=3) {
-	  omega = omega/sum_W;
-	  omega = omega/(mpinc*1.0e-6);
+  	  repeat_while = 1;
+      } else {
+        /* use worst case omega_err estimate*/
+        *omega_err = 9999.;
+        return 0.0;
+      }
+    } else {
+/* Second pass: we've only included omega estimates within 2sigma of the first pass average*/
+      if (nave >=3) {
 	  sigma = ((omega2/sum_W) - average*average)/(nave-1);
 	  sigma = (sigma > 0.0) ? sqrt(sigma) : 0.0;
+	  omega = omega/sum_W;
+	  omega = omega/(mpinc*1.0e-6);
 	  *omega_err = sigma/(mpinc*1.0e-6);
 	  return omega;
-	}
-    else ++tau_lim;
+      } else {
+        /* use estimate from first pass if second pass fails */
+        omega=first_omega;
+        *omega_err=first_omega_err;
+      }
+    }
   }
-  return 0.0;
+  return omega;
 }
