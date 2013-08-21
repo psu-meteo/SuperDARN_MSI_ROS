@@ -2,8 +2,8 @@
 # This checks that the specified file is less than DAYS old.
 # returns 0 if younger than DAYS.
 # returns 1 if older than DAYS.
-DAYS=180
-DIR=/home/radar/data/rawdata/
+DAYS=120
+DIR=/home/radar2/data/rawdata/
 if [ -z "$DIR" ]
 then
   echo "No Directory requested"

@@ -57,8 +57,8 @@ else
 	echo "Requested Directory does not exists"
         exit
 fi
-getlist=$HOME/file.list
-dirlist=$HOME/dir.list
+getlist=$HOME/src/file.list
+dirlist=$HOME/src/dir.list
 
 echo "Date: ${datestr}"
 # build a list of files including the file size 

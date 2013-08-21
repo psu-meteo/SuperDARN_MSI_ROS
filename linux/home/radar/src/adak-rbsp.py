@@ -4,20 +4,18 @@ import string
 import datetime
 import os
 command={}
-default_priority=6
-max_duration=360
-radars=["kod.a","kod.b","kod.c","kod.d"]
-command["kod.d"]="rbspscan -stid kod -ep 44000 -sp 44001 -bp 44100 -c 4 -meribm 3 -westbm 2 -eastbm 5 -trig"
-command["kod.c"]="normalsound -stid kod -ep 44000 -sp 44001 -bp 44100 -df 10750 -nf 10750 -fast -rank 1 -c 3"
-command["kod.b"]="noopscan -stid kod -c 2"
-command["kod.a"]="noopscan -stid kod -c 1"
+default_priority=5
+max_duration=120
+radars=["ade.a","adw.a"]
+command["ade.a"]="rbspscan -stid ade -ep 41000 -sp 41001 -bp 41100 -c 1 -meribm 0 -westbm 1 -eastbm 3 -trig"
+command["adw.a"]="rbspscan -stid adw -ep 51000 -sp 51001 -bp 51100 -c 1 -meribm 18 -westbm 19 -eastbm 21 -trig"
 scddir="/data/ros/scd/"
 basescdfile="rbsp.scd"
 ref_hours=1
 Dst_onset_threshold= -50
 Dst_end_threshold=-30
-#Dst_onset_threshold= -10 
-#Dst_end_threshold=-7
+#Dst_onset_threshold= -5 
+#Dst_end_threshold=7
 Dst_active=False
 
 class MyHTMLParser(HTMLParser):
@@ -92,7 +90,10 @@ for radar in radars:
         except ValueError:
           dur=fallback_duration
         prio=int(segments[6].strip()) 
-        entry_endtime=datetime.datetime(yr,mo,dy,hr,mi)+datetime.timedelta(seconds=60*dur)
+        try:
+          entry_endtime=datetime.datetime(yr,mo,dy,hr,mi)+datetime.timedelta(seconds=60*dur)
+        except:
+          entry_endtime=current_time    
       if "::ACTIVE::" in line:
         val=line.split("::ACTIVE::")[1].strip()
         Dst_active={"true": True, "false": False}.get(val.lower())
@@ -103,27 +104,34 @@ for radar in radars:
 
 
 # Logic for new or ongoing event handling
+  logname="/tmp/%s_rbsp_%04d%02d.log" % (radar,current_time.year,current_time.month)
+  print logname
+  log = open(logname, 'a+')
   if Dst_active:
     if ref_Dst < Dst_end_threshold:
       print "Reset Ongoing Event Duration"
       write_entry=True
     else:
       print "Tailing Event trigger"
+      log.write("%s : Tailing Event : Dst: %d\n" % (current_time,ref_Dst))
       write_entry=False
       if(entry_endtime < current_time):
         print "Event trigger has expired"
         Dst_active=False
         write_entry=False
+        log.write("%s : Event Expired : Dst: %d\n" % (current_time,ref_Dst))
   else:
     if ref_Dst < Dst_onset_threshold:
       print "New Event trigger"
       Dst_active=True
       write_entry=True
+      log.write("%s : New Event trigger : Dst: %d\n" % (current_time,ref_Dst))
     else:
       print "No event :: Current Dst: %lf" % (ref_Dst)
       Dst_active=False
       write_entry=False
-
+      log.write("%s : No Event : Dst: %d\n" % (current_time,ref_Dst))
+  log.close()
 # Write new scdfile
   print "Updating %s" %(scdfile)
  
@@ -141,7 +149,7 @@ for radar in radars:
   lines.append("")
   lines.append("# ::CURRENT_EVENT: ")
   if write_entry:
-    datestr="%04d %02d %02d %02d %02d" % (current_time.year,current_time.month,current_time.day,current_time.minute,current_time.minute)
+    datestr="%04d %02d %02d %02d %02d" % (current_time.year,current_time.month,current_time.day,current_time.hour,current_time.minute)
     prestr="%s %02d %02d" % (datestr,max_duration,default_priority)
     lines.append("%s %s" % (prestr,command[radar]))
 
