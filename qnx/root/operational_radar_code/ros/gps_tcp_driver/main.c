@@ -133,10 +133,17 @@ void graceful_cleanup(int signum)
 	  if(configured) *((uint08*)(BASE1+0xf8))|=0x02;
 
      //SET INITIAL TIME COMPARE TIME
-	  *((uint32_t*)(BASE1+0x128))=10;  //set rate synthesiser rate to a default of 100ms (10pps)
+	  *((uint32_t*)(BASE1+0x128))=2;  //set rate synthesiser rate to a default of 100ms (10pps)
 	  *((uint32_t*)(BASE1+0x12c))=0x02000f00;  // x12e: event trigger on external event, falling edge 
                                                  // x12d: rising edge rate synthesizer on pin 6, 
                                                  // x12f: rate generator on code-out 
+          fprintf(stdout,"Rate synth reg: 0x%x\n",*((uint32_t*)(BASE1+0x128)));
+          fprintf(stdout,"Cntl reg: 0x%x\n",*((uint32_t*)(BASE1+0x12c)));
+          fprintf(stdout,"Misc control reg: 0x%x\n",*((uint8_t*)(BASE1+0x12C)));
+          fprintf(stdout,"Rate Sync control reg: 0x%x\n",*((uint8_t*)(BASE1+0x12D)));
+          fprintf(stdout,"Event Capture control reg: 0x%x\n",*((uint8_t*)(BASE1+0x12E)));
+          fprintf(stdout,"Code Out control reg: 0x%x\n",*((uint8_t*)(BASE1+0x12F)));
+
  
 //	displaystat.triggermode=8;	//set flag to indicate default trigger mode of rate synthesizer triggers
 	//start the interrupt handler
@@ -277,7 +284,7 @@ void graceful_cleanup(int signum)
   		                        if (verbose > -1) printf("Set Rate: %d\n", displaystat.ratesynthrate);
 					if (configured ) {
                                           *((uint32_t*)(BASE1+0x128))=displaystat.ratesynthrate;  //set rate synthesiser rate
-					  *((uint32_t*)(BASE1+0x12c))|=0x00000200;  // load rate synth rate 
+					  *((uint32_t*)(BASE1+0x12c))|=0x00000f00;  // load rate synth rate 
                                         }
                                         rval=send_data(msgsock, &msg, sizeof(struct DriverMsg));
   		                        if (verbose > -1) printf("Leaving Set Rate: %c\n", datacode);

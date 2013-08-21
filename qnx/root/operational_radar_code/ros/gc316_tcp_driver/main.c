@@ -705,6 +705,7 @@ int main(int argc, char **argv){
                           if(IMAGING){ 
 			    if(verbose > 0 ) printf("Set up card parameters for Imaging:\n");	
                             for(card=0;card<MAX_CARDS;card++) { 
+                              gc314SetExternalTrigger(gc314fs[card], GC314_OFF);
 			      for(i=0;i<numclients;i++){
                                 r=clients[i].radar-1; 
                                 c=clients[i].channel-1; 
@@ -718,7 +719,6 @@ int main(int argc, char **argv){
                                 gc314SetSamples(gc314fs[card], clients[i].number_of_samples+RECV_SAMPLE_HEADER, c); 
                               } //end of client loop
                             }  // end of card loop 
-                            gc314SetExternalTrigger(gc314fs[SYNC_MASTER], GC314_ON);
                             //for(card=0;card<MAX_CARDS;card++) gc314SetSyncMask(gc314fs[card], SYNC1_SIA_ONETIME);
 			    for(card=0;card<MAX_CARDS;card++) gc314SetSyncMask(gc314fs[card], SYNC1_SIA_HOLD);                          
                             gc314SetSync1(gc314fs[SYNC_MASTER], GC314_ON); 
@@ -748,6 +748,7 @@ int main(int argc, char **argv){
                               gc314SetSyncMask(gc314fs[card], SYNC1_RTSC_CLEAR);
                               gc314StartCollection(gc314fs[card]);
                             }
+                            gc314SetExternalTrigger(gc314fs[SYNC_MASTER], GC314_ON);
                           } else { 
                             for(card=0;card<MAX_CARDS;card++) 
                               gc314SetExternalTrigger(gc314fs[card], GC314_OFF);

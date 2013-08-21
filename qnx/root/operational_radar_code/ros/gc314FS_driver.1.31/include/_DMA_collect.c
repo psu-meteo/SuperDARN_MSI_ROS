@@ -13,7 +13,7 @@ extern int version;
 int wait_on_fifo_lvl(unsigned int BASE1, int channel){
 	struct timespec		start, stop, sleep;
 	int			status, temp, stat;
-        unsigned long		elapsed=0;
+        double			elapsed=0.0;
 	sleep.tv_sec=0;
 	sleep.tv_nsec=50000;
 	temp=clock_gettime(CLOCK_REALTIME, &start);
@@ -41,7 +41,7 @@ int wait_on_fifo_lvl(unsigned int BASE1, int channel){
                 elapsed+=stop.tv_nsec-start.tv_nsec;
 		if ( elapsed > DMA_NSEC_TIMEOUT ){
                         stat=-1;
-			fprintf(stderr, "FIFO never reached desired level LVL! channel=%d\n",channel);
+			fprintf(stderr, "FIFO never reached desired level LVL! channel=%d %lf %lf\n",channel,elapsed,(double)DMA_NSEC_TIMEOUT);
                         fflush(stderr);
 			break;
 		}

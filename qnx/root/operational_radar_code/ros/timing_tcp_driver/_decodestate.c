@@ -23,7 +23,7 @@ int _decodestate(int r,int c,char state){
           code|=0x02;	  		//TR bit
         }
 //	if( (state & 0x10) == 0x10 ) code|=0x08; 			//phase bit
-//	if( (state & 0x04) == 0x04 ) code|=0x4;  			//Tx bit
+//	if( (state & 0x04) == 0x04 ) code|=0x04;  			//Tx bit
 //	if( (state & 0x08) == 0x08 ) code|=0x10;  			//attenuation bit
 //	if( (state & 0x01) == 0x01 ) code|=0x20;  			//sample bit
 // Bits 14-15 for hardware triggers

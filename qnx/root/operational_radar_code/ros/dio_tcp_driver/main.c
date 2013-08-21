@@ -94,7 +94,6 @@ int main(){
         FILE *beamtablefile;
         char filename[256];
         char dir[20]=BEAMTABLE_DIR;
-        char radar_name[20]=RADAR_NAME;
 #ifdef __QNX__       
 	struct	 _clockperiod 	new, old;
 	int	clockresolution;

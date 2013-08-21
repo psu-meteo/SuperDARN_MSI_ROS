@@ -120,17 +120,20 @@ void * WaitForChannelA(){
 	if(PRINT) printf("wait for data\n");	
 	loops=(int)(chanA.samples/fifo_lvl[0]);
 	remaining_samples=chanA.samples%fifo_lvl[0];
-        //fprintf(stderr,"%d: Channel A: Start Wait\n",pci_index);
-        //fflush(stderr);
-        //fprintf(stderr,"%d: Channel A: Loops: %d fifo_lvl: %d remaining: %d\n",pci_index,loops,fifo_lvl[0],remaining_samples);
-        //fflush(stderr);
+        if (PRINT) {
+          fprintf(stderr,"%d: Channel A: Start Wait\n",pci_index);
+          fprintf(stderr,"%d: Channel A: Loops: %d fifo_lvl: %d remaining: %d\n",pci_index,loops,fifo_lvl[0],remaining_samples);
+          fflush(stderr);
+        }
 	scount=0;
 	temp=clock_gettime(CLOCK_REALTIME, &start);
 	for (i=0;i<loops;i++){
 		channel_stat[0] = wait_on_fifo_lvl(BASE1, CHANNEL_A);
                 if (channel_stat[0]!=0) {
-                  //fprintf(stderr,"%d Channel A: fifo_lvl ERROR:  Loop: %d\n",pci_index,i);
-                  //fflush(stderr);
+                  if (PRINT) {
+                    fprintf(stderr,"%d Channel A: fifo_lvl ERROR:  Loop: %d\n",pci_index,i);
+                    fflush(stderr);
+                  }
                   break;
                 }
 	        temp=clock_gettime(CLOCK_REALTIME, &stop);
@@ -140,8 +143,10 @@ void * WaitForChannelA(){
 		DMA_in_use[DMA_to_use]=0;
 		scount += fifo_lvl[0];
                 if (channel_stat[0]!=0) {
-                  //fprintf(stderr,"%d Channel A: DMA transfer ERROR:  Loop: %d\n",pci_index,i);
-                  //fflush(stderr);
+                  if (PRINT ) {
+                    fprintf(stderr,"%d Channel A: DMA transfer ERROR:  Loop: %d\n",pci_index,i);
+                    fflush(stderr);
+                  }
                   break;
                 }
 	}
@@ -156,12 +161,16 @@ void * WaitForChannelA(){
 	      DMA_in_use[DMA_to_use]=0;
 	      scount += remaining_samples;
               if( channel_stat[0]!=0) {
-                //fprintf(stderr,"%d Channel A: final DMA transfer ERROR\n",pci_index);
-                //fflush(stderr);
+                if (PRINT) {
+                  fprintf(stderr,"%d Channel A: final DMA transfer ERROR\n",pci_index);
+                  fflush(stderr);
+                }
               }
             } else {
-              //fprintf(stderr,"%d Channel A: fifo_finish ERROR\n",pci_index);
-              //fflush(stderr);
+              if (PRINT) {
+                fprintf(stderr,"%d Channel A: fifo_finish ERROR\n",pci_index);
+                fflush(stderr);
+              }
             }
 	  }
         } 
@@ -170,8 +179,10 @@ void * WaitForChannelA(){
         *((uint32*)(BASE1+GC314FS_R3ACSR)) |= 0x00000004;
 	temp=clock_gettime(CLOCK_REALTIME, &stop);
         channel_on_off[0]=0;
-        //fprintf(stderr,"%d Channel A: End Wait\n",pci_index);
-        //fflush(stderr);
+        if (PRINT) {
+          fprintf(stderr,"%d Channel A: End Wait\n",pci_index);
+          fflush(stderr);
+        }
 	pthread_exit(0);
 }
 void * WaitForChannelB(){
@@ -732,25 +743,26 @@ int io_devctl (resmgr_context_t *ctp, io_devctl_t *msg, RESMGR_OCB_T *ocb){
 			return(_RESMGR_PTR(ctp, &msg->o, sizeof(msg->o)+nbytes));
 			break;
   		case GC314_CHANNEL_ON:
-			if(PRINT) printf("Turning on channel\n");	
+			if(PRINT) fprintf(stderr,"Turning on channel\n");	
 			switch(rx_data->channel){
 				case CHANNEL_A:
-					if(PRINT) printf("channel A\n");
+					if(PRINT) fprintf(stderr,"channel A\n");
 					channel_on_off[0]=1;
 					break;
 				case CHANNEL_B:
-					if(PRINT) printf("channel B\n");
+					if(PRINT) fprintf(stderr,"channel B\n");
 					channel_on_off[1]=1;
 					break;	
 				case CHANNEL_C:
-					if(PRINT) printf("channel C\n");
+					if(PRINT) fprintf(stderr,"channel C\n");
 					channel_on_off[2]=1;
 					break;
 				case CHANNEL_D:
-					if(PRINT) printf("channel D\n");
+					if(PRINT) fprintf(stderr,"channel D\n");
 					channel_on_off[3]=1;
 					break;
 			}
+                        if (PRINT) fflush(stderr); 
 			return(_RESMGR_PTR(ctp, &msg->o, sizeof(msg->o)+nbytes));
 			break;  
 		case GC314_SET_FILTERS:
@@ -968,23 +980,23 @@ int io_devctl (resmgr_context_t *ctp, io_devctl_t *msg, RESMGR_OCB_T *ocb){
 			return(_RESMGR_PTR(ctp, &msg->o, sizeof(msg->o)+nbytes));
 			break;
 		case GC314_START_COLLECTION:
-                        //printf("Start Collection\n");
+                        if (PRINT) fprintf(stderr,"Start Collection\n");
                         if ( ( *((uint32*)(BASE1+GC314FS_CPLL)) & 0x00000004 ) != 0x00000004 ){ 
                           fprintf(stderr,"Collection: PLLs not locked to external clock\n");
                           fflush(stderr);
                         }
 			if(channel_on_off[0]) {
-                          //if(channel_waiting[0]) printf("ChanA already waiting for data!\n");
+                          if(channel_waiting[0]) fprintf(stderr,"ChanA already waiting for data!\n");
 
                           if(helperA!=NULL) {
-                             //printf("%d GC314_START_COLLECTION\n",pci_index);
-                            //printf("  %d HelperA thread %d already exists! Waiting for it to die\n",pci_index,helperA);
+                             fprintf(stderr,"%d GC314_START_COLLECTION\n",pci_index);
+                             fprintf(stderr,"  %d HelperA thread %d already exists! Waiting for it to die\n",pci_index,helperA);
 	                    temp=clock_gettime(CLOCK_REALTIME, &start);
                             pthread_join(helperA, NULL);
 	                    temp=clock_gettime(CLOCK_REALTIME, &stop);
                             elapsed=stop.tv_sec-start.tv_sec+((double)(stop.tv_nsec-start.tv_nsec))/1E9;
-                            //printf("  %d Joined HelperA thread\n",pci_index,helperA);
-                            //printf("  %d Elapsed  secs: %lf\n",pci_index,elapsed);
+                            fprintf(stderr,"  %d Joined HelperA thread\n",pci_index,helperA);
+                            fprintf(stderr,"  %d Elapsed  secs: %lf\n",pci_index,elapsed);
                             helperA=NULL;
                           }
                           pthread_create(&helperA,NULL,WaitForChannelA,NULL);
@@ -1004,6 +1016,7 @@ int io_devctl (resmgr_context_t *ctp, io_devctl_t *msg, RESMGR_OCB_T *ocb){
                           if(helperD!=NULL) printf("HelperD thread already exists!\n");
                           else pthread_create(&helperD,NULL,WaitForChannelD,NULL);
                         }
+                        fflush(stderr);
 			return(_RESMGR_PTR(ctp, &msg->o, sizeof(msg->o)+nbytes));			//
 			break;
 		case GC314_WAIT_FOR_DATA:
@@ -1018,10 +1031,11 @@ int io_devctl (resmgr_context_t *ctp, io_devctl_t *msg, RESMGR_OCB_T *ocb){
 			}
 			*/
                           channel=rx_data->channel;
-                        //fprintf(stderr,"%d: Wait for Data Start: %d\n",pci_index,channel);
-                        //fflush(stderr);
-                        //fprintf(stderr,"Wait for Data:: PCI Index: %d Channel: %d\n",pci_index,channel);
-                        //fflush(stderr);
+                        if (PRINT) {
+                          fprintf(stderr,"%d: Wait for Data Start: %d\n",pci_index,channel);
+                          fprintf(stderr,"Wait for Data:: PCI Index: %d Channel: %d\n",pci_index,channel);
+                          fflush(stderr);
+                        }
                         channel_waiting[0]=1;
                         if(helperA!=NULL) pthread_join(helperA, NULL);
                         helperA=NULL;
@@ -1065,8 +1079,10 @@ int io_devctl (resmgr_context_t *ctp, io_devctl_t *msg, RESMGR_OCB_T *ocb){
                         }
 			nbytes=sizeof(rx_data->channel);
 			msg->o.nbytes = nbytes;
-                        //fprintf(stderr,"%d: Wait for Data End: %d\n",pci_index,channel);
-                        //fflush(stderr);
+                        if (PRINT) {
+                          fprintf(stderr,"%d: Wait for Data End: %d\n",pci_index,channel);
+                          fflush(stderr);
+                        }
 			return(_RESMGR_PTR(ctp, &msg->o, sizeof(msg->o)+nbytes));
 			break;
 
