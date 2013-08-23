@@ -57,6 +57,9 @@
  *       to use can be initialized with a Site* function. Controlprogram flow
  *       will have to be adjusted to make room for correct operation of an
  *       early Site* function. 
+ *    
+ *    Arguement parsing:
+ *        Finish adding documentation strings to commandline arguements.
  *
  *    Re-engineer Day/Night variable parsing to work with multi-site radars:
  *      Problem statement:
@@ -327,7 +330,7 @@ int main(int argc,char *argv[]) {
   if(al_help->count > 0) {
     printf("Usage: %s", progid);
     arg_print_syntax(stdout,argtable,"\n");
-    printf("Put some useful help text here.\n");
+    /* TODO: Add other useful help text describing the purpose of normalscan here */
     arg_print_glossary(stdout,argtable,"  %-25s %s\n");
     arg_freetable(argtable, sizeof(argtable)/sizeof(argtable[0]));
     return 0;
@@ -397,7 +400,7 @@ int main(int argc,char *argv[]) {
   }
 
   SiteStart(roshost);
-  /* TODO: Figure out why OptionProcess is called twice..
+  /* TODO: Figure out why OptionProcess called twice..
   arg=OptionProcess(1,argc,argv,&opt,NULL);*/
 
   printf("Station ID: %s  %d\n",ststr,stid);
