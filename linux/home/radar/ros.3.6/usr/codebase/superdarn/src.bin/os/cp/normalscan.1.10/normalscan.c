@@ -191,13 +191,16 @@ int main(int argc,char *argv[]) {
   int fixfrq=-1;
 
   /* create arguement structs */
+  /* First lets define a help argument */
   struct arg_lit  *al_help       = arg_lit0(NULL, "help",             "Prints help infomation and then exits");
+  /* Now lets define the keyword arguments */
   struct arg_lit  *al_discretion = arg_lit0(NULL, "di",               "TODO"); /*OptionAdd(&opt,"di",'x',&discretion); */
   struct arg_lit  *al_fast       = arg_lit0(NULL, "fast",             "TODO"); /*OptionAdd(&opt,"fast",'x',&fast); */
   struct arg_lit  *al_nowait     = arg_lit0(NULL, "nowait",           "TODO"); /*OptionAdd(&opt, "nowait", 'x', &scannowait); */
   struct arg_lit  *al_onesec     = arg_lit0(NULL, "onesec",           "TODO"); /*OptionAdd(&opt, "onesec", 'x', &onesec); */
   struct arg_lit  *al_clrscan     = arg_lit0(NULL, "clrscan",           "TODO"); /*OptionAdd(&opt, "clrscan", 'x', &do_clr_scan_start); */
 
+  /* Now lets define the integer valued arguments */
   struct arg_int  *ai_baud       = arg_int0(NULL, "baud", NULL,       "TODO"); /*OptionAdd( &opt, "baud", 'i', &nbaud);*/
   struct arg_int  *ai_tau        = arg_int0(NULL, "tau", NULL,        "TODO"); /*OptionAdd( &opt, "tau", 'i', &mpinc);*/
   struct arg_int  *ai_nrang      = arg_int0(NULL, "nrang", NULL,      "TODO"); /*OptionAdd(&opt,"nrang",'i',&nrang);*/
@@ -218,9 +221,11 @@ int main(int argc,char *argv[]) {
   struct arg_int  *ai_clrskip     = arg_int0(NULL, "clrskip",NULL,    "TODO"); /*OptionAdd(&opt, "clrskip", 'i', &clrskip_secs); */
   struct arg_int  *ai_cpid     = arg_int0(NULL, "cpid",NULL,           "TODO"); /*OptionAdd(&opt, "cpid", 'i', &cpid); */
 
+  /* Now lets define the string valued arguments */
   struct arg_str  *as_ros        = arg_str0(NULL, "ros", NULL,        "TODO"); /* OptionAdd(&opt,"ros",'t',&roshost); */
   struct arg_str  *as_ststr      = arg_str0(NULL, "stid", NULL,       "The station ID string. For example, use aze for azores east."); /* OptionAdd(&opt,"stid",'t',&ststr); */
 
+  /* required end argument */
   struct arg_end  *ae_argend     = arg_end(ARG_MAXERRORS);
 
   /* create list of all arguement structs */
@@ -228,7 +233,7 @@ int main(int argc,char *argv[]) {
                       ai_baud, ai_tau, ai_nrang, ai_frang, ai_rsep, ai_dt, ai_nt, ai_df, ai_nf, ai_fixfrq, ai_xcf, ai_ep, ai_sp, ai_bp, ai_sb, ai_eb, ai_c, \
                       as_ros, as_ststr, ai_clrskip,al_clrscan,ai_cpid,ae_argend};
 
-/* Required default settings */
+/* Set some default settings */
   cp=150;
   intsc=7;
   intus=0;
