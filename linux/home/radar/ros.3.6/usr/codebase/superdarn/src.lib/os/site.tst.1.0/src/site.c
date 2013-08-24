@@ -545,7 +545,6 @@ int SiteTstIntegrate(int (*lags)[2]) {
   int32 temp32;
   /* phase code declarations */
   int n,nsamp, *code,   Iout, Qout;
-  unsigned short uQ;
   uint32 uQ32,uI32;
   if (debug) {
     fprintf(stderr,"TST SiteIntegrate: start\n");
