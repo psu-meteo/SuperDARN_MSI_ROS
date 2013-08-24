@@ -293,7 +293,7 @@ int main(int argc,char *argv[]) {
     return 0;
   }
 
-  /* Load ros and station string arguments here */
+  /* Load roshost and station string arguments here */
   if(strlen(as_ros->sval[0])) {
     roshost = malloc((strlen(as_ros->sval[0]) + 1) * sizeof(char));
     strcpy(roshost, as_ros->sval[0]);
@@ -306,7 +306,8 @@ int main(int argc,char *argv[]) {
     ststr = malloc((strlen(as_ststr->sval[0]) + 1) * sizeof(char));
     strcpy(ststr, as_ststr->sval[0]);
   } else {
-    ststr = dfststr;
+    ststr = getenv("STSTR");
+    if (ststr == NULL) ststr = dfststr;
   }
 
 /* Open Connection to errorlog */  

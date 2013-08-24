@@ -34,8 +34,13 @@
 #define REAL_BUF_OFFSET 0
 #define IMAG_BUF_OFFSET 1
 #define USEC 1000000.0
-int TST_exit_flag=0;
+
 char channame[5]="\0";
+char server[256]="127.0.0.1";
+int  port=0;
+int  sock=0;
+int TST_exit_flag=0;
+
 
 FILE *seqlog=NULL;
 char seqlog_name[256];
@@ -126,10 +131,20 @@ void SiteTstExit(int signum) {
 
 
 
-int SiteTstStart(char *host) {
+int SiteTstStart(char *roshost) {
   signal(SIGPIPE,SiteTstExit);
   signal(SIGINT,SiteTstExit);
   signal(SIGUSR1,SiteTstExit);
+
+/* If the host address isn't set check the env and then set a default */
+
+  if(roshost==NULL) {
+    roshost = getenv("ROSHOST");
+  }
+  if(roshost==NULL){
+    roshost = "127.0.0.1";
+  }
+  port=45000;
 
   for(nave=0;nave<MAXNAVE;nave++) {
     seqbadtr[nave].num=0;
@@ -148,9 +163,8 @@ int SiteTstStart(char *host) {
   TST_exit_flag=0;
   cancel_count=0;
   sock=0;
-  fprintf(stderr,"ROS server:%s\n",host);
-  strcpy(server,host);
-  port=45000;
+  strcpy(server,roshost);
+  fprintf(stderr,"ROS server:%s\n",server);
 
 
 /* Radar number to register */
@@ -175,8 +189,6 @@ int SiteTstStart(char *host) {
     fprintf(stderr,"SiteTstStart: rxchn=%d\n",rxchn);
 
   } 
-
-/* KTS added to adjust for day/night time */
 
   day=18;
   night=10;
