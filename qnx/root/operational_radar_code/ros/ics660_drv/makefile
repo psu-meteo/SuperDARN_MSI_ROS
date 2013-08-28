@@ -5,4 +5,5 @@ ICS660_OBJS = ics660_drv_init.o get_pci_base_addr.o dc60m_init.o init_gc4116.o o
 
 _ics660_drv:	_ics660-drv.o $(ICS660_OBJS)
 	cc -o _ics660-drv _ics660-drv.o $(ICS660_OBJS) -lm
-
+clean:
+	rm -rf $(ICS660_OBJS) _ics660-drv 
