@@ -10,9 +10,13 @@ temp.out*
 *.so
 *.so.0
 *.a
+*.la 
+*.Po
+*.Plo
 # binaries
 linux/home/radar/ros.3.6/bin/
 linux/home/radar/ros.3.6/usr/bin/
 linux/home/radar/ros.3.6/build/bin
-
-qnx/root/operational_radar_code/*/ros/server/arby_server
+qnx/root/operational_radar_code/ros/fftw-3.2.2/tests/bench
+qnx/root/operational_radar_code/ros/server/arby_server
+qnx/root/operational_radar_code/ros/timing_tcp_driver/timing_tcp_driver
