@@ -1,7 +1,6 @@
 #Log files
 linux/home/radar/ros.3.6/log/superdarn-ros.*
 config.log
-config.status
 
 #files being edited
 *~
