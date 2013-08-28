@@ -325,7 +325,7 @@ int main(int argc,char *argv[]) {
 /* Open Connection to helper utilities like fitacfwrite*/  
   for (n=0;n<tnum;n++) task[n].port+=ai_bp->ival[0];
 
-
+/* Prep command string for tasks */ 
   strncpy(combf,progid,80);   
   OpsSetupCommand(argc,argv);
   sprintf(progname,"normalscan");
@@ -335,8 +335,6 @@ int main(int argc,char *argv[]) {
     RMsgSndReset(task[n].sock);
     RMsgSndOpen(task[n].sock,strlen( (char *) command),command);     
   }
-  
-  gettimeofday(&t1,NULL);
 
   if (status !=0) {
     ErrLog(errlog.sock,progname,"Error locating hardware.");
@@ -345,6 +343,7 @@ int main(int argc,char *argv[]) {
 
   /* Initialize timing variables */
   elapsed_secs=0;
+  gettimeofday(&t1,NULL);
   gettimeofday(&t0,NULL);
 
   /* Set up scan periods and beam integration times */
