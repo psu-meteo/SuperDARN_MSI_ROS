@@ -45,7 +45,7 @@ struct  GPSStatus displaystat;
 struct	timespec timecompare,event;
 int 	timecompareupdate=0,eventupdate=0;
 pthread_t int_thread_id, refresh_thread_id;
-int verbose=0;
+int verbose=10;
 int wait_for_lock=0;
 pthread_mutex_t gps_state_lock;
 
@@ -184,14 +184,15 @@ void graceful_cleanup(int signum)
           buffer[1] = DATUM_DISABLE_PER;
           write_dpram_data(DEVreg, DPram_ofs.input, &buffer[0], 2 );
 
-
           fprintf(stderr,"Select Periodic Output\n");
           buffer[0] = DATUM_SELECT_PER_DDS_CMD;
           buffer[1] = DATUM_SELECT_PER;
           write_dpram_data(DEVreg, DPram_ofs.input, &buffer[0], 2 );
 
 
-          rate=10.0;  // 10 Hz
+          rate=0.0;  // 10 Hz
+          if(rate!=0) {
+
           n1=2;
           n2= SYNTH_CLOCK/(n1*rate);
           if (n2 < 2) n2=2; 
@@ -220,12 +221,11 @@ void graceful_cleanup(int signum)
           fprintf(stderr,"\n"); 
           write_dpram_data(DEVreg, DPram_ofs.input, &buffer[0], 6 );
 
-
-          fprintf(stderr,"Enable Periodic Output\n");
-          buffer[0] = DATUM_ENABLE_PER_DDS_CMD;
-          buffer[1] = DATUM_ENABLE_PER;
-          write_dpram_data(DEVreg, DPram_ofs.input, &buffer[0], 2 );
-
+            fprintf(stderr,"Enable Periodic Output\n");
+            buffer[0] = DATUM_ENABLE_PER_DDS_CMD;
+            buffer[1] = DATUM_ENABLE_PER;
+            write_dpram_data(DEVreg, DPram_ofs.input, &buffer[0], 2 );
+          }
           fprintf(stderr,"Set Control Register : ");
 /*  Control register: 
     bit 0:   Event1 lockout : 0 - disable 1 - enable

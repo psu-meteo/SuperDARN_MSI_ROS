@@ -158,7 +158,7 @@ int main(){
         fd_set rfds,efds;
 	// counter and temporary variables
 	int	i,j,k,r,c,buf,index,offset_pad;
-	int	dds_offset,rx_offset;
+	int	dds_offset,rx_offset,tx_offset;
         int     scope_start,dds_trigger,rx_trigger;
 	int 	temp;
 	int	tempint;
@@ -205,6 +205,7 @@ int main(){
                 fprintf(stderr,"Error opening Site ini file, exiting driver\n");
                 exit(temp);
         }
+        tx_offset=iniparser_getint(Site_INI,"timing:tx_offset",TX_OFFSET);
         dds_offset=iniparser_getint(Site_INI,"timing:dds_trigger_offset",DDS_OFFSET);
         rx_offset=iniparser_getint(Site_INI,"timing:rx_trigger_offset",RX_OFFSET);
         if (verbose > -1 ) fprintf(stderr,"DDS Offset: %d RX Offset: %d\n",dds_offset,rx_offset);
@@ -368,7 +369,7 @@ int main(){
 			if (verbose > 1) printf("Radar: %d, Channel: %d Beamnum: %d Status %d\n",
 			  client.radar,client.channel,client.tbeam,msg.status);	
 		        rval=recv_data(msgsock,&index,sizeof(index));
-		        if (verbose > 1) printf("Requested index: %d\n",index);	
+		        if (verbose > 1) printf("Requested index: %d %d %d\n",r,c,index);	
 		        if (verbose > 1) printf("Attempting Free on pulseseq :p\n",pulseseqs[r][c][index]);	
                         if (pulseseqs[r][c][index]!=NULL) {
                           if (pulseseqs[r][c][index]->rep!=NULL)  free(pulseseqs[r][c][index]->rep);
@@ -417,7 +418,7 @@ int main(){
                         index=client.current_pulseseq_index; 
                         if (index!=old_pulse_index[r][c]) {
                         //if (1==1) {
-			  if (verbose > -1) fprintf(stderr,"Need to unpack pulseseq\n");	
+			  if (verbose > -1) fprintf(stderr,"Need to unpack pulseseq %d %d %d\n",r,c,index);	
 			  if (verbose > -1) fprintf(stderr,"Pulseseq length: %d\n",pulseseqs[r][c][index]->len);	
 			// unpack the timing sequence
 			  seq_count[r][c]=0;
@@ -498,11 +499,16 @@ int main(){
                               //if( ( i!=0 ) && ( i <= (max_seq_count-FIFOLVL) ) ) {
                                 if( ((i%FIFOLVL)==0) ) {
 				  for(j=0;j<FIFOWIDTH;j++){
-                            		master_buf[i+j]|=0x84;
+                            		master_buf[i+j]|=0x80;
 				  }
                                 }
                               //}
                               if ((master_buf[i] & 0x02)==0x02) {
+                                /* JDS: use tx as AM gate for mimic recv sample for external freq gen */
+                                if(tx_offset > 0) {
+                                  temp=tx_offset/STATE_TIME;
+                                  master_buf[i+temp]|= 0x04 ; 
+                                }
                                 if (tr_event==0) { 
                                   if (verbose > 1 ) printf("Master TR sample start: %d %x\n",i,master_buf[i]); 
                                   bad_transmit_times.length++;
