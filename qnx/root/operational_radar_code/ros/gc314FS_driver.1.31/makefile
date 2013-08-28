@@ -47,3 +47,6 @@ _read_GC4016.o:		$(HDRS) _read_GC4016.c
 _reset_GC314FS.o: 	$(HDRS) _reset_GC314FS.c
 _set_GC4016_vals.o:	$(HDRS) _set_GC4016_vals.c
 _set_RDA.o:		$(HDRS) _set_RDA.c
+
+clean:
+	rm -rf $(OBJS) _gc314FS 
