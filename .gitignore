@@ -1,5 +1,7 @@
 #Log files
 linux/home/radar/ros.3.6/log/superdarn-ros.*
+config.log
+config.status
 
 #files being edited
 *~
@@ -10,7 +12,7 @@ temp.out*
 *.so
 *.so.0
 *.a
-*.la 
+*.la
 *.Po
 *.Plo
 .libs/
@@ -19,6 +21,7 @@ temp.out*
 linux/home/radar/ros.3.6/bin/
 linux/home/radar/ros.3.6/usr/bin/
 linux/home/radar/ros.3.6/build/bin
+qnx/root/operational_radar_code/ros/fftw-3.2.2/libtool
 qnx/root/operational_radar_code/ros/dio_tcp_driver/dio_tcp_driver
 qnx/root/operational_radar_code/ros/fftw-3.2.2/tools/fftw-wisdom
 qnx/root/operational_radar_code/ros/gc214_tcp_driver/receiver_tcp_driver
@@ -26,4 +29,6 @@ qnx/root/operational_radar_code/ros/gc316_tcp_driver/receiver_tcp_driver
 qnx/root/operational_radar_code/ros/gps_tcp_driver/gps_tcp_driver
 qnx/root/operational_radar_code/ros/fftw-3.2.2/tests/bench
 qnx/root/operational_radar_code/ros/server/arby_server
+qnx/root/operational_radar_code/ros/gc314FS_driver.1.31/_gc314FS
+qnx/root/operational_radar_code/ros/ics660_drv/_ics660-drv
 qnx/root/operational_radar_code/ros/timing_tcp_driver/timing_tcp_driver
