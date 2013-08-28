@@ -36,6 +36,10 @@
 #define USEC 1000000.0
 int AZW_exit_flag=0;
 char channame[5]="\0";
+char server[256]="127.0.0.1";
+int  port=0;
+int  sock=0;
+
 
 FILE *seqlog=NULL;
 char seqlog_name[256];
