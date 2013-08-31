@@ -17,6 +17,7 @@
 #include "include/plx_functions.h"
 #include "include/plx_defines.h"
 #include "utils.h"
+#include "site.h"
 
 extern int verbose;
 
@@ -28,6 +29,7 @@ int _select_tx(unsigned int base, int radar,int address){
         int temp,offset,shifted_address;
         struct  timespec nsleep;
         unsigned int portA,portB,portC;
+        int status_port=STATUS_PORT;
         nsleep.tv_sec=0;
         //nsleep.tv_nsec=100000;
         nsleep.tv_nsec=5000;
@@ -45,9 +47,18 @@ int _select_tx(unsigned int base, int radar,int address){
         }
         switch(radar) {
           case 1:
-            portA=PA_GRP_1;
-            portB=PB_GRP_1;
-            portC=PC_GRP_1;
+            switch (status_port) {
+              case 3:
+                portA=PA_GRP_3;
+                portB=PB_GRP_3;
+                portC=PC_GRP_3;
+                break;
+              default:
+                portA=PA_GRP_1;
+                portB=PB_GRP_1;
+                portC=PC_GRP_1;
+                break;
+            }
             break;
           case 2:
             if (DEVICE_ID==0x0c78) {
@@ -55,15 +66,24 @@ int _select_tx(unsigned int base, int radar,int address){
               portB=PB_GRP_3;
               portC=PC_GRP_3;
             } else {
-              portA=PA_GRP_1;
-              portB=PB_GRP_1;
-              portC=PC_GRP_1;
+              portA=PA_GRP_3;
+              portB=PB_GRP_3;
+              portC=PC_GRP_3;
             }
             break;
           default:
-            portA=PA_GRP_1;
-            portB=PB_GRP_1;
-            portC=PC_GRP_1;
+           switch (status_port) {
+              case 3:
+                portA=PA_GRP_3;
+                portB=PB_GRP_3;
+                portC=PC_GRP_3;
+                break;
+              default:
+                portA=PA_GRP_1;
+                portB=PB_GRP_1;
+                portC=PC_GRP_1;
+                break;
+            }
             break;
         }
 #ifdef __QNX__
@@ -101,6 +121,7 @@ int _get_status(unsigned int base,int radar,struct tx_status *txstatus )
   int tx_address;
   int status,return_status;
   int temp;
+  int status_port=STATUS_PORT;
   unsigned int portA,portB,portC;
 
   if ( (radar>MAX_RADARS) | (radar<=0) ){
@@ -110,9 +131,18 @@ int _get_status(unsigned int base,int radar,struct tx_status *txstatus )
 
   switch(radar) {
     case 1:
-      portA=PA_GRP_1;
-      portB=PB_GRP_1;
-      portC=PC_GRP_1;
+      switch (status_port) {
+        case 3:
+          portA=PA_GRP_3;
+          portB=PB_GRP_3;
+          portC=PC_GRP_3;
+          break;
+        default:
+          portA=PA_GRP_1;
+          portB=PB_GRP_1;
+          portC=PC_GRP_1;
+          break;
+      }
       break;
     case 2:
       if (DEVICE_ID==0x0c78) {
@@ -120,15 +150,24 @@ int _get_status(unsigned int base,int radar,struct tx_status *txstatus )
         portB=PB_GRP_3;
         portC=PC_GRP_3;
       } else {
-        portA=PA_GRP_1;
-        portB=PB_GRP_1;
-        portC=PC_GRP_1;
+        portA=PA_GRP_3;
+        portB=PB_GRP_3;
+        portC=PC_GRP_3;
       }
       break;
     default:
-      portA=PA_GRP_1;
-      portB=PB_GRP_1;
-      portC=PC_GRP_1;
+      switch (status_port) {
+        case 3:
+          portA=PA_GRP_3;
+          portB=PB_GRP_3;
+          portC=PC_GRP_3;
+          break;
+        default:
+          portA=PA_GRP_1;
+          portB=PB_GRP_1;
+          portC=PC_GRP_1;
+          break;
+      }
       break;
   }
   return_status=0;
