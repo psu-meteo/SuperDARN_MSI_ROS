@@ -145,15 +145,9 @@ int _get_status(unsigned int base,int radar,struct tx_status *txstatus )
       }
       break;
     case 2:
-      if (DEVICE_ID==0x0c78) {
-        portA=PA_GRP_3;
-        portB=PB_GRP_3;
-        portC=PC_GRP_3;
-      } else {
-        portA=PA_GRP_3;
-        portB=PB_GRP_3;
-        portC=PC_GRP_3;
-      }
+      portA=PA_GRP_1;
+      portB=PB_GRP_1;
+      portC=PC_GRP_1;
       break;
     default:
       switch (status_port) {
@@ -171,7 +165,8 @@ int _get_status(unsigned int base,int radar,struct tx_status *txstatus )
       break;
   }
   return_status=0;
-  for (tx_address=0;tx_address<MAX_TRANSMITTERS;tx_address++) {
+  if(status_port > 0 ) {
+    for (tx_address=0;tx_address<MAX_TRANSMITTERS;tx_address++) {
 #ifdef __QNX__
       if(verbose > 1 ) printf("TX_ADDRESS: %d\n",tx_address);
       status=_select_tx(base,radar,tx_address);
@@ -193,8 +188,12 @@ int _get_status(unsigned int base,int radar,struct tx_status *txstatus )
       txstatus->status[tx_address]=0xf;
       txstatus->AGC[tx_address]=1;       
       txstatus->LOWPWR[tx_address]=1;
-
 #endif
+    }
+  } else {
+      txstatus->status[tx_address]=0xf;
+      txstatus->AGC[tx_address]=1;       
+      txstatus->LOWPWR[tx_address]=1;
   }
   return return_status;
 }
