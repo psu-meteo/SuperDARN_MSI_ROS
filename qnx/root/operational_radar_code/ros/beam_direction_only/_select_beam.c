@@ -32,6 +32,7 @@ int lookup_beamcode_by_freq(int r, double freq_mhz,double beamnm){
   int b,f,a,best_fstep;
   double tdiff,fdiff,best_freq;
   beamcode=beamnm;
+  return beamcode;
 }
 
 int lookup_angle(int r, double freq,double angle){
@@ -138,19 +139,19 @@ int _select_beam(unsigned int base,struct ControlPRM *client){
                 return -1;
         }
     if (client->radar==1) {
-      if (verbose > 1) printf("Selecting Radar 1 client block");
+      if (verbose > 1) printf("Selecting Radar 1 client block\n");
       portA=PA_GRP_0;
       portB=PB_GRP_0;
       portC=PC_GRP_0;
     }
     if (client->radar==2) {
       if (DEVICE_ID==0x0c78) {
-        if (verbose > 1) printf("Selecting Radar 2 port block");
+        if (verbose > 1) printf("Selecting Radar 2 port block\n");
         portA=PA_GRP_2;
         portB=PB_GRP_2;
         portC=PC_GRP_2;
       } else {
-        if (verbose > 1) printf("Radar 2 port block not available..using Radar 1 ports instead");
+        if (verbose > 1) printf("Radar 2 port block not available..using Radar 1 ports instead\n");
         portA=PA_GRP_0;
         portB=PB_GRP_0;
         portC=PC_GRP_0;
