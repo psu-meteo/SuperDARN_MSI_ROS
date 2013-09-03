@@ -23,7 +23,7 @@
 #include "rtypes.h"
 #define IMAGING 0
 
-int verbose=0;
+int verbose=2;
 int configured=1;
  
 int main(int argc, char *argv[]){
@@ -31,7 +31,7 @@ int main(int argc, char *argv[]){
     unsigned int mmap_io_ptr,IOBASE;
     int	pci_handle,IRQ;
     struct ControlPRM client;
-    int i;
+    int i,temp;
     client.tbeam=-1;
     client.radar=1;
     client.tfreq=0;
