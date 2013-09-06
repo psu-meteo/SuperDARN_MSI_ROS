@@ -1,5 +1,5 @@
 #define MAX_CARDS 1 
-#define FCLOCK  50000000
+#define FCLOCK  40625000
 #define REVERSE_IQ_ORDER 0
 #define SCAN_OK 1
 #define SCAN_ERROR -1
