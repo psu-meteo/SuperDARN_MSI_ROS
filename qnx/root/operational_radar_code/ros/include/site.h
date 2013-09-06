@@ -6,9 +6,9 @@
 #define MAX_TRANSMITTERS 16
 #define MAX_BACK_ARRAY 4
 #define BEAM_SPACING  3.24 //degrees
-#define MAX_RADARS 2 
-#define MAX_CHANNELS 4 
-#define GC214_PCI_INDEX -1 
+#define MAX_RADARS 1 
+#define MAX_CHANNELS 2 
+#define GC214_PCI_INDEX 1 
 #define TIMING_PCI_INDEX 0 
 #define GPS_DEFAULT_REFRESHRATE 1
 #define GPS_DEFAULT_TRIGRATE 10
