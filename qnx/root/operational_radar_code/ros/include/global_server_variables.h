@@ -9,7 +9,6 @@
 #define _GLOBAL_SERVER_H
 
 
-#define SITE_NAME "adr"
 
 #define SITE_DIR "/root/operational_radar_code/site_data/"
 //#define SITE_DIR "/tmp/site_data/"

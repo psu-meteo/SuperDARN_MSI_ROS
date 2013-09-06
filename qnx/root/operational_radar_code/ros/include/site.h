@@ -1,6 +1,7 @@
 #ifndef _SITE_H
 #define _SITE_H
 
+#define SITE_NAME "ksr"
 #define ANTENNA_SEPARATION 15.24 // meters
 #define MAX_ANTENNAS 20
 #define MAX_TRANSMITTERS 16
