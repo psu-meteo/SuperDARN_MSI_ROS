@@ -1,7 +1,5 @@
 #!/bin/sh
 
-HOME=/home/radar2
-
 report=$HOME/radar.report
 mail=$HOME/radar.mail
 

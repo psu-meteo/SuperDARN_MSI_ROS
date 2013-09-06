@@ -1,12 +1,14 @@
 #!/bin/sh
 cd $HOME
+#Prep files for archiving over the network and locally
 $HOME/src/cp_files dat dat
 $HOME/src/cp_files fitacf fit
 $HOME/src/cp_files fitacf inx
 $HOME/src/cp_files rawacf rawacf
-$HOME/src/local_archive_only fitacf fitacf
-#$HOME/src/cp_files fitacf fitacf
+$HOME/src/cp_files fitacf fitacf
+$HOME/src/cp_files iq iqdat 
 $HOME/src/cp_files snd snd
-#
-#$HOME/src/cdproc
+
+#Locally archive only:
+#$HOME/src/local_archive_only fitacf fitacf
 
