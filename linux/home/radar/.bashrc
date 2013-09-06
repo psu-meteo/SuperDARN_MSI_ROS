@@ -10,13 +10,10 @@ PATH=$PATH:$HOME/bin
 
 export PATH
 
-# KSR ROS operational : 20130413
+# KSR ROS operational : 20130906
 export ROSHOST="192.168.0.4"
 export RSTPATH=$HOME/ros.3.6/
 source $RSTPATH/.profile.bash
 
-#Old style RST stuff here
-#export RSTPATH=$HOME/rst
-#source $RSTPATH/profile.superdarn-rst.linux.bash
 export EDITOR=vi
 
