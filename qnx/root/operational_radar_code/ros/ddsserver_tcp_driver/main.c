@@ -395,7 +395,7 @@ int main(){
 		      case DDS_PRETRIGGER:
 	                one_shot_b(ics660[pci_master]);
                         gettimeofday(&t0,NULL);
-			if(verbose > -1 ) {
+			if(verbose > 1 ) {
                           fprintf(stdout,"Setup DDS Card for PRE-trigger Numclients : %d\n",numclients);	
                         }
                         if(numclients>0) {
