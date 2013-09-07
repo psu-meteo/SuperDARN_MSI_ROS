@@ -134,7 +134,7 @@ int main(){
 	struct	timespec	start, stop, sleep, now;
 	int	clockresolution;
 
-        int  maxclients=MAX_RADARS*MAX_CHANNELS;
+        int  maxclients=MAX_RADARS*MAX_CHANNELS+1;
         int  max_seq_count;
         int  seq_count[MAX_RADARS][MAX_CHANNELS];
         int32_t  current_pulse_index[MAX_RADARS][MAX_CHANNELS];
