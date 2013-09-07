@@ -744,7 +744,6 @@ control_program);
             //  printf("GET_DATA: bad_transmit_times:: %d : %d %d\n",i,bad_transmit_times.start_usec[i],bad_transmit_times.duration_usec[i]);
             //}
             gettimeofday(&t0,NULL);
-            if (verbose > 0 ) fprintf(stdout,"GET_DATA: r: %d c: %d  %d.%d\n",r,c,(int)t0.tv_sec,(int)t0.tv_usec);
             gettimeofday(&t_get_data_start,NULL);
             if (control_program->active != 1) { 
               control_program->data->status=-1;

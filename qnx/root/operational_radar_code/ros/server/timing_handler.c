@@ -13,11 +13,9 @@ extern struct TRTimes bad_transmit_times;
 void *timing_ready_controlprogram(struct ControlProgram *arg)
 {
   struct DriverMsg msg;
-  if (verbose > 1 ) fprintf(stdout,"  Set timing card ready start\n");
   pthread_mutex_lock(&timing_comm_lock);
    if (arg!=NULL) {
      if (arg->state->pulseseqs[arg->parameters->current_pulseseq_index]!=NULL) {
-       if (verbose > 1 ) fprintf(stdout,"  timing card ready has valid pulse index\n");
        msg.type=TIMING_CtrlProg_READY;
        msg.status=1;
        send_data(timingsock, &msg, sizeof(struct DriverMsg));
