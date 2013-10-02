@@ -89,7 +89,7 @@ struct RadarParm *prm;
 struct IQ *iq;
 
 char *chn;
-
+char *rname=NULL;
 char *taskname="iqwrite";
 
 char *errhost=NULL;
@@ -194,6 +194,10 @@ int operate(pid_t parent,int sock) {
         IQExpand(iq,prm->nave,dmsg[dptr].iqbuf);
         if ((filename==NULL) && (flg !=0)) {
           flg=0;       
+          if (rname==NULL) {
+            rname=RadarGetCode(network,prm->stid,0);
+            fprintf(stderr,"Rname option not defined, using prm value: %s\n",rname);
+          }
           filename=FIOMakeFile(getenv("SD_IQ_PATH"),
 			       prm->time.yr,
                                prm->time.mo,
@@ -201,7 +205,8 @@ int operate(pid_t parent,int sock) {
                                prm->time.hr,
                                prm->time.mt,
                                prm->time.sc,
-			       RadarGetCode(network,prm->stid,0),
+			       /*RadarGetCode(network,prm->stid,0),*/
+                               rname,
 			       chn,"iqdat",0,0);
 
 	}
@@ -269,7 +274,7 @@ int main(int argc,char *argv[]) {
   OptionAdd(&opt,"ep",'i',&errport);
   OptionAdd(&opt,"t",'f',&thr);
   OptionAdd(&opt,"c",'t',&chn);
-
+  OptionAdd(&opt,"r",'t',&rname);
   arg=OptionProcess(1,argc,argv,&opt,NULL);
 
   if (help==1) {
