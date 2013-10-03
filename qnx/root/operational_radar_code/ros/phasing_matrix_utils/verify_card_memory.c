@@ -32,7 +32,8 @@ int main(int argc, char *argv[]){
     int i,temp;
     int return_val;
     int32_t data=-1,radar=1,card=-1,type=1,maddr=-1,phasecode=-1,attencode=-1;
-
+    int32_t *mdata=NULL;
+    int32_t verify_phasecode=0,verify_attencode=0;
     for(i = 1; i < argc; i++) {  /* Skip argv[0] (program name). */
       if (strcmp(argv[i], "-m") == 0){
         i++;
@@ -45,10 +46,12 @@ int main(int argc, char *argv[]){
       if (strcmp(argv[i], "-p") == 0){
         i++;
         phasecode = atoi(argv[i]); 
+        verify_phasecode = 1 ; 
       } 
       if (strcmp(argv[i], "-a") == 0){
         i++;
         attencode = atoi(argv[i]); 
+        verify_attencode = 1 ; 
       } 
       if (strcmp(argv[i], "-v") == 0){
         i++;
@@ -120,12 +123,29 @@ int main(int argc, char *argv[]){
         return_val=0;
         _select_card(IOBASE,radar,card); 
         _select_beam(IOBASE,radar,card,verbose); 
-        data=_verify_data(IOBASE,radar,card,maddr,attencode,ATTEN,type); 
-        if(data!=attencode) return_val+=ATTENERR;
-        fprintf(stderr,"Attencode:: Expected: %d In-Memory: %d\n",attencode,data);
-        data=_verify_data(IOBASE,radar,card,maddr,phasecode,SWITCHES,type); 
-        if(data!=phasecode) return_val+=PHASEERR;
-        fprintf(stderr,"Phasecode:: Expected: %d In-Memory: %d\n",phasecode,data);
 
+        fprintf(stderr,"Attencode:: ")
+        if(verify_attencode) {
+          fprintf(stderr,"Expected: %d",attencode)
+          mdata=&data;
+        }
+        else mdata=NULL;
+        return_val+=_verify_data(IOBASE,radar,card,maddr,attencode,ATTEN,type,mdata); 
+        if(mdata !=NULL) { 
+          fprintf(stderr," In-Memory: %d\n",*mdata);
+          if(data!=attencode) return_val+=ATTENERR;
+        }
+
+        fprintf(stderr,"Phasecode:: ")
+        if(verify_phasecode) {
+          fprintf(stderr,"Expected: %d",phasecode)
+          mdata=&data;
+        }
+        else mdata=NULL;
+        return_val+=_verify_data(IOBASE,radar,card,maddr,phasecode,PHASE,type,mdata); 
+        if(mdata !=NULL) { 
+          fprintf(stderr," In-Memory: %d\n",*mdata);
+          if(data!=phasecode) return_val+=PHASEERR;
+        }
         return return_val;
 }

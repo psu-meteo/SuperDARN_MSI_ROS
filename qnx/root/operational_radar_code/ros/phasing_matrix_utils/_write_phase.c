@@ -105,7 +105,7 @@ int32_t set_WE(int32_t base,int32_t onoff,int32_t radar,int32_t type){
 #endif
 }
 
-int32_t _verify_data(uint32_t base, int32_t radar, int32_t card, int32_t maddr, int32_t code,int SA,int32_t type){
+int32_t _verify_data(uint32_t base, int32_t radar, int32_t card, int32_t maddr, int32_t code,int SA,int32_t type,int32_t *mdata){
 /* type == 1 for MSI  type == 0 for McM */
 /* SA : SWITCHES==0 ATTEN==1 */
 /* returns data at memory address,  -1 on error */
@@ -176,20 +176,27 @@ int32_t _verify_data(uint32_t base, int32_t radar, int32_t card, int32_t maddr, 
             temp=temp & 0x1f80;
             break;
         }
-        if ((temp != data) ){
+        if(mdata!=NULL){
+          if ((temp != data) ){
                 fprintf(stderr," WARNING - Unexpected Value: data: %x != readback: %x :: Maddr: %d Card: %d\n", code, reverse_bits(temp),maddr,card);
+          }
+          switch(SA) {
+            case SWITCHES:
+              return_val=reverse_bits(temp) ^ 0x1fff;
+              *mdata=return_val;
+              break;
+            case ATTEN:
+              return_val=reverse_bits(temp) ^ 0x3f;
+              *mdata=return_val;
+              break;
+            default:
+              return_val=-1;
+              *mdata=return_val;
+          }          
+          return 0; 
+        } else {
+          return 0;
         }
-        switch(SA) {
-          case SWITCHES:
-            return_val=reverse_bits(temp) ^ 0x1fff;
-            break;
-          case ATTEN:
-            return_val=reverse_bits(temp) ^ 0x3f;
-            break;
-          default:
-            return_val=-1;
-        }          
-        return return_val; 
 #else
         return -1;
 #endif
