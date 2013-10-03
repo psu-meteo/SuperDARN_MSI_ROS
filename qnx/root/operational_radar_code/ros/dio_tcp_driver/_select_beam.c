@@ -36,7 +36,7 @@ int lookup_beamcode_by_freq(int r, double freq_mhz,double beamnm){
       fdiff=fm[r];
       best_fstep=0;
       best_freq=0.0;
-      for (f=0;f<num_fsteps[r];f++) {
+      for (f=0;f<=num_fsteps[r];f++) {
         if(f==0) {
           b=a;  
         } else {
