@@ -47,14 +47,7 @@
 #define STAGE3_ON      128
 #define STAGE3_OFF       0
 
-/*struct DIO_TCP_MSG{
-        int channel;
-        int address;
-        int beam;
-        int TM;
-        int AGC_status;
-        int LP_status;
-        int status;
-        int freq;
-};*/
+#define ATTENERR 2
+#define PHASEERR 4
+
 

@@ -21,8 +21,6 @@
 #include "utils.h"
 #include "rtypes.h"
 
-#define ATTENERR 2
-#define PHASEERR 4
  
 int verbose=0;
 int configured=1;

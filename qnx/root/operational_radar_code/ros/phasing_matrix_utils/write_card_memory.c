@@ -29,7 +29,7 @@ int main(int argc, char *argv[]){
   // DECLARE AND INITIALIZE ANY NECESSARY VARIABLES
     unsigned int mmap_io_ptr,IOBASE;
     int	pci_handle,IRQ;
-    int i,temp;
+    int i,temp,return_val;
     int32_t radar=1,card=-1,type=1,maddr=-1,phasecode=-1,attencode=-1;
 
     for(i = 1; i < argc; i++) {  /* Skip argv[0] (program name). */
@@ -65,7 +65,7 @@ int main(int argc, char *argv[]){
       fprintf(stdout,"  Required argument -a attencode\n");
       fprintf(stdout,"  Optional argument -r radar number, 1 or 2 for dual site. Default is 1\n");
       fprintf(stdout,"  Optional argument -old: use for McM phasing cards\n");
-      return 0;
+      return -1;
     } else {
       fprintf(stdout,"Selected Radar: %d Maddr: %d Card: %d Phase: %d Atten: %d\n",radar,card,maddr,phasecode,attencode);
     }
@@ -111,9 +111,12 @@ int main(int argc, char *argv[]){
         }
 #endif
     // Set Beam 
+        return_val=0;
         _select_card(IOBASE,radar,card); 
         _select_beam(IOBASE,radar,card,verbose); 
-        _write_phase(IOBASE,radar,card,maddr,phasecode,type); 
-        _write_atten(IOBASE,radar,card,maddr,attencode,type); 
-        return 0;
+        temp=_write_phase(IOBASE,radar,card,maddr,phasecode,type); 
+        if (temp!=0) return_val+=PHASEERR;
+        temp=_write_atten(IOBASE,radar,card,maddr,attencode,type); 
+        if (temp!=0) return_val+=ATTENERR;
+        return return_val;
 }
