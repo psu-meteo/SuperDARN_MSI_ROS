@@ -29,7 +29,7 @@ extern int32_t num_freqs[MAX_RADARS],max_angles[MAX_RADARS],num_angles[MAX_RADAR
 int lookup_beamcode_by_freq(int r, double freq_mhz,double beamnm){
   int beamcode=beamnm;
   int b,f,a,best_fstep;
-  double tdiff,fdiff,best_freq;
+  double freq,tdiff,fdiff,best_freq;
   if (use_beam_table && final_freqs[r][0]) {
     if(freq_mhz>0) {
       a=beamnm;
@@ -37,8 +37,13 @@ int lookup_beamcode_by_freq(int r, double freq_mhz,double beamnm){
       best_fstep=0;
       best_freq=0.0;
       for (f=0;f<num_fsteps[r];f++) {
-        b=f*max_angles[r]+a+foffset[r];    
-        tdiff=fabs(final_freqs[r][0][b]-(double)freq_mhz);
+        if(f==0) {
+          b=a;  
+        } else {
+          b=(f-1)*max_angles[r]+a+foffset[r];
+        }
+        freq=final_freqs[r][0][b];
+        tdiff=fabs(freq-(double)freq_mhz);
         if(tdiff < fdiff) {
           fdiff=tdiff;
           best_fstep=f;
