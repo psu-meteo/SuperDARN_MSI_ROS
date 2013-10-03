@@ -20,9 +20,11 @@
 #include "include/plx_defines.h"
 #include "utils.h"
 #include "rtypes.h"
-#define IMAGING 0
 
-int verbose=2;
+#define ATTENERR 2
+#define PHASEERR 4
+ 
+int verbose=0;
 int configured=1;
  
 int main(int argc, char *argv[]){
@@ -30,6 +32,7 @@ int main(int argc, char *argv[]){
     unsigned int mmap_io_ptr,IOBASE;
     int	pci_handle,IRQ;
     int i,temp;
+    int return_val;
     int32_t data=-1,radar=1,card=-1,type=1,maddr=-1,phasecode=-1,attencode=-1;
 
     for(i = 1; i < argc; i++) {  /* Skip argv[0] (program name). */
@@ -49,6 +52,10 @@ int main(int argc, char *argv[]){
         i++;
         attencode = atoi(argv[i]); 
       } 
+      if (strcmp(argv[i], "-v") == 0){
+        i++;
+        verbose += atoi(argv[i]); 
+      } 
       if (strcmp(argv[i], "-r") == 0){
         i++;
         radar = atoi(argv[i]); 
@@ -65,15 +72,16 @@ int main(int argc, char *argv[]){
       fprintf(stdout,"  Required argument -a attencode\n");
       fprintf(stdout,"  Optional argument -r radar number, 1 or 2 for dual site. Default is 1\n");
       fprintf(stdout,"  Optional argument -old: use for McM phasing cards\n");
-      return 0;
+      fprintf(stdout,"  Optional argument -v increment verbosity flag\n");
+      return -1;
     } else {
-      fprintf(stdout,"Selected Radar: %d Maddr: %d Card: %d Phase: %d Atten: %d\n",radar,card,maddr,phasecode,attencode);
+      if (verbose > 0 ) fprintf(stdout,"Selected Radar: %d Maddr: %d Card: %d Phase: %d Atten: %d\n",radar,card,maddr,phasecode,attencode);
     }
 #ifdef __QNX__       
     // SET THE SYSTEM CLOCK RESOLUTION AND GET THE START TIME OF THIS PROCESS 
         if(configured) {
       // OPEN THE PLX9052 AND GET LOCAL BASE ADDRESSES 
-	  temp=_open_PLX9052(&pci_handle, &mmap_io_ptr, &IRQ, 1);
+	  temp=_open_PLX9052(&pci_handle, &mmap_io_ptr, &IRQ, verbose);
           IOBASE=mmap_io_ptr;
           if(temp==-1){
                 if (verbose > 1) fprintf(stderr, "       PLX9052 configuration failed");
@@ -111,12 +119,15 @@ int main(int argc, char *argv[]){
         }
 #endif
     // Set Beam 
+        return_val=0;
         _select_card(IOBASE,radar,card); 
-        _select_beam(IOBASE,radar,card); 
-        data=_verify_data(IOBASE,radar,card,maddr,phasecode,SWITCHES,type); 
-        fprintf(stderr,"Phasecode:: Expected: %d In-Memory: %d\n",phasecode,data);
+        _select_beam(IOBASE,radar,card,verbose); 
         data=_verify_data(IOBASE,radar,card,maddr,attencode,ATTEN,type); 
+        if(data!=attencode) return_val+=ATTENERR;
         fprintf(stderr,"Attencode:: Expected: %d In-Memory: %d\n",attencode,data);
+        data=_verify_data(IOBASE,radar,card,maddr,phasecode,SWITCHES,type); 
+        if(data!=phasecode) return_val+=PHASEERR;
+        fprintf(stderr,"Phasecode:: Expected: %d In-Memory: %d\n",phasecode,data);
 
-        return 0;
+        return return_val;
 }

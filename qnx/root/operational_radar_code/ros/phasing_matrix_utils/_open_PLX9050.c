@@ -91,7 +91,7 @@ int _open_PLX9052(int *pci_handle, unsigned int *mmap_io_ptr, int *interrupt_lin
 	*interrupt_line=pci_reg.Interrupt_Line;
 
     /* PRINT PLX9656 PARAMETERS */
-	if (print == 1){
+	if (print > 0){
 		printf("	PCI DEVICE PARAMETERS:\n");
 		printf("	  lastbus=		%d\n", lastbus);
 		printf("	  version=		%d\n", version);

@@ -19,7 +19,6 @@
 #include "include/plx_defines.h"
 #include "utils.h"
 
-extern int verbose;
 
 /*-BEAM_CODE---------------------------------------------------------*/
 int reverse_bits(int data){
@@ -44,7 +43,7 @@ int reverse_bits(int data){
 }
 
 
-int _select_beam(unsigned int base,int radar, int beam){
+int _select_beam(unsigned int base,int radar, int beam,int verbose){
 
         /* This code selects the beam code to use.  
         */

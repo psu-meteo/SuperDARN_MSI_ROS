@@ -19,7 +19,6 @@
 #include "include/plx_defines.h"
 #include "utils.h"
 
-extern int verbose;
 
 int _select_card(unsigned int base, int radar, int card){
 
@@ -31,7 +30,7 @@ int _select_card(unsigned int base, int radar, int card){
            programming purposes.
         */
 #ifdef __QNX__  
-        int temp,radar,address;
+        int temp,address;
         unsigned int portA,portB,portC,cntl; 
         struct  timespec nsleep;
         address=card;

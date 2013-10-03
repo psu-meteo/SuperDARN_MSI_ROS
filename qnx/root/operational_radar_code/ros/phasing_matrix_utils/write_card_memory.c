@@ -112,7 +112,7 @@ int main(int argc, char *argv[]){
 #endif
     // Set Beam 
         _select_card(IOBASE,radar,card); 
-        _select_beam(IOBASE,radar,card); 
+        _select_beam(IOBASE,radar,card,verbose); 
         _write_phase(IOBASE,radar,card,maddr,phasecode,type); 
         _write_atten(IOBASE,radar,card,maddr,attencode,type); 
         return 0;

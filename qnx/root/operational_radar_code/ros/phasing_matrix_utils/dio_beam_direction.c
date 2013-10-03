@@ -95,6 +95,6 @@ int main(int argc, char *argv[]){
 #endif
     // Set Beam 
         _select_card(IOBASE,radar, beam % 32 ); 
-        _select_beam(IOBASE,radar,beam); 
+        _select_beam(IOBASE,radar,beam,verbose); 
         return 0;
 }
