@@ -126,9 +126,9 @@ struct TCPIPMsgHost errlog={"127.0.0.1",44100,-1};
 
 struct TCPIPMsgHost shell={"127.0.0.1",44101,-1};
 
-int tnum=3;      
-struct TCPIPMsgHost task[3]={
-  /*  {"127.0.0.1",0,-1}, iqwrite */
+int tnum=4;      
+struct TCPIPMsgHost task[4]={
+  {"127.0.0.1",0,-1}, /* iqwrite */
   {"127.0.0.1",2,-1}, /* rawacfwrite */
   {"127.0.0.1",3,-1}, /* fitacfwrite */
   {"127.0.0.1",4,-1}  /* rtserver */
@@ -193,7 +193,7 @@ int main(int argc,char *argv[]) {
   /* the file contains one integer value per line */
   int freq_dwell=15; /* after so many minutes a new optimal frequency is evaluated */
   int sounder_freqs_total=8;
-  int sounder_freqs[ MAX_SND_FREQS]= {11000, 12000, 13000, 14000, 15000, 16000, 17000, 18000, 0, 0, 0, 0};
+  int sounder_freqs[ MAX_SND_FREQS]= {10000, 11000, 12000, 13000, 14000, 15000, 16000, 9000, 0, 0, 0, 0};
   time_t last_freq_search, t_now;
   int fw=0; /* frequency weighting flag used in selecting the optimal freq */
   int sounder_beams[]={0,2,4,6,8,10,12,14};
