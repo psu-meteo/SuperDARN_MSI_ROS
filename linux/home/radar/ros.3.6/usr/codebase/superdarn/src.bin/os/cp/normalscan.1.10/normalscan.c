@@ -173,7 +173,7 @@ int main(int argc,char *argv[]) {
   mplgs=23;
   mpinc=1500;
   dmpinc=1500;
-  nrang=75;
+  nrang=100;
   rsep=45;
   txpl=300;
 
@@ -376,7 +376,7 @@ int main(int argc,char *argv[]) {
       ErrLog(errlog.sock,progname, logtxt);
 
       if(fixfrq<0) {      
-        tfreq=SiteFCLR(stfrq-frqrng/2,stfrq+frqrng/2);
+        tfreq=SiteFCLR(stfrq,stfrq+frqrng);
       }
       sprintf(logtxt,"Transmitting on: %d (Noise=%g)",tfreq,noise);
       ErrLog(errlog.sock,progname,logtxt);
