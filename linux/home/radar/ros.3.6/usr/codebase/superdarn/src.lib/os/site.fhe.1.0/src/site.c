@@ -173,8 +173,8 @@ int SiteFheStart(char *host) {
 
 /* KTS added to adjust for day/night time */
 
-  day=18;
-  night=10;
+  day=13;
+  night=01;
 
   return 0;
 }
