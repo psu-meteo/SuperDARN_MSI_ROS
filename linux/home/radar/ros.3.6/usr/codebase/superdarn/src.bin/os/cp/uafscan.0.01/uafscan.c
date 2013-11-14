@@ -432,7 +432,7 @@ int main(int argc,char *argv[]) {
 
   /* Calculate txpl setting from rsep */
 
-  txpl=(rsep*20)/3;
+  txpl=(nbaud*rsep*20)/3;
 
   /* Attempt to adjust mpinc to be a multiple of 10 and a muliple of txpl */
 
@@ -467,6 +467,7 @@ int main(int argc,char *argv[]) {
   ErrLog(errlog.sock,progname,logtxt);
 
   if(al_test->count > 0) {
+    /* TODO: ADD PARAMETER CHECKING, SEE IF PCODE IS SANE AND WHATNOT */
     fprintf(stdout,"Control Program Parameters::\n");
     fprintf(stdout,"  xcf arg:: count: %d value: %d xcnt: %d\n",ai_xcf->count,ai_xcf->ival[0],xcnt);
     fprintf(stdout,"  baud arg:: count: %d value: %d nbaud: %d\n",ai_baud->count,ai_baud->ival[0],nbaud);
@@ -588,7 +589,7 @@ int main(int argc,char *argv[]) {
       OpsBuildIQ(iq,&badtr);
             
       OpsBuildRaw(raw);
-   
+       
       FitACF(prm,raw,fblk,fit);
       
       msg.num=0;
