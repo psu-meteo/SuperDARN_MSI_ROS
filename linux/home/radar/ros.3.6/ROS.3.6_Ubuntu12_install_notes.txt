@@ -1,0 +1,54 @@
+The following are notes taken while trying to install/setup the ROS.3.6 code on
+an Ubuntu 12.04 linux computer.  
+by Kevin Sterne
+
+
+Pulled Adak operations branch
+
+Edit .bashrc for site specific things.
+
+Install zlib with:
+sudo apt-get install zlib1g-dev
+
+cd into ros.3.6/build/script/
+
+do a 'make.build'
+
+then do a 'make.code superdarn ros.3.6'
+
+Got an error in dmaptocdf.1.8, couldn't find cdf.h but manually found a bunch of rcdf.h files.  
+
+So, instead, download cdf package from: ftp://cdaweb.gsfc.nasa.gov/ and follow install/build instructions.  Here on Ubuntu 12, you may have to install the ncurses.h package by doing:
+
+sudo apt-get install libncurses5-dev
+
+Continue with cdf package install/build instructions making sure to set the INSTALLDIR to /usr/local/cdf when doing the make install commmand.
+
+Back to trying to compile the ros code, now get an error on netcdf.h not found from the dmaptoncdf code.
+
+Downloaded netcdf library from: http://www.unidata.ucar.edu/software/netcdf/docs/netcdf-install.html and try to install.
+
+Here, I also had to install hdf5 and zlib first... These can be found at: ftp://ftp.unidata.ucar.edu/pub/netcdf/netcdf-4/
+
+...screw dmaptoncdf function, taring that up for later.
+
+had to comment out argtable.h	
+
+make.code superdarn ros.3.6 now compiles perfectly!
+
+Upon trying to run the radar, having problems with finding the site libraries, for example libsite.fhe.1.so is not found...because they don't exist in this branch!  Doh!
+
+Copied over the ade and adw site libraries and made a few changes here.  Mostly renaming from adw -> fhw and that such, but also changed day/night times in site.c file.
+
+Recompiled and then started the radar, but got an error of an undefined symbol: clock_gettime.  Added -lrt to makefiles for site libraries and then recompiled.  Still doesn't work...what?
+
+Added:
+
+LFLAGS += -lrt
+
+to the makefiles for the fhe/fhw site libraries and away it goes!
+
+
+
+
+
