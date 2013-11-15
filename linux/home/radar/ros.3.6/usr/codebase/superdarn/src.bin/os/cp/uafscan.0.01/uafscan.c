@@ -57,6 +57,10 @@
 #include "site.h"
 #include "sitebuild.h"
 
+/* sorry, included for checking sanity checking pcode sequences with --test (JTK)*/
+#include "tsg.h" 
+#include "maketsg.h"
+
 /* Argtable define for argument error parsing */
 #define ARG_MAXERRORS 30
 
@@ -467,7 +471,7 @@ int main(int argc,char *argv[]) {
   ErrLog(errlog.sock,progname,logtxt);
 
   if(al_test->count > 0) {
-    /* TODO: ADD PARAMETER CHECKING, SEE IF PCODE IS SANE AND WHATNOT */
+        
     fprintf(stdout,"Control Program Parameters::\n");
     fprintf(stdout,"  xcf arg:: count: %d value: %d xcnt: %d\n",ai_xcf->count,ai_xcf->ival[0],xcnt);
     fprintf(stdout,"  baud arg:: count: %d value: %d nbaud: %d\n",ai_baud->count,ai_baud->ival[0],nbaud);
@@ -476,6 +480,51 @@ int main(int argc,char *argv[]) {
     fprintf(stdout,"  cpid: %d progname: \'%s\'\n",cp,progname);
     fprintf(stdout,"  intsc: %d intus: %d scnsc: %d scnus: %d nowait: %d\n",intsc,intus,scnsc,scnus,al_nowait->count);
     fprintf(stdout,"  sbm: %d ebm: %d  beams: %d\n",sbm,ebm,beams);
+    
+    /* TODO: ADD PARAMETER CHECKING, SEE IF PCODE IS SANE AND WHATNOT */
+   if(nbaud != 1) {
+        /* create tsgprm struct and pass to TSGMake, check if TSGMake makes something valid */
+        /* checking with SiteTimeSeq(ptab); would be easier, but that talks to hardware..*/
+        /* the job of aggregating a tsgprm from global variables should probably be a function in maketsg.c */
+        int flag = 0;
+
+        if (tsgprm.pat !=NULL) free(tsgprm.pat);
+        if (tsgbuf !=NULL) TSGFree(tsgbuf);
+
+        memset(&tsgprm,0,sizeof(struct TSGprm));   
+        tsgprm.nrang = nrang;
+        tsgprm.frang = frang;
+        tsgprm.rsep = rsep; 
+        tsgprm.smsep = smsep;
+        tsgprm.txpl = txpl;
+        tsgprm.mppul = mppul;
+        tsgprm.mpinc = mpinc;
+        tsgprm.mlag = 0;
+        tsgprm.nbaud = nbaud;
+        tsgprm.stdelay = 18 + 2;
+        tsgprm.gort = 1;
+        tsgprm.rtoxmin = 0;
+
+        tsgprm.pat = malloc(sizeof(int)*mppul);
+        tsgprm.code = ptab;
+
+        for (i=0;i<tsgprm.mppul;i++) tsgprm.pat[i]=ptab[i];
+
+        tsgbuf=TSGMake(&tsgprm,&flag);
+        fprintf(stdout,"Sequence Parameters::\n");
+        fprintf(stdout,"  lagfr: %d smsep: %d  txpl: %d\n",tsgprm.lagfr,tsgprm.smsep,tsgprm.txpl);
+    
+        if(tsgprm.smsep == 0 || tsgprm.lagfr == 0) {
+            fprintf(stdout,"Sequence Parameters::\n");
+            fprintf(stdout,"  lagfr: %d smsep: %d  txpl: %d\n",tsgprm.lagfr,tsgprm.smsep,tsgprm.txpl);
+            fprintf(stdout,"WARNING: lagfr or smsep is zero, invalid timing sequence genrated from given baud/rsep/nrang/mpinc will confuse TSGMake and FitACF into segfaulting");
+        }
+
+        else {
+            fprintf(stdout,"The phase coded timing sequence looks good\n");
+        }
+    }
+
     fprintf(stdout,"Test option enabled, exiting\n");
     return 0;
   }
@@ -654,4 +703,3 @@ int main(int argc,char *argv[]) {
 
   return 0;   
 } 
- 
