@@ -901,8 +901,8 @@ usleep(usecs);
       }
       fprintf(f_diagnostic_ascii,"\n");
       fprintf(f_diagnostic_ascii,"Sequence: Parameters: END\n");
+      fprintf(f_diagnostic_ascii,"Sequence: Invert %d\n",invert);
     }
-    fprintf(f_diagnostic_ascii,"Sequence: Invert %d\n",invert);
 
     if(dprm.status==0) {
       nsamp=(int)dprm.samples;
