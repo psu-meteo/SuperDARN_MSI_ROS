@@ -35,13 +35,13 @@ rawacfwrite -r fhw -lp 54102 -ep 54000 &
 sleep 2
 
 echo "Waiting for rtserver to start"
-rtserver -rp 44104 -ep 44000 -tp 1401 &
+rtserver -rp 44104 -ep 44000 -tp 1024 &
 
 #sleep 2
 
-rtserver -rp 54104 -ep 54000 -tp 1501 &
+rtserver -rp 54104 -ep 54000 -tp 1025 &
 
-sleep 2 
+sleep 2
 
 echo "Starting Scheduler"
 schedule  -l /data/ros/scdlogs/fhe.scdlog -f /data/ros/scd/fhe.scd -f /data/ros/scd/fhe-rbsp.scd  &
