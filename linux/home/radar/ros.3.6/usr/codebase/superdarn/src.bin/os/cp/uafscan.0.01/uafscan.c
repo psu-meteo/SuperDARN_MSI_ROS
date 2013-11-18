@@ -220,6 +220,7 @@ int main(int argc,char *argv[]) {
   al_nowait->count = 0;
   al_onesec->count = 0;
   al_clrscan->count = 0;
+  al_debug->count = 0;
   ai_bp->ival[0] = 44100;
   ai_fixfrq->ival[0] = -1;
   ai_baud->ival[0] = nbaud;
@@ -258,6 +259,11 @@ int main(int argc,char *argv[]) {
     arg_print_glossary(stdout,argtable,"  %-25s %s\n");
     arg_freetable(argtable, sizeof(argtable)/sizeof(argtable[0]));
     return 0;
+  }
+
+  /* Set debug flag from command line arguement */
+  if (al_debug->count) {
+    debug = al_debug->count;
   }
 
   /* Load roshost argument here */
