@@ -136,7 +136,6 @@ int SiteAzwStart(char *host) {
     seqbadtr[nave].start=NULL;
     seqbadtr[nave].length=NULL;
   }
-  debug=0;
   nave=0;
   rdata.main=NULL;
   rdata.back=NULL;
@@ -167,7 +166,6 @@ int SiteAzwStart(char *host) {
  *   invert=non-zero  Inversion necassary 
 */
   invert=1;
-  debug=0;
 /* rxchn number of channels typically 1*/
 /* rngoff argument in ACFCalculate.. is 2*rxchn and is normally set to 2 */
   rxchn=1;
@@ -257,7 +255,13 @@ int SiteAzwSetupRadar() {
 
 
   samples=(int16 *)
-    ShMemAlloc(sharedmemory,IQBUFSIZE,O_RDWR | O_CREAT,1,&shmemfd);
+  ShMemAlloc(sharedmemory,IQBUFSIZE,O_RDWR | O_CREAT,1,&shmemfd);
+
+  if(IQBUFSIZE < (sizeof(int32) * 1e6 * intsc * nbaud / mpinc)) {
+    fprintf(stderr,"IQBuffer Size is Too Small\n");
+    SiteAzwExit(-1);
+  }
+
   if(samples==NULL) { 
     fprintf(stderr,"IQBuffer %s is Null\n",sharedmemory);
     SiteAzwExit(-1);
