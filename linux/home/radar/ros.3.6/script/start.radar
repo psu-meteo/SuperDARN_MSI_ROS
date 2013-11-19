@@ -37,4 +37,5 @@ sleep 2
 
 echo "Starting Scheduler"
 schedule  -l /data/ros/scdlogs/ksr.a.scdlog -f /data/ros/scd/ksr.a.scd -f /data/ros/scd/ksr.a-rbsp.scd -f /data/ros/scd/ksr.a.special &
-schedule  -l /data/ros/scdlogs/ksr.b.scdlog -f /data/ros/scd/ksr.b.scd -f /data/ros/scd/ksr.b-rbsp.scd -f /data/ros/scd/ksr.b.special  &
+# The following line was enabled on October 8, 2013 by removing the sharp mark.
+schedule  -l /data/ros/scdlogs/ksr.b.scdlog -f /data/ros/scd/ksr.b.scd -f /data/ros/scd/ksr.b-rbsp.scd -f /data/ros/scd/ksr.b.special &
