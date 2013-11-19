@@ -531,6 +531,11 @@ int main(int argc,char *argv[]) {
         }
     }
 
+    if (nerrors > 0) {
+        fprintf(stdout,"Errors found in commandline arguements: \n");
+        arg_print_errors(stdout,ae_argend,"uafscan");
+    }
+ 
     fprintf(stdout,"Test option enabled, exiting\n");
     return 0;
   }
