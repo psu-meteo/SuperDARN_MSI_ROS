@@ -54,6 +54,7 @@
 #include "shmem.h"
 #include "iqwrite.h"
 #include "errlog.h"
+#include "limit.h"
 
 #include "errstr.h"
 #include "hlpstr.h"
@@ -61,7 +62,6 @@
 #include "version.h"
 
 #define DEF_PORT 44100
-#define IQBUFSIZE 524288
 
 struct OptionData opt;
 
