@@ -1,6 +1,19 @@
-# Restricted frequency table for the standard radar.
-default=13000
-9970 10030
-12000 12999
-13400 13495
-14970 15030
+# Restricted frequency table for King Salmon
+#   Frequency bands that can not be used for transmit
+default=11110
+0000   8000
+8100   9040
+9500   9900
+9995  10150
+11175 11400
+11650 12050
+12230 13410
+13600 13800
+14000 14350
+14990 15600
+16360 17410
+17550 18030
+18068 18168
+18780 18900
+19680 19800
+19990 99999
