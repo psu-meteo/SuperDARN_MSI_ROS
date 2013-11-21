@@ -48,6 +48,7 @@ char *msglog_dir=NULL;
 FILE *f_diagnostic_ascii=NULL;
 
 int yday=-1;
+int iqbufsize=0;
 
 void SiteAzwExit(int signum) {
 
@@ -84,7 +85,7 @@ void SiteAzwExit(int signum) {
           f_diagnostic_ascii=NULL;
         }
         if (samples !=NULL)
-          ShMemFree((unsigned char *) samples,sharedmemory,IQBUFSIZE,1,shmemfd);
+          ShMemFree((unsigned char *) samples,sharedmemory,iqbufsize,1,shmemfd);
         exit(errno);
       } 
       break;
@@ -116,7 +117,7 @@ void SiteAzwExit(int signum) {
           f_diagnostic_ascii=NULL;
         }
         if (samples !=NULL)
-          ShMemFree((unsigned char *) samples,sharedmemory,IQBUFSIZE,1,shmemfd);
+          ShMemFree((unsigned char *) samples,sharedmemory,iqbufsize,1,shmemfd);
         exit(errno);
       }
 
@@ -253,15 +254,11 @@ int SiteAzwSetupRadar() {
 
   sprintf(sharedmemory,"IQBuff_Azw_%d_%d",rnum,cnum);
 
+  iqbufsize = 2 * (mppul) * sizeof(int32) * 1e6 * intsc * nbaud / mpinc; /* calculate size of IQ buffer (JTK) */
 
-  samples=(int16 *)
-  ShMemAlloc(sharedmemory,IQBUFSIZE,O_RDWR | O_CREAT,1,&shmemfd);
-
-  if(IQBUFSIZE < (sizeof(int32) * 1e6 * intsc * nbaud / mpinc)) {
-    fprintf(stderr,"IQBuffer Size is Too Small\n");
-    SiteAzwExit(-1);
-  }
-
+  fprintf(stderr,"intc: %d, nbaud %d, mpinc %d, iq buffer size is %d\n",intsc, nbaud, mpinc, iqbufsize);
+  samples = (int16 *)ShMemAlloc(sharedmemory,iqbufsize,O_RDWR | O_CREAT,1,&shmemfd);
+  
   if(samples==NULL) { 
     fprintf(stderr,"IQBuffer %s is Null\n",sharedmemory);
     SiteAzwExit(-1);
@@ -1035,7 +1032,7 @@ usleep(usecs);
       
       dest = (void *)(samples);  /* look iqoff bytes into samples area */
       dest+=iqoff;
-      if ((iqoff+dprm.samples*2*sizeof(uint32) )<IQBUFSIZE) {
+      if ((iqoff+dprm.samples*2*sizeof(uint32) )<iqbufsize) {
         memmove(dest,rdata.main,dprm.samples*sizeof(uint32));
         dest += dprm.samples*sizeof(uint32); /* skip ahead number of samples * 32 bit per sample to account for rdata.main*/
         memmove(dest,rdata.back,dprm.samples*sizeof(uint32));

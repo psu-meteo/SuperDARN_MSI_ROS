@@ -39,6 +39,8 @@
 #include <string.h>
 #include <sys/mman.h>
 
+int ShMemSizeFd(int fd); /* this should go in a header file.. find out how to use build system to include ../include/shmem.h */
+
 unsigned char *ShMemAlloc(char *memname,int size,int flags,int unlink,
 			  int *fdptr) {
 
@@ -82,8 +84,17 @@ int ShMemFree(unsigned char *p,char *memname,int size,int unlink,int fd) {
   return s;
 }
 
+/* return size of shared memory in bytes from the name */ 
+int ShMemSizeName(char *memname) {
+  int bufsize, fd;
+  fd=shm_open(memname,O_RDONLY,0777);
+  bufsize = ShMemSizeFd(fd);
+  close(fd);
+  return bufsize;
+}
 
-int ShMemSize(int fd) {
+/* return size of shared memory in bytes from the file descriptor */
+int ShMemSizeFd(int fd) {
   /* may errors if optimization is not enabled (?!?!?!) */
   struct stat filestat;
   int t;

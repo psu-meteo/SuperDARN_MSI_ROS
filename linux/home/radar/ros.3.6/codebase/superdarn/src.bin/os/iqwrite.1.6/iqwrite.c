@@ -214,16 +214,18 @@ int operate(pid_t parent,int sock) {
                     fp=fopen(filename,"a");
                     if (fp==NULL) ErrLog(errsock,taskname,"Error opening file.");
                     else {
-                        int fd,st;
+                        int fd,st,iqbufsize;
                         unsigned char *p;
                         int offset=0;
                         if (dmsg[dptr].iqoff !=NULL) offset=*dmsg[dptr].iqoff;
-                        p=ShMemAlloc(dmsg[dptr].iqs,IQBUFSIZE,O_RDWR,0,&fd);
+                        /* determine shared memory size from prm instead of hardcoded limit (JTK)*/
+                        iqbufsize = ShMemSizeName(dmsg[dptr].iqs); 
+                        p=ShMemAlloc(dmsg[dptr].iqs,iqbufsize,O_RDWR,0,&fd);
 
                         s=IQFwrite(fp,prm,
                                 iq,dmsg[dptr].badtr,
                                 (int16 *) (p+offset));  
-                        st=ShMemFree(p,dmsg[dptr].iqs,IQBUFSIZE,0,fd);
+                        st=ShMemFree(p,dmsg[dptr].iqs,iqbufsize,0,fd);
 
                         if (s==-1) break;
                     }
