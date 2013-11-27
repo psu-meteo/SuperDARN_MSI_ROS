@@ -112,6 +112,7 @@ int rsep=DEFAULT_RSEP;
 int bmnum=0;
 int xcf=0;
 int tfreq=DEFAULT_TFREQ;
+int rfreq=DEFAULT_TFREQ;
 int scan=DEFAULT_SCAN;
 int mxpwr=DEFAULT_MXPWR;
 int lvmax=DEFAULT_LVMAX;
@@ -125,6 +126,7 @@ int noiselim=0;
 float noisestat[4];
 
 char combf[128]={"A SuperDARN"};
+char station[10]={"tst"};
 
 float pwr0[MAX_RANGE];
 float acfd[MAX_RANGE*LAG_SIZE*2];
