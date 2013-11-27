@@ -33,6 +33,7 @@
 #include <sys/time.h>
 #include <argtable2.h>
 #include <zlib.h>
+
 /* Includes provided by the RST */ 
 #include "rtypes.h"
 #include "rtime.h"
@@ -306,11 +307,11 @@ int main(int argc,char *argv[]) {
   if (ai_nt->count) night = ai_nt->ival[0];
   if (ai_df->count) dfrq = ai_df->ival[0];
   if (ai_nf->count) nfrq = ai_nf->ival[0];
-  if (ai_ep->ival[0]) errlog.port = ai_ep->ival[0];
-  if (ai_sp->ival[0]) shell.port = ai_sp->ival[0];
+  if (ai_ep->count) errlog.port = ai_ep->ival[0];
+  if (ai_sp->count) shell.port = ai_sp->ival[0];
   if (ai_sb->count) sbm = ai_sb->ival[0];
   if (ai_eb->count) ebm = ai_eb->ival[0];
-  if (ai_cnum->ival[0]) cnum = ai_cnum->ival[0];
+  if (ai_cnum->count) cnum = ai_cnum->ival[0];
 
 /* Open Connection to errorlog */  
   if ((errlog.sock=TCPIPMsgOpen(errlog.host,errlog.port))==-1) {    
