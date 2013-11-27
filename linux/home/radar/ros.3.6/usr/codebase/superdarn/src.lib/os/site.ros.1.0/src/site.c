@@ -39,7 +39,8 @@
 /* TODO: PUT STATIC OFFSET INTO DMAP TO ACCOUNT FOR OFFSET BETWEEN DDS AND RX */ 
 
 config_t cfg;
-char config_filepath[256]="/tmp/station.cfg";
+char *config_dir=NULL;
+char config_filepath[256]="/tmp/tst.cfg";
 char channame[5]="\0";
 
 FILE *seqlog=NULL;
@@ -156,14 +157,32 @@ int SiteRosStart(char *host,char *ststr) {
   exit_flag=0;
   cancel_count=0;
   sock=0;
+  fprintf(stderr,"ROS server:%s\n",host);
+  strcpy(server,host);
 
-  /* TODO: use libconfig and read in configuration and set global values below to site specific values*/ 
+  /* use libconfig and read in configuration file to set global rst variables to site specific values
+  *    which are appropriate for the site this library is being called to manage.
+  *    Using just this library function and configuration file, it should be possible to run the
+  *    standard ros provided normalscan controlprogram with no additional arguments, relying entirely on
+  *    system environment settings and the site configuration file.
+  *
+  *    The intent here is that controlprograms will then optionally override some or all of these values via
+  *    commandline arguments, env variables, or other configuration means.
+  *  
+  */ 
+  config_dir=getenv("SITE_CFG");
   printf("StStr: %s\n",ststr);
-  printf("Opening config file\n");
+  printf("Config_Dir: %s\n",config_dir);
+  if (config_dir==NULL) {
+    fprintf(stderr,"SITE_CFG environment variable is unset\nSiteRosStart aborting, controlprogram should end now\n");
+    return -1;
+  }
+  sprintf(config_filepath,"%s/site.%s/%s.cfg",config_dir,ststr,ststr);
+  printf("Opening config file: %s\n",config_filepath);
   config_init (&cfg );
   retval=config_read_file(&cfg,config_filepath);
   if (retval==CONFIG_FALSE) {
-    fprintf(stderr, "configfile error:%d - %s\n", 
+    fprintf(stderr, "configfile read error:%d - %s\n", 
             config_error_line(&cfg), config_error_text(&cfg));
     /* A config error read has occured */
   }
@@ -172,40 +191,60 @@ int SiteRosStart(char *host,char *ststr) {
     fprintf(stdout,"Station name: %s\n\n", str);
     strcpy(station,str);
   } else {
-    fprintf(stderr, "No 'station' setting in configuration file.\n");
+    fprintf(stderr, "Site Cfg Error:: No 'station' setting in configuration file.\nSiteRosStart aborting, controlprogram should end now\n");
+    return -1;
   }
-  fprintf(stderr,"ROS server:%s\n",host);
-  strcpy(server,host);
-  port=45000;
 
-
-/* Radar number to register */
-  rnum=1;
-/* Channel number to register */
-  cnum=1;
-/* Beam Scan Direction settings */
-  backward=0;
-  sbm=0;
-  ebm=23;
+  if(! config_lookup_int(&cfg, "backward", &backward)) {
+    backward=0;
+    fprintf(stderr,"Site Cfg Warning:: \'backward\' setting undefined in site cfg file using default value: %d\n",backward); 
+  }
+  if(! config_lookup_int(&cfg, "sbm", &sbm)) {
+    sbm=0;
+    fprintf(stderr,"Site Cfg Warning:: \'sbm\' setting undefined in site cfg file using default value: %d\n",sbm); 
+  }
+  if(! config_lookup_int(&cfg, "ebm", &ebm)) {
+    ebm=16;
+    fprintf(stderr,"Site Cfg Warning:: \'ebm\' setting undefined in site cfg file using default value: %d\n",ebm); 
+  }
+  if(! config_lookup_int(&cfg, "rnum", &rnum)) {
+    /* Radar number to register  with ROS server*/
+    rnum=1;
+    fprintf(stderr,"Site Cfg Warning:: \'rnum\' setting undefined in site cfg file using default value: %d\n",rnum); 
+  }
+  if(! config_lookup_int(&cfg, "cnum", &cnum)) {
+    /* Channum to register  with ROS server*/
+    cnum=1;
+    fprintf(stderr,"Site Cfg Warning:: \'cnum\' setting undefined in site cfg file using default value: %d\n",cnum); 
+  }
+  if(! config_lookup_int(&cfg, "port", &port)) {
+    /* ROS server tcp port*/
+    port=45000;
+    fprintf(stderr,"Site Cfg Warning:: \'port\' setting undefined in site cfg file using default value: %d\n",port); 
+  }
+  if(! config_lookup_int(&cfg, "invert", &invert)) {
 /* 
  *  If you need to correct for inverted phase between main and inter rf signal 
  *  invert=0  No inversion necessary 
  *   invert=non-zero  Inversion necassary 
 */
-  invert=1;
+    invert=1;
+    fprintf(stderr,"Site Cfg Warning:: \'invert\' setting undefined in site cfg file using default value: %d\n",invert); 
+  }
+  if(! config_lookup_int(&cfg, "rxchn", &rxchn)) {
 /* rxchn number of channels typically 1*/
 /* rngoff argument in ACFCalculate.. is 2*rxchn and is normally set to 2 */
-  rxchn=1;
-  if (debug) {
-    fprintf(stderr,"SiteRosStart: rxchn=%d\n",rxchn);
-
-  } 
-
-/* KTS added to adjust for day/night time */
-
-  day=18;
-  night=10;
-
+    rxchn=1;
+    fprintf(stderr,"Site Cfg Warning:: \'rxchn\' setting undefined in site cfg file using default value: %d\n",rxchn); 
+  }
+  if(! config_lookup_int(&cfg, "day", &day)) {
+    day=18;
+    fprintf(stderr,"Site Cfg Warning:: \'day\' setting undefined in site cfg file using default value: %d\n",day); 
+  }
+  if(! config_lookup_int(&cfg, "night", &night)) {
+    night=10;
+    fprintf(stderr,"Site Cfg Warning:: \'night\' setting undefined in site cfg file using default value: %d\n",night); 
+  }
   return 0;
 }
 
