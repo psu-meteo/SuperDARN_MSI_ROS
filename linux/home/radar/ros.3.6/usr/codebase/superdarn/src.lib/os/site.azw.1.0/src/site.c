@@ -34,6 +34,9 @@
 #define REAL_BUF_OFFSET 0
 #define IMAG_BUF_OFFSET 1
 #define USEC 1000000.0
+
+/* TODO: PUT STATIC OFFSET INTO DMAP TO ACCOUNT FOR OFFSET BETWEEN DDS AND RX */ 
+
 int AZW_exit_flag=0;
 char channame[5]="\0";
 
@@ -775,6 +778,7 @@ usleep(usecs);
         fprintf(stderr,"AZW GET_DATA: recv back\n");
       }
       TCPIPMsgRecv(sock, rdata.back, sizeof(uint32)*dprm.samples);
+
       if (badtrdat.start_usec !=NULL) free(badtrdat.start_usec);
       if (badtrdat.duration_usec !=NULL) free(badtrdat.duration_usec);
       badtrdat.start_usec=NULL;
