@@ -62,6 +62,8 @@
 
 char *ststr=NULL;
 char *dfststr="tst";
+char *libstr=NULL;
+
 void *tmpbuf;
 size_t tmpsze;
 char progid[80]={"rbspscan"};
@@ -180,6 +182,7 @@ int main(int argc,char *argv[]) {
 	OptionAdd(&opt,"sp",    'i',&shell.port); 
 	OptionAdd(&opt,"bp",    'i',&baseport); 
 	OptionAdd(&opt,"stid",  't',&ststr);
+	OptionAdd(&opt,"lib",  't',&libstr);
 	OptionAdd(&opt,"fixfrq",'i',&fixfrq);		/* fix the transmit frequency */
 	OptionAdd(&opt,"meribm",'i',&meribm);		/* meridional beam */
 	OptionAdd(&opt,"westbm",'i',&westbm);		/* west beam */
@@ -207,6 +210,7 @@ int main(int argc,char *argv[]) {
 	bbms  = (int *)malloc(nintgs*sizeof(int));
 
 	if (ststr==NULL) ststr=dfststr;
+	if (libstr==NULL) libstr=ststr;
         if (roshost==NULL) roshost=getenv("ROSHOST");
         if (roshost==NULL) roshost=droshost;
 
@@ -223,7 +227,7 @@ int main(int argc,char *argv[]) {
 	/* rst/usr/codebase/superdarn/src.lib/os/ops.1.10/src/setup.c */
 	OpsStart(ststr);
 		
-	status=SiteBuild(ststr,NULL);
+	status=SiteBuild(libstr,NULL);
 	
 	if (status==-1) {
 		fprintf(stderr,"Could not identify station.\n");
@@ -239,7 +243,7 @@ int main(int argc,char *argv[]) {
 	ErrLog(errlog.sock,progname,logtxt);
 
 	/* IMPORTANT: sbm and ebm are reset by this function */
-	SiteStart(roshost);
+	SiteStart(roshost,ststr);
 	
 	/* Reprocess the command line to restore desired parameters */
 	arg=OptionProcess(1,argc,argv,&opt,NULL);

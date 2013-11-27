@@ -76,6 +76,8 @@ int main(int argc,char *argv[]) {
   char *ststr=NULL;
   char *dfststr="tst";
 
+  char *libstr=NULL;
+
   int status=0,n,i;
   int nerrors=0;
   int exitpoll=0;
@@ -191,6 +193,7 @@ int main(int argc,char *argv[]) {
   /* Now lets define the string valued arguments */
   struct arg_str  *as_ros        = arg_str0(NULL, "ros", NULL,        "IP address of ROS server process"); /* OptionAdd(&opt,"ros",'t',&roshost); */
   struct arg_str  *as_ststr      = arg_str0(NULL, "stid", NULL,       "The station ID string. For example, use aze for azores east."); /* OptionAdd(&opt,"stid",'t',&ststr); */
+  struct arg_str  *as_libstr     = arg_str0(NULL, "lib", NULL,       "The site library string. For example, use ros for for common libsite.ros"); /* OptionAdd(&opt,"stid",'t',&ststr); */
 
   /* required end argument */
   struct arg_end  *ae_argend     = arg_end(ARG_MAXERRORS);
@@ -198,7 +201,7 @@ int main(int argc,char *argv[]) {
   /* create list of all arguement structs */
   void* argtable[] = {al_help,al_debug,al_test,al_discretion, al_fast, al_nowait, al_onesec, \
                       ai_baud, ai_tau, ai_nrang, ai_frang, ai_rsep, ai_dt, ai_nt, ai_df, ai_nf, ai_fixfrq, ai_xcf, ai_ep, ai_sp, ai_bp, ai_sb, ai_eb, ai_cnum, \
-                      as_ros, as_ststr, ai_clrskip,al_clrscan,ai_cpid,ae_argend};
+                      as_ros, as_ststr, as_libstr,ai_clrskip,al_clrscan,ai_cpid,ae_argend};
 
 /* END of variable defines */
 
@@ -282,19 +285,36 @@ int main(int argc,char *argv[]) {
     strcpy(ststr, as_ststr->sval[0]);
   } else {
     ststr = getenv("STSTR");
-    if (ststr == NULL) ststr = dfststr;
+    if (ststr == NULL) strcpy(ststr,dfststr);
   }
 
+  /* Load site library argument here */
+  if(strlen(as_libstr->sval[0])) {
+    libstr = malloc((strlen(as_libstr->sval[0]) + 1) * sizeof(char));
+    strcpy(libstr, as_libstr->sval[0]);
+  } else {
+    libstr = getenv("LIBSTR");
+    if (libstr == NULL) strcpy(libstr,ststr);
+  }
+  printf("Requested :: ststr: %s libstr: %s\n",ststr,libstr);
 /* This loads Radar Site information from hdw.dat files */
   OpsStart(ststr);
-  status=SiteBuild(ststr,NULL); /* second argument is version string */
- 
+
+/* This loads Site library via dlopen and maps:
+ * site library specific functions into Site name space
+*/
+  status=SiteBuild(libstr,NULL); /* second argument is version string */
   if (status==-1) {
-    fprintf(stderr,"Could not identify station.\n");
+    fprintf(stderr,"Could not load requested site library\n");
     exit(1);
   }
+ 
 /* Run SiteStart library function to load Site specific default values for global variables*/
-  SiteStart(roshost);
+  status=SiteStart(roshost,ststr);
+  if (status==-1) {
+    fprintf(stderr,"SiteStart failure\n");
+    exit(1);
+  }
 
 /* load any provided argument values overriding default values provided by SiteStart */ 
   if (ai_xcf->count) xcnt = ai_xcf->ival[0];
@@ -335,10 +355,6 @@ int main(int argc,char *argv[]) {
     RMsgSndOpen(task[n].sock,strlen( (char *) command),command);     
   }
 
-  if (status !=0) {
-    ErrLog(errlog.sock,progname,"Error locating hardware.");
-    exit (1);
-  }
 
   /* Initialize timing variables */
   elapsed_secs=0;
@@ -544,6 +560,10 @@ int main(int argc,char *argv[]) {
   /* SiteSetupRadar, establish connection to ROS server and do initial setup of memory buffers for raw samples */
   printf("Running SiteSetupRadar Station ID: %s  %d\n",ststr,stid);
   status=SiteSetupRadar();
+  if (status !=0) {
+    ErrLog(errlog.sock,progname,"Error locating hardware.");
+    exit (1);
+  }
 
   printf("Preparing OpsFitACFStart Station ID: %s  %d\n",ststr,stid);
   OpsFitACFStart();

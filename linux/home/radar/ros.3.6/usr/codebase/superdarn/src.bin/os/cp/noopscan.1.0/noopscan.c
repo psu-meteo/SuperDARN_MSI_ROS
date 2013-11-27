@@ -72,6 +72,7 @@
 
 char *ststr=NULL;
 char *dfststr="tst";
+char *libstr=NULL;
 
 void *tmpbuf;
 size_t tmpsze;
@@ -199,6 +200,7 @@ int main(int argc,char *argv[]) {
   OptionAdd(&opt,"ros",'t',&roshost);
 
   OptionAdd(&opt,"stid",'t',&ststr); 
+  OptionAdd(&opt,"lib",'t',&libstr); 
  
   OptionAdd(&opt,"fast",'x',&fast);
 
@@ -211,6 +213,7 @@ int main(int argc,char *argv[]) {
   arg=OptionProcess(1,argc,argv,&opt,NULL);  
  
   if (ststr==NULL) ststr=dfststr;
+  if (libstr==NULL) libstr=ststr;
 
   if (roshost==NULL) roshost=getenv("ROSHOST");
   if (roshost==NULL) roshost=droshost;
@@ -227,7 +230,7 @@ int main(int argc,char *argv[]) {
 
   OpsStart(ststr);
 
-  status=SiteBuild(ststr,NULL); /* second argument is version string */
+  status=SiteBuild(libstr,NULL); /* second argument is version string */
  
   if (status==-1) {
     fprintf(stderr,"Could not identify station.\n");
@@ -237,7 +240,7 @@ int main(int argc,char *argv[]) {
   arg=OptionProcess(1,argc,argv,&opt,NULL);  
 
   printf("Station ID: %s  %d\n",ststr,stid);
-
+  SiteStart("",ststr);
 
   strncpy(combf,progid,80);   
  
@@ -246,9 +249,10 @@ int main(int argc,char *argv[]) {
   
   if (fast) sprintf(progname,"noopscan (fast)");
   else sprintf(progname,"noopscan");
-
+  i=0;
   do {
-     sleep(5);
+     printf("Hey this is a noop loop : %d\n",i);
+     sleep(1);
      if(i>100) exitpoll=1;
      i++;
   } while (exitpoll==0);

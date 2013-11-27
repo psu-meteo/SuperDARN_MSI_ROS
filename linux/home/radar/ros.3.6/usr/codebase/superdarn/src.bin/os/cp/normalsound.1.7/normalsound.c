@@ -107,6 +107,7 @@ void write_sounding_record_new( char *progname, struct RadarParm *prm, struct Fi
 
 char *ststr=NULL;
 char *dfststr="tst";
+char *libstr=NULL;
 
 void *tmpbuf;
 size_t tmpsze;
@@ -273,6 +274,7 @@ int main(int argc,char *argv[]) {
 
 
   OptionAdd(&opt,"stid",'t',&ststr); 
+  OptionAdd(&opt,"lib",'t',&libstr); 
  
   OptionAdd(&opt,"fast",'x',&fast);
 
@@ -283,6 +285,7 @@ int main(int argc,char *argv[]) {
   arg=OptionProcess(1,argc,argv,&opt,NULL);  
  
   if (ststr==NULL) ststr=dfststr;
+  if (libstr==NULL) libstr=ststr;
 
   if (roshost==NULL) roshost=getenv("ROSHOST");
   if (roshost==NULL) roshost=droshost;
@@ -300,14 +303,14 @@ int main(int argc,char *argv[]) {
 
   OpsStart(ststr);
 
-  status=SiteBuild(ststr,NULL); /* second argument is version string */
+  status=SiteBuild(libstr,NULL); /* second argument is version string */
 
   if (status==-1) {
     fprintf(stderr,"Could not identify station.\n");
     exit(1);
   }
 
-  SiteStart(roshost);
+  SiteStart(roshost,ststr);
   arg=OptionProcess(1,argc,argv,&opt,NULL);  
 
   strncpy(combf,progid,80);   

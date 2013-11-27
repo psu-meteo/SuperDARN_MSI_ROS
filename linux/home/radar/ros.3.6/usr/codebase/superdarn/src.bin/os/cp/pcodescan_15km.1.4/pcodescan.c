@@ -50,6 +50,7 @@
 
 char *ststr=NULL;
 char *dfststr="tst";
+char *libstr=NULL;
 
 void *tmpbuf;
 size_t tmpsze;
@@ -180,6 +181,7 @@ int main(int argc,char *argv[]) {
   OptionAdd(&opt,"ros",'t',&roshost);
 
   OptionAdd(&opt,"stid",'t',&ststr); 
+  OptionAdd(&opt,"lib",'t',&libstr); 
  
   OptionAdd(&opt,"fast",'x',&fast);
   OptionAdd(&opt,"onesec",'x',&onesec);
@@ -187,7 +189,7 @@ int main(int argc,char *argv[]) {
    
   arg=OptionProcess(1,argc,argv,&opt,NULL);  
  
-  if (ststr==NULL) ststr=dfststr;
+  if (libstr==NULL) libstr=ststr;
 
   if (roshost==NULL) roshost=getenv("ROSHOST");
   if (roshost==NULL) roshost=droshost;
@@ -220,14 +222,14 @@ int main(int argc,char *argv[]) {
   printf("Station String: %s\n",ststr);
   OpsStart(ststr);
 
-  status=SiteBuild(ststr,NULL); /* second argument is version string */
+  status=SiteBuild(libstr,NULL); /* second argument is version string */
 
   if (status==-1) {
     fprintf(stderr,"Could not identify station.\n");
     exit(1);
   }
 
-  SiteStart(roshost);
+  SiteStart(roshost,ststr);
 
   strncpy(combf,progid,80);   
  
