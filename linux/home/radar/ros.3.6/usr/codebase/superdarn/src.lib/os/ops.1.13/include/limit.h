@@ -40,6 +40,6 @@
 #define COMBF_SIZE 80       
 #define MAX_BEAM 255
 #define MAXNAVE 300
-#define IQBUFSIZE 5242880 /* approximately sizeof(int32) * integration time / (tau / baud) */
+#define IQBUFSIZE 5242880
 #endif
 
