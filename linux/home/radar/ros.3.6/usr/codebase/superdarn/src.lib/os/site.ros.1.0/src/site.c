@@ -163,7 +163,7 @@ int SiteRosStart(char *host,char *ststr) {
   config_init (&cfg );
   retval=config_read_file(&cfg,config_filepath);
   if (retval==CONFIG_FALSE) {
-    fprintf(stderr, "%s:%d - %s\n", config_error_file(&cfg),
+    fprintf(stderr, "configfile error:%d - %s\n", 
             config_error_line(&cfg), config_error_text(&cfg));
     /* A config error read has occured */
   }
