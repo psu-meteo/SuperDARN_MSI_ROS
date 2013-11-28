@@ -285,7 +285,7 @@ int main(int argc,char *argv[]) {
     strcpy(ststr, as_ststr->sval[0]);
   } else {
     ststr = getenv("STSTR");
-    if (ststr == NULL) strcpy(ststr,dfststr);
+    if (ststr == NULL) ststr=dfststr;
   }
 
   /* Load site library argument here */
@@ -294,7 +294,7 @@ int main(int argc,char *argv[]) {
     strcpy(libstr, as_libstr->sval[0]);
   } else {
     libstr = getenv("LIBSTR");
-    if (libstr == NULL) strcpy(libstr,ststr);
+    if (libstr == NULL) libstr=ststr;
   }
   printf("Requested :: ststr: %s libstr: %s\n",ststr,libstr);
 /* This loads Radar Site information from hdw.dat files */
