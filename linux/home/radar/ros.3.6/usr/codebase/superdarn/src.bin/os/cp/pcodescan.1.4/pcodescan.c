@@ -221,6 +221,7 @@ int main(int argc,char *argv[]) {
   }
 
   SiteStart(roshost,ststr);
+  arg=OptionProcess(1,argc,argv,&opt,NULL);  
 
   strncpy(combf,progid,80);   
   if ((errlog.sock=TCPIPMsgOpen(errlog.host,errlog.port))==-1) {    
