@@ -222,6 +222,18 @@ int SiteRosStart(char *host,char *ststr) {
     port=45000;
     fprintf(stderr,"Site Cfg Warning:: \'port\' setting undefined in site cfg file using default value: %d\n",port); 
   }
+  if(! config_lookup_int(&cfg, "errlog.port", &errlog.port)) {
+    /* ROS server tcp port*/
+    errlog.port=45000;
+    fprintf(stderr,"Site Cfg Warning:: \'errlog.port\' setting undefined in site cfg file using default value: %d\n",errlog.port); 
+  }
+  if(! config_lookup_string(&cfg, "errlog.host", &str)) {
+    /* ROS server tcp port*/
+    strcpy(errlog.host,"127.0.0.1");
+    fprintf(stderr,"Site Cfg Warning:: \'errlog.host\' setting undefined in site cfg file using default value: \'%s\'\n",errlog.host); 
+  } else{
+    strcpy(errlog.host,str);
+  }
   if(! config_lookup_int(&cfg, "invert", &invert)) {
 /* 
  *  If you need to correct for inverted phase between main and inter rf signal 

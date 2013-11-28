@@ -46,6 +46,7 @@
 #include "rmsg.h"
 #include "freq.h" 
 #include "radarshell.h"
+#include "tcpipmsg.h"
 #include "default.h"
 
 struct RadarParm *prm;
@@ -175,6 +176,7 @@ unsigned int *badtr;
 int shmemfd;
 char sharedmemory[256]="IQBuffer";
 
+struct TCPIPMsgHost errlog={"127.0.0.1",10000,-1};
 
 
 

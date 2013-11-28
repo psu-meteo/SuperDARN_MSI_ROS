@@ -86,7 +86,6 @@ int main(int argc,char *argv[]) {
   char logtxt[1024];
   void *tmpbuf;
   size_t tmpsze;
-  struct TCPIPMsgHost errlog={"127.0.0.1",44100,-1};
   struct TCPIPMsgHost shell={"127.0.0.1",44101,-1};
   int tnum=4;      
   struct TCPIPMsgHost task[4]={
@@ -309,7 +308,9 @@ int main(int argc,char *argv[]) {
     exit(1);
   }
  
-/* Run SiteStart library function to load Site specific default values for global variables*/
+/* Run SiteStart library function to load Site specific default values for global variables
+ * This should be run before all options are parsed and before any task sockets are opened
+*/
   status=SiteStart(roshost,ststr);
   if (status==-1) {
     fprintf(stderr,"SiteStart failure\n");
@@ -335,7 +336,7 @@ int main(int argc,char *argv[]) {
 
 /* Open Connection to errorlog */  
   if ((errlog.sock=TCPIPMsgOpen(errlog.host,errlog.port))==-1) {    
-    fprintf(stderr,"Error connecting to error log.\n");
+    fprintf(stderr,"Error connecting to error log.\n Host: %s  Port: %d\n",errlog.host,errlog.port);
   }
 /* Open Connection to radar shell */  
   if ((shell.sock=TCPIPMsgOpen(shell.host,shell.port))==-1) {    

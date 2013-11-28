@@ -158,7 +158,7 @@ extern int stfrq;
 extern int frqrng;
 
 
-
+extern struct TCPIPMsgHost errlog;
 #endif
 
 

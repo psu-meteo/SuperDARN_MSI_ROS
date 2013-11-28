@@ -76,7 +76,6 @@ char *droshost={"127.0.0.1"};
 
 int baseport=44100;
 
-struct TCPIPMsgHost errlog={"127.0.0.1",44100,-1};
 struct TCPIPMsgHost shell={"127.0.0.1",44101,-1};
 
 int tnum=4;      
@@ -215,13 +214,6 @@ int main(int argc,char *argv[]) {
         if (roshost==NULL) roshost=droshost;
 
 	
-	if ((errlog.sock=TCPIPMsgOpen(errlog.host,errlog.port))==-1) {    
-		fprintf(stderr,"Error connecting to error log.\n");
-	}
-	if ((shell.sock=TCPIPMsgOpen(shell.host,shell.port))==-1) {    
-		fprintf(stderr,"Error connecting to shell.\n");
-	}
-
 	for (n=0;n<tnum;n++) task[n].port+=baseport;
 	
 	/* rst/usr/codebase/superdarn/src.lib/os/ops.1.10/src/setup.c */
@@ -234,19 +226,29 @@ int main(int argc,char *argv[]) {
 		exit(1);
 	}
 	
-	/* dump beams to log file */
-	ErrLog(errlog.sock,progname,logtxt);
-	for (i=0; i<nintgs; i++){
-		sprintf(tempLog, "%3d", fbms[i]);
-		strcat(logtxt, tempLog);	
-	}
-	ErrLog(errlog.sock,progname,logtxt);
 
 	/* IMPORTANT: sbm and ebm are reset by this function */
 	SiteStart(roshost,ststr);
 	
 	/* Reprocess the command line to restore desired parameters */
 	arg=OptionProcess(1,argc,argv,&opt,NULL);
+
+	sprintf(progname,"rbspscan");
+
+	if ((errlog.sock=TCPIPMsgOpen(errlog.host,errlog.port))==-1) {    
+		fprintf(stderr,"Error connecting to error log.\n Host: %s Port: %d\n",errlog.host,errlog.port);
+	}
+	if ((shell.sock=TCPIPMsgOpen(shell.host,shell.port))==-1) {    
+		fprintf(stderr,"Error connecting to shell.\n");
+	}
+	/* dump beams to log file */
+        strcpy(logtxt,"");
+	for (i=0; i<nintgs; i++){
+		sprintf(tempLog, "%3d", fbms[i]);
+		strcat(logtxt, tempLog);	
+	}
+	ErrLog(errlog.sock,progname,logtxt);
+
 
 	/* If backward is set for West radar, start and end beams need to be reversed for the
 	 * beam assigning code that follows until "End of Dartmouth Mods".  Usual SuperDARN
@@ -345,7 +347,6 @@ int main(int argc,char *argv[]) {
 	
 	txpl=(rsep*20)/3;		/* computing TX pulse length */
 	
-	sprintf(progname,"rbspscan");
 
 	OpsLogStart(errlog.sock,progname,argc,argv);  
 	OpsSetupTask(tnum,task,errlog.sock,progname);
