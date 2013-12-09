@@ -89,11 +89,6 @@ char *droshost={"127.0.0.1"};
 
 int baseport=44100;
 
-
-
-
-struct TCPIPMsgHost shell={"127.0.0.1",44101,-1};
-
 int tnum=4;      
 struct TCPIPMsgHost task[4]={
   {"127.0.0.1",1,-1}, /* iqwrite */

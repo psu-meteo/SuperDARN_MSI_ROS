@@ -14,7 +14,7 @@
  it under the terms of the GNU Lesser General Public License as published by
  the Free Software Foundation, either version 3 of the License, or
  any later version.
- 
+
  RST is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -86,7 +86,9 @@ int main(int argc,char *argv[]) {
   char logtxt[1024];
   void *tmpbuf;
   size_t tmpsze;
+/*
   struct TCPIPMsgHost shell={"127.0.0.1",44101,-1};
+*/
   int tnum=4;      
   struct TCPIPMsgHost task[4]={
     {"127.0.0.1",1,-1}, /* iqwrite */
@@ -310,7 +312,9 @@ int main(int argc,char *argv[]) {
  
 /* Run SiteStart library function to load Site specific default values for global variables
  * This should be run before all options are parsed and before any task sockets are opened
+ * arguments: host ip address, 3-letter station string
 */
+  
   status=SiteStart(roshost,ststr);
   if (status==-1) {
     fprintf(stderr,"SiteStart failure\n");
@@ -443,7 +447,7 @@ int main(int argc,char *argv[]) {
       break;
     default:
       ErrLog(errlog.sock,progname,"Error: Unsupported nbaud requested, exiting");
-      SiteExit(0);
+      SiteExit(1);
   }
   pcode=(int *)malloc((size_t)sizeof(int)*mppul*nbaud);
   for(i=0;i<mppul;i++){
@@ -491,22 +495,21 @@ int main(int argc,char *argv[]) {
      exitpoll=1;
      SiteExit(0);
   }
-  sprintf(logtxt,"Adjusted: mpinc: %d txpl: %d  nbaud: %d  rsep: %d", mpinc , txpl, nbaud, rsep);
-  ErrLog(errlog.sock,progname,logtxt);
 
   if(al_test->count > 0) {
         
-    fprintf(stdout,"Control Program Parameters::\n");
+    fprintf(stdout,"Control Program Argument Parameters::\n");
     fprintf(stdout,"  xcf arg:: count: %d value: %d xcnt: %d\n",ai_xcf->count,ai_xcf->ival[0],xcnt);
     fprintf(stdout,"  baud arg:: count: %d value: %d nbaud: %d\n",ai_baud->count,ai_baud->ival[0],nbaud);
     fprintf(stdout,"  clrskip arg:: count: %d value: %d\n",ai_clrskip->count,ai_clrskip->ival[0]);
-    fprintf(stdout,"  txpl: %d mpinc: %d rsep: %d\n",txpl,mpinc,rsep);
     fprintf(stdout,"  cpid: %d progname: \'%s\'\n",cp,progname);
+    fprintf(stdout,"Scan Sequence Parameters::\n");
+    fprintf(stdout,"  txpl: %d mpinc: %d nbaud: %d rsep: %d\n",txpl,mpinc,nbaud,rsep);
     fprintf(stdout,"  intsc: %d intus: %d scnsc: %d scnus: %d nowait: %d\n",intsc,intus,scnsc,scnus,al_nowait->count);
     fprintf(stdout,"  sbm: %d ebm: %d  beams: %d\n",sbm,ebm,beams);
     
     /* TODO: ADD PARAMETER CHECKING, SEE IF PCODE IS SANE AND WHATNOT */
-   if(nbaud != 1) {
+   if(nbaud >= 1) {
         /* create tsgprm struct and pass to TSGMake, check if TSGMake makes something valid */
         /* checking with SiteTimeSeq(ptab); would be easier, but that talks to hardware..*/
         /* the job of aggregating a tsgprm from global variables should probably be a function in maketsg.c */
@@ -547,6 +550,8 @@ int main(int argc,char *argv[]) {
         else {
             fprintf(stdout,"The phase coded timing sequence looks good\n");
         }
+    } else {
+        fprintf(stdout,"WARNING: nbaud needs to be  > 0\n");
     }
 
     if (nerrors > 0) {
@@ -557,7 +562,6 @@ int main(int argc,char *argv[]) {
     fprintf(stdout,"Test option enabled, exiting\n");
     return 0;
   }
-
   /* SiteSetupRadar, establish connection to ROS server and do initial setup of memory buffers for raw samples */
   printf("Running SiteSetupRadar Station ID: %s  %d\n",ststr,stid);
   status=SiteSetupRadar();

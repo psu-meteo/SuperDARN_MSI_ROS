@@ -137,6 +137,7 @@ void SiteRosExit(int signum) {
 int SiteRosStart(char *host,char *ststr) {
   int retval;
   const char *str;
+  char *chanstr=NULL;
   signal(SIGPIPE,SiteRosExit);
   signal(SIGINT,SiteRosExit);
   signal(SIGUSR1,SiteRosExit);
@@ -157,8 +158,6 @@ int SiteRosStart(char *host,char *ststr) {
   exit_flag=0;
   cancel_count=0;
   sock=0;
-  fprintf(stderr,"ROS server:%s\n",host);
-  strcpy(server,host);
 
   /* use libconfig and read in configuration file to set global rst variables to site specific values
   *    which are appropriate for the site this library is being called to manage.
@@ -171,13 +170,18 @@ int SiteRosStart(char *host,char *ststr) {
   *  
   */ 
   config_dir=getenv("SITE_CFG");
-  printf("StStr: %s\n",ststr);
+  printf("StStr: %s ChanStr %s\n",ststr,chanstr);
   printf("Config_Dir: %s\n",config_dir);
   if (config_dir==NULL) {
     fprintf(stderr,"SITE_CFG environment variable is unset\nSiteRosStart aborting, controlprogram should end now\n");
     return -1;
   }
-  sprintf(config_filepath,"%s/site.%s/%s.cfg",config_dir,ststr,ststr);
+/* TODO: implement chanstr handling as an option to allow for chan specific defaults */
+  if(chanstr==NULL) {
+    sprintf(config_filepath,"%s/site.%s/%s.cfg",config_dir,ststr,ststr);
+  } else {
+    sprintf(config_filepath,"%s/site.%s/%s.cfg",config_dir,ststr,ststr);
+  }
   printf("Opening config file: %s\n",config_filepath);
   config_init (&cfg );
   retval=config_read_file(&cfg,config_filepath);
@@ -217,10 +221,21 @@ int SiteRosStart(char *host,char *ststr) {
     cnum=1;
     fprintf(stderr,"Site Cfg Warning:: \'cnum\' setting undefined in site cfg file using default value: %d\n",cnum); 
   }
-  if(! config_lookup_int(&cfg, "port", &port)) {
+  if(! config_lookup_string(&cfg, "ros.host", &str)) {
+    /* ROS server tcp port*/
+    if(host!=NULL) {
+      strcpy(server,host);
+    } else {
+      strcpy(server,"127.0.0.1");
+    }
+    fprintf(stderr,"Site Cfg Warning:: \'ros.host\' setting undefined in site cfg file using default value: \'%s\'\n",server); 
+  } else{
+    strcpy(server,str);
+  }
+  if(! config_lookup_int(&cfg, "ros.port", &port)) {
     /* ROS server tcp port*/
     port=45000;
-    fprintf(stderr,"Site Cfg Warning:: \'port\' setting undefined in site cfg file using default value: %d\n",port); 
+    fprintf(stderr,"Site Cfg Warning:: \'ros.port\' setting undefined in site cfg file using default value: %d\n",port); 
   }
   if(! config_lookup_int(&cfg, "errlog.port", &errlog.port)) {
     /* ROS server tcp port*/
@@ -233,6 +248,18 @@ int SiteRosStart(char *host,char *ststr) {
     fprintf(stderr,"Site Cfg Warning:: \'errlog.host\' setting undefined in site cfg file using default value: \'%s\'\n",errlog.host); 
   } else{
     strcpy(errlog.host,str);
+  }
+  if(! config_lookup_int(&cfg, "shellserver.port", &shell.port)) {
+    /* ROS server tcp port*/
+    shell.port=45001;
+    fprintf(stderr,"Site Cfg Warning:: \'shellserver.port\' setting undefined in site cfg file using default value: %d\n",shell.port); 
+  }
+  if(! config_lookup_string(&cfg, "shellserver.host", &str)) {
+    /* ROS server tcp port*/
+    strcpy(shell.host,"127.0.0.1");
+    fprintf(stderr,"Site Cfg Warning:: \'shellserver.host\' setting undefined in site cfg file using default value: \'%s\'\n",shell.host); 
+  } else{
+    strcpy(shell.host,str);
   }
   if(! config_lookup_int(&cfg, "invert", &invert)) {
 /* 

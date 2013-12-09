@@ -177,6 +177,7 @@ int shmemfd;
 char sharedmemory[256]="IQBuffer";
 
 struct TCPIPMsgHost errlog={"127.0.0.1",10000,-1};
+struct TCPIPMsgHost shell={"127.0.0.1",10001,-1};
 
 
 
