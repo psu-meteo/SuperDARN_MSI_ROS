@@ -62,18 +62,18 @@ struct DataPRM dprm;
 struct TRTimes badtrdat;
 struct TXStatus txstatus;
 struct SiteLibrary sitelib;
-int *exit_flag=NULL;
+int exit_flag=0;
 int cancel_count=0;
 
 
 
 
-int SiteStart(char *host) {
+int SiteStart(char *host,char *ststr) {
   rdata.main=NULL;
   rdata.back=NULL;
   badtrdat.start_usec=NULL;
   badtrdat.duration_usec=NULL; 
-  return (sitelib.start)(host);
+  return (sitelib.start)(host,ststr);
 }
 
 int SiteSetupRadar() {

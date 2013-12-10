@@ -25,7 +25,7 @@ extern struct DataPRM dprm;
 extern struct TRTimes badtrdat;
 extern struct TXStatus txstatus;
 extern struct SiteLibrary sitelib;
-extern int *exit_flag;
+extern int exit_flag;
 extern int cancel_count;
 
 

@@ -1,0 +1,23 @@
+commit 37eb7c26aefc5dcf9edc37e74a9b5f3c075576f9
+Author: Code Development Account <code@morpheus.jhuapl.edu>
+Date:   Mon Sep 27 12:08:16 2010 -0400
+
+    Folded in changes from Fort Hays.
+
+commit 2cb0d025d1ecb9ee180b0257356f37526cefd85a
+Author: Code Development Account <code@virtual-debian.localdomain>
+Date:   Fri Aug 6 07:53:52 2010 -0400
+
+    Added acfex library to makefile
+
+commit cd6ab6ed747ca7c0bb47e90a2bfa12121d73b17c
+Author: Code Development Account <code@linux-pc.jhuapl.edu>
+Date:   Wed Aug 4 13:31:12 2010 -0400
+
+    Fixed makefile for dynamic linking
+
+commit f95d56e64faba11cabef7a1a645c9f6f75cc5c81
+Author: Rob Barnes <robin.barnes@jhuapl.edu>
+Date:   Sat Jun 12 13:34:53 2010 -0400
+
+    normalsound

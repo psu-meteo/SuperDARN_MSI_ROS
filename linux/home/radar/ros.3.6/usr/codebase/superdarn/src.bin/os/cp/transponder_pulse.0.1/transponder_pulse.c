@@ -76,6 +76,7 @@ void CP_Exit(int signum);
 
 char *ststr=NULL;
 char *dfststr="tst";
+char *libstr=NULL;
 
 void *tmpbuf;
 size_t tmpsze;
@@ -163,6 +164,7 @@ int main(int argc,char *argv[]) {
   OptionAdd( &opt, "fixfrq", 'i', &fixfrq);  /* lets you set a frequency */
   OptionAdd( &opt,"ros",'t',&roshost);  /* lets you override the ip address of the ros server */
   OptionAdd( &opt,"stid",'t',&ststr);  /* lets you override the superdarn stid */
+  OptionAdd( &opt,"libstr",'t',&libstr);  /* lets you override the superdarn stid */
   OptionAdd( &opt, "single", 'x', &single); /* test program to do just one timing sequence */
   OptionAdd( &opt,"sb",'i',&sbm); /* start beam number */
   OptionAdd( &opt,"eb",'i',&ebm); /* end beam number */
@@ -172,6 +174,7 @@ int main(int argc,char *argv[]) {
   arg=OptionProcess(1,argc,argv,&opt,NULL);  
  
   if (ststr==NULL) ststr=dfststr;
+  if (libstr==NULL) libstr=ststr;
 
   if (roshost==NULL) roshost=getenv("ROSHOST");
   if (roshost==NULL) roshost=droshost;
