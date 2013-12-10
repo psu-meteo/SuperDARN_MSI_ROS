@@ -216,12 +216,14 @@ int SiteRosStart(char *host,char *ststr) {
     fprintf(stderr,"Site Cfg Warning:: \'sbm\' setting undefined in site cfg file using default value: %d\n",sbm); 
   } else {
     sbm=lltemp;
+    fprintf(stderr,"Site Cfg:: \'sbm\' setting in site cfg file using value: %d\n",sbm); 
   }
   if(! config_lookup_int(&cfg, "ebm", &lltemp)) {
     ebm=16;
     fprintf(stderr,"Site Cfg Warning:: \'ebm\' setting undefined in site cfg file using default value: %d\n",ebm); 
   } else {
     ebm=lltemp;
+    fprintf(stderr,"Site Cfg:: \'ebm\' setting in site cfg file using value: %d\n",ebm); 
   }
   if(! config_lookup_int(&cfg, "rnum", &lltemp)) {
     /* Radar number to register  with ROS server*/
