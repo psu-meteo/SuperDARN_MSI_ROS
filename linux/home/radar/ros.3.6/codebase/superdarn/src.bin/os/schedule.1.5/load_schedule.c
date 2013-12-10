@@ -28,6 +28,7 @@ int has_priority=0,has_duration=0;
 int parse_schedule_line(char *line,struct scd_blk *ptr) {
  
   char *token,*endptr;
+  char chan_env[128];
   long val;
   int year,month,day,hour,minute,i;
   errno=0;
@@ -46,6 +47,12 @@ int parse_schedule_line(char *line,struct scd_blk *ptr) {
     /* the path variable */
     if ((token=strtok(NULL,""))==NULL) return -1; /* command */
     strcpy(ptr->path,token);
+  } else if (strcmp(token,"channel")==0) {
+    /* Set the CHANSTR envvar */
+    if ((token=strtok(NULL,""))==NULL) return -1; /* string */
+    fprintf(stdout,"Setting the CHANSTR envvar: %s\n",token);
+    sprintf(chan_env,"CHANSTR=%s",token);
+    setenv("CHANSTR",token,0);
   } else if (strcmp(token,"priority")==0) {
     if ((token=strtok(NULL,""))==NULL) return -1; /* minutes */
     default_priority=atoi(token);
