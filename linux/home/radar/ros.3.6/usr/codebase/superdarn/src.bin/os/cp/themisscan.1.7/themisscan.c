@@ -233,7 +233,7 @@ int main(int argc,char *argv[]) {
   }
  
   if (ststr==NULL) ststr=dfststr;
-  libstr = getenv("LIBSTR");
+  if (libstr==NULL) libstr = getenv("LIBSTR");
   if (libstr==NULL) libstr=ststr;
 
   if (roshost==NULL) roshost=getenv("ROSHOST");
