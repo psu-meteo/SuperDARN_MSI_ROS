@@ -54,7 +54,7 @@ int sock;
 char server[256];
 int port;
 int num_transmitters;
-
+int dmatch=0; /* default value for match filter */
 struct timeval tock;
 struct ControlPRM rprm;
 struct RosData rdata;

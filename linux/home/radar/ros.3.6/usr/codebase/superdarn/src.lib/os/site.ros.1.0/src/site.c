@@ -198,6 +198,10 @@ int SiteRosStart(char *host,char *ststr) {
     fprintf(stderr, "Site Cfg Error:: No 'station' setting in configuration file.\nSiteRosStart aborting, controlprogram should end now\n");
     return -1;
   }
+  if(! config_lookup_int(&cfg, "match_filter", &dmatch)) {
+    dmatch=0;
+    fprintf(stderr,"Site Cfg Warning:: \'match_filter\' setting undefined in site cfg file using default value: %d\n",dmatch); 
+  }
 
   if(! config_lookup_int(&cfg, "backward", &backward)) {
     backward=0;
@@ -469,7 +473,7 @@ int SiteRosStartIntt(int sec,int usec) {
   rprm.trise=5000;   
   rprm.baseband_samplerate=((double)nbaud/(double)txpl)*1E6; 
   rprm.filter_bandwidth=rprm.baseband_samplerate; 
-  rprm.match_filter=1;
+  rprm.match_filter=dmatch;
   rprm.number_of_samples=total_samples+nbaud+10; 
   rprm.priority=cnum;
   rprm.buffer_index=0;
@@ -512,7 +516,7 @@ int SiteRosFCLR(int stfreq,int edfreq) {
   rprm.trise=5000;   
   rprm.baseband_samplerate=((double)nbaud/(double)txpl)*1E6; 
   rprm.filter_bandwidth=rprm.baseband_samplerate; 
-  rprm.match_filter=1;
+  rprm.match_filter=dmatch;
   rprm.number_of_samples=total_samples+nbaud+10; 
   rprm.priority=cnum;
   rprm.buffer_index=0;
@@ -817,7 +821,7 @@ int SiteRosIntegrate(int (*lags)[2]) {
     rprm.trise=5000;   
     rprm.baseband_samplerate=((double)nbaud/(double)txpl)*1E6; 
     rprm.filter_bandwidth=rprm.baseband_samplerate; 
-    rprm.match_filter=1;
+    rprm.match_filter=dmatch;
     rprm.number_of_samples=total_samples+nbaud+10; 
     rprm.priority=cnum;
     rprm.buffer_index=0;  

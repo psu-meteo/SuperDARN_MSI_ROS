@@ -18,6 +18,7 @@ extern int sock;
 extern char server[256];
 extern int port;
 extern int num_transmitters;
+extern int dmatch;
 extern struct timeval tock;
 extern struct ControlPRM rprm;
 extern struct RosData rdata;
