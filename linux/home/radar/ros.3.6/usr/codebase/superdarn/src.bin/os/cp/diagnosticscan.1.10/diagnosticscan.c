@@ -86,10 +86,6 @@ struct OptionData opt;
 char *roshost=NULL;
 char *droshost={"127.0.0.1"};
 
-int baseport=44100;
-
-
-
 int tnum=4;      
 struct TCPIPMsgHost task[4]={
   {"127.0.0.1",1,-1}, /* iqwrite */
@@ -221,7 +217,6 @@ int main(int argc,char *argv[]) {
   if (roshost==NULL) roshost=droshost;
 
 
-  for (n=0;n<tnum;n++) task[n].port+=baseport;
 
   OpsStart(ststr);
 
@@ -239,6 +234,7 @@ int main(int argc,char *argv[]) {
 
 
   strncpy(combf,progid,80);   
+  for (n=0;n<tnum;n++) task[n].port+=baseport;
   if ((errlog.sock=TCPIPMsgOpen(errlog.host,errlog.port))==-1) {    
     fprintf(stderr,"Error connecting to error log.\n Host: %s Port: %d\n",errlog.host,errlog.port);
   }
