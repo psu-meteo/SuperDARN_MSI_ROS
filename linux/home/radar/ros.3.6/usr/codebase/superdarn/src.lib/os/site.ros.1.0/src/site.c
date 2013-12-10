@@ -136,6 +136,7 @@ void SiteRosExit(int signum) {
 
 int SiteRosStart(char *host,char *ststr) {
   int retval;
+  int temp;
   const char *str;
   char *chanstr=NULL;
   signal(SIGPIPE,SiteRosExit);
@@ -293,16 +294,21 @@ int SiteRosStart(char *host,char *ststr) {
     night=10;
     fprintf(stderr,"Site Cfg Warning:: \'night\' setting undefined in site cfg file using default value: %d\n",night); 
   }
-/*
-  if(! config_lookup_int(&cfg, "dfrq", &dfrq)) {
+
+  if(! config_lookup_int(&cfg, "dfrq", &temp)) {
     dfrq=10400;
     fprintf(stderr,"Site Cfg Warning:: \'dfrq\' setting undefined in site cfg file using default value: %d\n",dfrq); 
+  } else {
+    dfrq=temp;
+    fprintf(stderr,"Site Cfg:: \'dfrq\' setting in site cfg file using value: %d\n",temp); 
   }
-  if(! config_lookup_int(&cfg, "nfrq", &nfrq)) {
+  if(! config_lookup_int(&cfg, "nfrq", &temp)) {
     nfrq=10400;
     fprintf(stderr,"Site Cfg Warning:: \'nfrq\' setting undefined in site cfg file using default value: %d\n",nfrq); 
+  } else {
+    nfrq=temp;
+    fprintf(stderr,"Site Cfg:: \'nfrq\' setting in site cfg file using value: %d\n",temp); 
   }
-*/
   return 0;
 }
 
