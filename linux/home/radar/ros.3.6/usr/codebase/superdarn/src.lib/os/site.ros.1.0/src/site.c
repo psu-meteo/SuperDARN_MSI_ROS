@@ -171,19 +171,22 @@ int SiteRosStart(char *host,char *ststr) {
   *  
   */ 
   config_dir=getenv("SITE_CFG");
-  printf("StStr: %s ChanStr %s\n",ststr,chanstr);
+
   printf("Config_Dir: %s\n",config_dir);
   if (config_dir==NULL) {
     fprintf(stderr,"SITE_CFG environment variable is unset\nSiteRosStart aborting, controlprogram should end now\n");
     return -1;
   }
 /* TODO: implement chanstr handling as an option to allow for chan specific defaults */
+  if(chanstr==NULL) chanstr=getenv("CHANSTR");
+  printf("StStr: %s ChanStr %s\n",ststr,chanstr);
+
   if(chanstr==NULL) {
     sprintf(config_filepath,"%s/site.%s/%s.cfg",config_dir,ststr,ststr);
   } else {
-    sprintf(config_filepath,"%s/site.%s/%s.cfg",config_dir,ststr,ststr);
+    sprintf(config_filepath,"%s/site.%s/%s.%s.cfg",config_dir,ststr,ststr,chanstr);
   }
-  printf("Opening config file: %s\n",config_filepath);
+  fprintf(stdout,"Opening config file: %s\n",config_filepath);
   config_init (&cfg );
   retval=config_read_file(&cfg,config_filepath);
   if (retval==CONFIG_FALSE) {
