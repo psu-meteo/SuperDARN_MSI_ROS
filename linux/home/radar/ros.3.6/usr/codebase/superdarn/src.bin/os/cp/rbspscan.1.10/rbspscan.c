@@ -207,6 +207,7 @@ int main(int argc,char *argv[]) {
 	bbms  = (int *)malloc(nintgs*sizeof(int));
 
 	if (ststr==NULL) ststr=dfststr;
+	libstr = getenv("LIBSTR");
 	if (libstr==NULL) libstr=ststr;
         if (roshost==NULL) roshost=getenv("ROSHOST");
         if (roshost==NULL) roshost=droshost;

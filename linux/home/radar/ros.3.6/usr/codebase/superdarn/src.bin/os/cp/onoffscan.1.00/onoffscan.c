@@ -191,6 +191,7 @@ int main(int argc,char *argv[]) {
   arg=OptionProcess(1,argc,argv,&opt,NULL);  
  
   if (ststr==NULL) ststr=dfststr;
+  libstr = getenv("LIBSTR");
   if (libstr==NULL) libstr=ststr;
 
   if (roshost==NULL) roshost=getenv("ROSHOST");

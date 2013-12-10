@@ -123,11 +123,9 @@ char *droshost={"127.0.0.1"};
 
 int baseport=44100;
 
-
-
-int tnum=3;      
-struct TCPIPMsgHost task[3]={
-  /*  {"127.0.0.1",0,-1}, iqwrite */
+int tnum=4;      
+struct TCPIPMsgHost task[4]={
+  {"127.0.0.1",1,-1}, /* iqwrite */
   {"127.0.0.1",2,-1}, /* rawacfwrite */
   {"127.0.0.1",3,-1}, /* fitacfwrite */
   {"127.0.0.1",4,-1}  /* rtserver */
@@ -283,6 +281,7 @@ int main(int argc,char *argv[]) {
   arg=OptionProcess(1,argc,argv,&opt,NULL);  
  
   if (ststr==NULL) ststr=dfststr;
+  libstr = getenv("LIBSTR");
   if (libstr==NULL) libstr=ststr;
 
   if (roshost==NULL) roshost=getenv("ROSHOST");
