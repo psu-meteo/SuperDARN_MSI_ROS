@@ -211,7 +211,6 @@ int main(int argc,char *argv[]) {
         if (roshost==NULL) roshost=droshost;
 
 	
-	for (n=0;n<tnum;n++) task[n].port+=baseport;
 	
 	/* rst/usr/codebase/superdarn/src.lib/os/ops.1.10/src/setup.c */
 	OpsStart(ststr);
@@ -231,7 +230,7 @@ int main(int argc,char *argv[]) {
 	arg=OptionProcess(1,argc,argv,&opt,NULL);
 
 	sprintf(progname,"rbspscan");
-
+	for (n=0;n<tnum;n++) task[n].port+=baseport;
 	if ((errlog.sock=TCPIPMsgOpen(errlog.host,errlog.port))==-1) {    
 		fprintf(stderr,"Error connecting to error log.\n Host: %s Port: %d\n",errlog.host,errlog.port);
 	}

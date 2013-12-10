@@ -286,10 +286,6 @@ int main(int argc,char *argv[]) {
   if (roshost==NULL) roshost=getenv("ROSHOST");
   if (roshost==NULL) roshost=droshost;
 
-
-
-  for (n=0;n<tnum;n++) task[n].port+=baseport;
-
   OpsStart(ststr);
 
   status=SiteBuild(libstr,NULL); /* second argument is version string */
@@ -303,6 +299,8 @@ int main(int argc,char *argv[]) {
   arg=OptionProcess(1,argc,argv,&opt,NULL);  
 
   strncpy(combf,progid,80);   
+
+  for (n=0;n<tnum;n++) task[n].port+=baseport;
   if ((errlog.sock=TCPIPMsgOpen(errlog.host,errlog.port))==-1) {    
     fprintf(stderr,"Error connecting to error log.\n Host: %s Port: %d\n",errlog.host,errlog.port);
   }
