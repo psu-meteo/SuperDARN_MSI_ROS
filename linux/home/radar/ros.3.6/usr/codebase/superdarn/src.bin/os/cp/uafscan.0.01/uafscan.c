@@ -77,6 +77,7 @@ int main(int argc,char *argv[]) {
   char *dfststr="tst";
 
   char *libstr=NULL;
+  char *verstr=NULL;
 
   int status=0,n,i;
   int nerrors=0;
@@ -194,7 +195,8 @@ int main(int argc,char *argv[]) {
   /* Now lets define the string valued arguments */
   struct arg_str  *as_ros        = arg_str0(NULL, "ros", NULL,        "IP address of ROS server process"); /* OptionAdd(&opt,"ros",'t',&roshost); */
   struct arg_str  *as_ststr      = arg_str0(NULL, "stid", NULL,       "The station ID string. For example, use aze for azores east."); /* OptionAdd(&opt,"stid",'t',&ststr); */
-  struct arg_str  *as_libstr     = arg_str0(NULL, "lib", NULL,       "The site library string. For example, use ros for for common libsite.ros"); /* OptionAdd(&opt,"stid",'t',&ststr); */
+  struct arg_str  *as_libstr     = arg_str0(NULL, "lib", NULL,       "The site library string. For example, use ros for for common libsite.ros"); 
+  struct arg_str  *as_verstr     = arg_str0(NULL, "version", NULL,   "The site library version string. Defaults to: \"1\" "); 
 
   /* required end argument */
   struct arg_end  *ae_argend     = arg_end(ARG_MAXERRORS);
@@ -202,7 +204,7 @@ int main(int argc,char *argv[]) {
   /* create list of all arguement structs */
   void* argtable[] = {al_help,al_debug,al_test,al_discretion, al_fast, al_nowait, al_onesec, \
                       ai_baud, ai_tau, ai_nrang, ai_frang, ai_rsep, ai_dt, ai_nt, ai_df, ai_nf, ai_fixfrq, ai_xcf, ai_ep, ai_sp, ai_bp, ai_sb, ai_eb, ai_cnum, \
-                      as_ros, as_ststr, as_libstr,ai_clrskip,al_clrscan,ai_cpid,ae_argend};
+                      as_ros, as_ststr, as_libstr,as_verstr,ai_clrskip,al_clrscan,ai_cpid,ae_argend};
 
 /* END of variable defines */
 
@@ -297,14 +299,20 @@ int main(int argc,char *argv[]) {
     libstr = getenv("LIBSTR");
     if (libstr == NULL) libstr=ststr;
   }
-  printf("Requested :: ststr: %s libstr: %s\n",ststr,libstr);
+  if(strlen(as_verstr->sval[0])) {
+    verstr = malloc((strlen(as_verstr->sval[0]) + 1) * sizeof(char));
+    strcpy(verstr, as_verstr->sval[0]);
+  } else {
+    verstr = NULL;
+  }
+  printf("Requested :: ststr: %s libstr: %s verstr: %s\n",ststr,libstr,verstr);
 /* This loads Radar Site information from hdw.dat files */
   OpsStart(ststr);
 
 /* This loads Site library via dlopen and maps:
  * site library specific functions into Site name space
 */
-  status=SiteBuild(libstr,NULL); /* second argument is version string */
+  status=SiteBuild(libstr,verstr); /* second argument is version string */
   if (status==-1) {
     fprintf(stderr,"Could not load requested site library\n");
     exit(1);
