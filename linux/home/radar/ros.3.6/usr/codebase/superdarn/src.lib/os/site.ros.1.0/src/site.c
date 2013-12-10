@@ -291,7 +291,15 @@ int SiteRosStart(char *host,char *ststr) {
   }
   if(! config_lookup_int(&cfg, "night", &night)) {
     night=10;
-    fprintf(stderr,"Site Cfg Warning:: \'night\' setting undefined in site cfg file using default value: %d\n",night); 
+    fprintf(stderr,"Site Cfg Warning:: \'day\' setting undefined in site cfg file using default value: %d\n",night); 
+  }
+  if(! config_lookup_int(&cfg, "dfrq", &dfrq)) {
+    dfrq=10400;
+    fprintf(stderr,"Site Cfg Warning:: \'dfrq\' setting undefined in site cfg file using default value: %d\n",dfrq); 
+  }
+  if(! config_lookup_int(&cfg, "nfrq", &nfrq)) {
+    nfrq=10400;
+    fprintf(stderr,"Site Cfg Warning:: \'nfrq\' setting undefined in site cfg file using default value: %d\n",nfrq); 
   }
   return 0;
 }
