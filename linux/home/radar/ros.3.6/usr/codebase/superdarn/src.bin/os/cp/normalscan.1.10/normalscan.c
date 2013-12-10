@@ -86,10 +86,6 @@ struct OptionData opt;
 char *roshost=NULL;
 char *droshost={"127.0.0.1"};
 
-int baseport=44100;
-
-
-
 int tnum=4;      
 struct TCPIPMsgHost task[4]={
   {"127.0.0.1",1,-1}, /* iqwrite */
@@ -234,6 +230,7 @@ int main(int argc,char *argv[]) {
   arg=OptionProcess(1,argc,argv,&opt,NULL);  
 
   printf("Station ID: %s  %d\n",ststr,stid);
+  printf("baseport:%d\n",baseport);
 
   strncpy(combf,progid,80);   
 
