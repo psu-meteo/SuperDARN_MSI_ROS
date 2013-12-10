@@ -293,6 +293,7 @@ int SiteRosStart(char *host,char *ststr) {
     night=10;
     fprintf(stderr,"Site Cfg Warning:: \'night\' setting undefined in site cfg file using default value: %d\n",night); 
   }
+/*
   if(! config_lookup_int(&cfg, "dfrq", &dfrq)) {
     dfrq=10400;
     fprintf(stderr,"Site Cfg Warning:: \'dfrq\' setting undefined in site cfg file using default value: %d\n",dfrq); 
@@ -301,6 +302,7 @@ int SiteRosStart(char *host,char *ststr) {
     nfrq=10400;
     fprintf(stderr,"Site Cfg Warning:: \'nfrq\' setting undefined in site cfg file using default value: %d\n",nfrq); 
   }
+*/
   return 0;
 }
 
