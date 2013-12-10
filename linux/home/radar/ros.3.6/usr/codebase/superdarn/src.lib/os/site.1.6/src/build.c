@@ -89,7 +89,7 @@ int SiteBuild(char *libstr,char *vstr) {
 
   if (vstr !=NULL) sprintf(dlname,"libsite.%s.%s.so",libstr,vstr);
   else  sprintf(dlname,"libsite.%s.1.so",libstr);
-  
+
   sprintf(st,"%c%s",toupper(libstr[0]),libstr+1);
 
   dlhandle = dlopen(dlname,RTLD_NOW | RTLD_GLOBAL);

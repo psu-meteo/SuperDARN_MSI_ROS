@@ -345,6 +345,7 @@ int main(int argc,char *argv[]) {
   if (ai_sb->count) sbm = ai_sb->ival[0];
   if (ai_eb->count) ebm = ai_eb->ival[0];
   if (ai_cnum->count) cnum = ai_cnum->ival[0];
+  if (ai_bp->count) baseport=ai_bp->ival[0];
 
 /* Open Connection to errorlog */  
   if ((errlog.sock=TCPIPMsgOpen(errlog.host,errlog.port))==-1) {    
@@ -356,7 +357,7 @@ int main(int argc,char *argv[]) {
   }
 
 /* Open Connection to helper utilities like fitacfwrite*/  
-  for (n=0;n<tnum;n++) task[n].port+=ai_bp->ival[0];
+  for (n=0;n<tnum;n++) task[n].port+=baseport;
 
 /* Prep command string for tasks */ 
   strncpy(combf,progid,80);   

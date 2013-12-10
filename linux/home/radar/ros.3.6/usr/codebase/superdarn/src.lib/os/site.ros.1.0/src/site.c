@@ -261,6 +261,11 @@ int SiteRosStart(char *host,char *ststr) {
   } else{
     strcpy(shell.host,str);
   }
+  if(! config_lookup_int(&cfg, "tasks.baseport", &baseport)) {
+    /* ROS server tcp port*/
+    baseport=45001;
+    fprintf(stderr,"Site Cfg Warning:: \'tasks.baseport\' setting undefined in site cfg file using default value: %d\n",baseport); 
+  }
   if(! config_lookup_int(&cfg, "invert", &invert)) {
 /* 
  *  If you need to correct for inverted phase between main and inter rf signal 
