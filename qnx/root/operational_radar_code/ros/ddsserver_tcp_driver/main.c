@@ -468,7 +468,7 @@ int main(){
 */
                             if (verbose>2) fprintf(stdout," Loading %d freq: %lf chip: %d channel: %d\n",i,freq_in,r,c);
                             if(active[r-1][c-1]==(c-1)) {
-                                fprintf(stdout,"Active channel r: %d c: %d cc: %d active: %d\n",
+                                if(verbose > 0 ) fprintf(stdout,"Active channel r: %d c: %d cc: %d active: %d\n",
                                     r-1,c-1,-1,active[r-1][c-1]);
                                 gettimeofday(&t3,NULL);
                                 load_frequency(ics660[pci_ind], r, c, freq_in);
