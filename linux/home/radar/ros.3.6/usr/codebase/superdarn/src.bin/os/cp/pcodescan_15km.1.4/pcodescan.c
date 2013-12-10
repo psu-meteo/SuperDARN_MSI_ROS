@@ -68,9 +68,9 @@ char *droshost={"127.0.0.1"};
 
 int baseport=44100;
 
-
-int tnum=3;      
-struct TCPIPMsgHost task[3]={
+int tnum=4;      
+struct TCPIPMsgHost task[4]={
+  {"127.0.0.1",1,-1}, /* iqwrite */
   {"127.0.0.1",2,-1}, /* raw acfwrite */
   {"127.0.0.1",3,-1}, /* fit acf write */
   {"127.0.0.1",4,-1} /* rt server */
@@ -185,7 +185,9 @@ int main(int argc,char *argv[]) {
   OptionAdd(&opt,"nowait",'x',&scannowait);
    
   arg=OptionProcess(1,argc,argv,&opt,NULL);  
- 
+
+  if (ststr==NULL) ststr=dfststr;
+  if (libstr==NULL) libstr = getenv("LIBSTR"); 
   if (libstr==NULL) libstr=ststr;
 
   if (roshost==NULL) roshost=getenv("ROSHOST");
@@ -207,7 +209,6 @@ int main(int argc,char *argv[]) {
   
 
   for (n=0;n<tnum;n++) task[n].port+=baseport;
-
 
   printf("Station String: %s\n",ststr);
   OpsStart(ststr);
