@@ -106,7 +106,6 @@ void write_sounding_record_new( char *progname, struct RadarParm *prm, struct Fi
 #define RT_TASK 2
 
 char *ststr=NULL;
-char *dfststr="tst";
 char *libstr=NULL;
 
 void *tmpbuf;
