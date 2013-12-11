@@ -138,6 +138,7 @@ int SiteRosStart(char *host,char *ststr) {
   int retval;
   long ltemp;
   const char *str;
+  char *dfststr="tst";
   char *chanstr=NULL;
   signal(SIGPIPE,SiteRosExit);
   signal(SIGINT,SiteRosExit);
@@ -179,6 +180,8 @@ int SiteRosStart(char *host,char *ststr) {
   }
 /* TODO: implement chanstr handling as an option to allow for chan specific defaults */
   if(chanstr==NULL) chanstr=getenv("CHANSTR");
+  if(ststr==NULL) ststr=getenv("STSTR");
+  if(ststr==NULL) ststr=dfststr;
   printf("StStr: %s ChanStr %s\n",ststr,chanstr);
 
   if(chanstr==NULL) {
