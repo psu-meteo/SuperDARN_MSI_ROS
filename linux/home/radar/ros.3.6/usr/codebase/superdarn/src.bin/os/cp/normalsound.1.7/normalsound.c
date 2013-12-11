@@ -106,7 +106,6 @@ void write_sounding_record_new( char *progname, struct RadarParm *prm, struct Fi
 #define RT_TASK 2
 
 char *ststr=NULL;
-char *dfststr="tst";
 char *libstr=NULL;
 
 void *tmpbuf;
@@ -279,7 +278,7 @@ int main(int argc,char *argv[]) {
    
   arg=OptionProcess(1,argc,argv,&opt,NULL);  
  
-  if (ststr==NULL) ststr=dfststr;
+  if (ststr==NULL) ststr= = getenv("STSTR");
   if (libstr==NULL) libstr = getenv("LIBSTR");
   if (libstr==NULL) libstr=ststr;
 
