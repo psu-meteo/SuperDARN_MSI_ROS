@@ -71,7 +71,6 @@
 #include "tsg.h"
 
 char *ststr=NULL;
-char *dfststr="tst";
 char *libstr=NULL;
 
 void *tmpbuf;
@@ -209,7 +208,7 @@ int main(int argc,char *argv[]) {
    
   arg=OptionProcess(1,argc,argv,&opt,NULL);  
  
-  if (ststr==NULL) ststr=dfststr;
+  if (ststr==NULL) ststr =  getenv("STSTR");
   libstr = getenv("LIBSTR");
   if (libstr==NULL) libstr=ststr;
 

@@ -74,7 +74,6 @@ int main(int argc,char *argv[]) {
   char *droshost={"127.0.0.1"};
 
   char *ststr=NULL;
-  char *dfststr="tst";
 
   char *libstr=NULL;
   char *verstr=NULL;
@@ -288,7 +287,6 @@ int main(int argc,char *argv[]) {
     strcpy(ststr, as_ststr->sval[0]);
   } else {
     ststr = getenv("STSTR");
-    if (ststr == NULL) ststr=dfststr;
   }
 
   /* Load site library argument here */

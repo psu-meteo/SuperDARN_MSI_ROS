@@ -72,7 +72,6 @@
 #include "tsg.h"
 
 char *ststr=NULL;
-char *dfststr="tst";
 char *libstr=NULL;
 
 void *tmpbuf;
@@ -230,7 +229,7 @@ int main(int argc,char *argv[]) {
     if (backward_beams[ n] == -1) backward_beams[ n]= camping_beam;
   }
  
-  if (ststr==NULL) ststr=dfststr;
+  if (ststr==NULL) ststr= getenv("STSTR");
   if (libstr==NULL) libstr = getenv("LIBSTR");
   if (libstr==NULL) libstr=ststr;
 

@@ -61,7 +61,6 @@
 
 
 char *ststr=NULL;
-char *dfststr="tst";
 char *libstr=NULL;
 
 void *tmpbuf;
@@ -204,7 +203,7 @@ int main(int argc,char *argv[]) {
 	fbms  = (int *)malloc(nintgs*sizeof(int));
 	bbms  = (int *)malloc(nintgs*sizeof(int));
 
-	if (ststr==NULL) ststr=dfststr;
+	if (ststr==NULL) ststr = getenv("STSTR");
 	if (libstr==NULL) libstr = getenv("LIBSTR");
 	if (libstr==NULL) libstr=ststr;
         if (roshost==NULL) roshost=getenv("ROSHOST");
