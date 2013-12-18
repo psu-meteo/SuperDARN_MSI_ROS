@@ -13,7 +13,7 @@
 #include <sys/types.h>
 #include <sys/time.h>
 #include <errno.h>
-include <time.h>
+#include <time.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
@@ -223,6 +223,7 @@ int SiteRosStart(char *host,char *ststr) {
     fprintf(stderr,"Site Cfg Warning:: \'xcf\' setting undefined in site cfg file using default value: %d\n",xcf); 
   } else {
     xcf=ltemp;
+    fprintf(stderr,"Site Cfg:: \'xcf\' setting in site cfg file using value: %d\n",xcf); 
   }
   if(! config_lookup_int(&cfg, "sbm", &ltemp)) {
     sbm=0;
