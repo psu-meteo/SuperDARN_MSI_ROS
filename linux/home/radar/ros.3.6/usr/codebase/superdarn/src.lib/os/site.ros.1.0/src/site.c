@@ -51,7 +51,7 @@ FILE *msglog=NULL;
 char msglog_name[256];
 char *msglog_dir=NULL;
 
-FILE *f_diagnostic_ascii=NULL;
+FILE *f_diagnostic_ascii=NULL,*fp=NULL;
 
 int yday=-1;
 int iqbufsize=0;
@@ -1084,7 +1084,10 @@ usleep(usecs);
           (rdata.main)[n]=uQ32|uI32;
         }
       }
-
+/*
+      fp=f_diagnostic_ascii;
+      f_diagnostic_ascii=stderr;
+*/
       if(f_diagnostic_ascii!=NULL) {
         fprintf(f_diagnostic_ascii,"Sequence : Raw Data : START\n");
         fprintf(f_diagnostic_ascii,"  nsamp: %8d\n",nsamp);
@@ -1108,7 +1111,9 @@ usleep(usecs);
         }
         fprintf(f_diagnostic_ascii,"Sequence: Raw Data: END\n");
       }
-
+/*
+      f_diagnostic_ascii=fp;
+*/
     /* decode phase coding here */
       if(nbaud>1){
         if(f_diagnostic_ascii!=NULL) {
@@ -1250,10 +1255,10 @@ usleep(usecs);
         ACFCalculate(&tsgprm,(int16 *) dest,rngoff,skpnum!=0,
           roff,ioff,mplgs,lagtable,acfd,ACF_PART,2*dprm.samples,badrng,seqatten[nave]*atstp,NULL);
         if (xcf ==1 ){
-        if (debug) 
-        fprintf(stderr,"%s seq %d :: rngoff %d rxchn %d\n",station,nave,rngoff,rxchn);
-        if (debug) 
-          fprintf(stderr,"%s seq %d :: ACFCalculate xcf\n",station,nave);
+          if (debug) 
+            fprintf(stderr,"%s seq %d :: rngoff %d rxchn %d\n",station,nave,rngoff,rxchn);
+          if (debug) 
+            fprintf(stderr,"%s seq %d :: ACFCalculate xcf\n",station,nave);
           ACFCalculate(&tsgprm,(int16 *) dest,rngoff,skpnum!=0,
                     roff,ioff,mplgs,lagtable,xcfd,XCF_PART,2*dprm.samples,badrng,seqatten[nave]*atstp,NULL);
         }
