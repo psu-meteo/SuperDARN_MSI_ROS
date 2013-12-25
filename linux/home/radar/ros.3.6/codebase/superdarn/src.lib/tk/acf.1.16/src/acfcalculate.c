@@ -115,7 +115,12 @@ int ACFCalculate(struct TSGprm *prm,
    if (dflg) sdelay=prm->smdelay; /* digital receiver delay term */
    sampleunit = (prm->mpinc / prm->smsep) *
                  rngoff;
-				 
+/*
+   if (xcf == ACF_PART) 
+     fprintf(stderr,"ACFCalculate:: ACF_PART: xcfoff: %d\n",xcfoff);  
+   if (xcf == XCF_PART) 
+     fprintf(stderr,"ACFCalculate:: XCF_PART: xcfoff: %d\n",xcfoff);  
+*/				 
    for(range=0;range < nrang ; range++) {
 
          offset1 = (range+sdelay) * rngoff;
@@ -126,9 +131,23 @@ int ACFCalculate(struct TSGprm *prm,
         
       
 	 for(lag=0;lag < mplgs; lag++) {
-         
+
+/*
+           if(lag==0 && xcf == XCF_PART) {
+             sample1 = lagtable[0][lag]*sampleunit + offset1;        
+             sample2 = lagtable[1][lag]*sampleunit + offset2;
+             fprintf(stderr,"ACFCalculate: range: %d :: %d %d ",range,sample1,sample2);  
+             temp1 = (float) (inbuf[sample1+ roffset]-dcor1); 
+             temp2 = (float) (inbuf[sample1+ ioffset]-dcoi1); 
+             fprintf(stderr,":: %f %f ",temp1, temp2);  
+             temp1 = (float) (inbuf[sample2+ roffset]-dcor2); 
+             temp2 = (float) (inbuf[sample2+ ioffset]-dcoi2); 
+             fprintf(stderr,":: %f %f\n",temp1, temp2);  
+ 
+           }
+*/
        /* if the range is bad use the lag given lagtable[mplgs] */
-         
+           
        if ((range >= badrange) && (lag == 0)) {
            sample1 =lagtable[0][mplgs]*sampleunit + offset1;        
            sample2 =lagtable[1][mplgs]*sampleunit + offset2;

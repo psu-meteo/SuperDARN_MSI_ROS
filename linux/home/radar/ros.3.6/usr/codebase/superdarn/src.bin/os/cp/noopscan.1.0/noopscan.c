@@ -71,7 +71,7 @@
 #include "tsg.h"
 
 char *ststr=NULL;
-char *dfststr="tst";
+char *libstr=NULL;
 
 void *tmpbuf;
 size_t tmpsze;
@@ -84,12 +84,6 @@ struct OptionData opt;
 
 char *roshost=NULL;
 char *droshost={"127.0.0.1"};
-
-int baseport=44100;
-
-struct TCPIPMsgHost errlog={"127.0.0.1",44100,-1};
-
-struct TCPIPMsgHost shell={"127.0.0.1",44101,-1};
 
 int tnum=4;      
 struct TCPIPMsgHost task[4]={
@@ -199,6 +193,7 @@ int main(int argc,char *argv[]) {
   OptionAdd(&opt,"ros",'t',&roshost);
 
   OptionAdd(&opt,"stid",'t',&ststr); 
+  OptionAdd(&opt,"lib",'t',&libstr); 
  
   OptionAdd(&opt,"fast",'x',&fast);
 
@@ -210,24 +205,18 @@ int main(int argc,char *argv[]) {
    
   arg=OptionProcess(1,argc,argv,&opt,NULL);  
  
-  if (ststr==NULL) ststr=dfststr;
+  if (ststr==NULL) ststr= getenv("STSTR");
+  if (libstr==NULL) libstr = getenv("LIBSTR");
+  if (libstr==NULL) libstr=ststr;
 
   if (roshost==NULL) roshost=getenv("ROSHOST");
   if (roshost==NULL) roshost=droshost;
 
-  if ((errlog.sock=TCPIPMsgOpen(errlog.host,errlog.port))==-1) {    
-    fprintf(stderr,"Error connecting to error log.\n");
-  }
 
-  if ((shell.sock=TCPIPMsgOpen(shell.host,shell.port))==-1) {    
-    fprintf(stderr,"Error connecting to shell.\n");
-  }
-
-  for (n=0;n<tnum;n++) task[n].port+=baseport;
 
   OpsStart(ststr);
 
-  status=SiteBuild(ststr,NULL); /* second argument is version string */
+  status=SiteBuild(libstr,NULL); /* second argument is version string */
  
   if (status==-1) {
     fprintf(stderr,"Could not identify station.\n");
@@ -237,18 +226,28 @@ int main(int argc,char *argv[]) {
   arg=OptionProcess(1,argc,argv,&opt,NULL);  
 
   printf("Station ID: %s  %d\n",ststr,stid);
-
-
+  SiteStart("",ststr);
+  arg=OptionProcess(1,argc,argv,&opt,NULL);  
   strncpy(combf,progid,80);   
+
+  for (n=0;n<tnum;n++) task[n].port+=baseport;
+  if ((errlog.sock=TCPIPMsgOpen(errlog.host,errlog.port))==-1) {    
+    fprintf(stderr,"Error connecting to error log.\n Host: %s Port: %d\n",errlog.host,errlog.port);
+  }
+
+  if ((shell.sock=TCPIPMsgOpen(shell.host,shell.port))==-1) {    
+    fprintf(stderr,"Error connecting to shell.\n");
+  }
  
   OpsSetupCommand(argc,argv);
    
   
   if (fast) sprintf(progname,"noopscan (fast)");
   else sprintf(progname,"noopscan");
-
+  i=0;
   do {
-     sleep(5);
+     printf("Hey this is a noop loop : %d\n",i);
+     sleep(1);
      if(i>100) exitpoll=1;
      i++;
   } while (exitpoll==0);

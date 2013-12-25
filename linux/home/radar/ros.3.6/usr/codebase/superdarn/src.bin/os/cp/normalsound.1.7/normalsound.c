@@ -106,7 +106,7 @@ void write_sounding_record_new( char *progname, struct RadarParm *prm, struct Fi
 #define RT_TASK 2
 
 char *ststr=NULL;
-char *dfststr="tst";
+char *libstr=NULL;
 
 void *tmpbuf;
 size_t tmpsze;
@@ -120,15 +120,10 @@ struct OptionData opt;
 char *roshost=NULL;
 char *droshost={"127.0.0.1"};
 
-int baseport=44100;
 
-struct TCPIPMsgHost errlog={"127.0.0.1",44100,-1};
-
-struct TCPIPMsgHost shell={"127.0.0.1",44101,-1};
-
-int tnum=3;      
-struct TCPIPMsgHost task[3]={
-  /*  {"127.0.0.1",0,-1}, iqwrite */
+int tnum=4;      
+struct TCPIPMsgHost task[4]={
+  {"127.0.0.1",1,-1}, /* iqwrite */
   {"127.0.0.1",2,-1}, /* rawacfwrite */
   {"127.0.0.1",3,-1}, /* fitacfwrite */
   {"127.0.0.1",4,-1}  /* rtserver */
@@ -273,6 +268,7 @@ int main(int argc,char *argv[]) {
 
 
   OptionAdd(&opt,"stid",'t',&ststr); 
+  OptionAdd(&opt,"lib",'t',&libstr); 
  
   OptionAdd(&opt,"fast",'x',&fast);
 
@@ -282,35 +278,35 @@ int main(int argc,char *argv[]) {
    
   arg=OptionProcess(1,argc,argv,&opt,NULL);  
  
-  if (ststr==NULL) ststr=dfststr;
+  if (ststr==NULL) ststr = getenv("STSTR");
+  if (libstr==NULL) libstr = getenv("LIBSTR");
+  if (libstr==NULL) libstr=ststr;
 
   if (roshost==NULL) roshost=getenv("ROSHOST");
   if (roshost==NULL) roshost=droshost;
 
-
-  if ((errlog.sock=TCPIPMsgOpen(errlog.host,errlog.port))==-1) {    
-    fprintf(stderr,"Error connecting to error log.\n");
-  }
-
-  if ((shell.sock=TCPIPMsgOpen(shell.host,shell.port))==-1) {    
-    fprintf(stderr,"Error connecting to shell.\n");
-  }
-
-  for (n=0;n<tnum;n++) task[n].port+=baseport;
-
   OpsStart(ststr);
 
-  status=SiteBuild(ststr,NULL); /* second argument is version string */
+  status=SiteBuild(libstr,NULL); /* second argument is version string */
 
   if (status==-1) {
     fprintf(stderr,"Could not identify station.\n");
     exit(1);
   }
 
-  SiteStart(roshost);
+  SiteStart(roshost,ststr);
   arg=OptionProcess(1,argc,argv,&opt,NULL);  
 
   strncpy(combf,progid,80);   
+
+  for (n=0;n<tnum;n++) task[n].port+=baseport;
+  if ((errlog.sock=TCPIPMsgOpen(errlog.host,errlog.port))==-1) {    
+    fprintf(stderr,"Error connecting to error log.\n Host: %s Port: %d\n",errlog.host,errlog.port);
+  }
+
+  if ((shell.sock=TCPIPMsgOpen(shell.host,shell.port))==-1) {    
+    fprintf(stderr,"Error connecting to shell.\n");
+  }
  
   OpsSetupCommand(argc,argv);
   OpsSetupShell();

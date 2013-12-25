@@ -134,7 +134,7 @@ int main(){
 	struct	timespec	start, stop, sleep, now;
 	int	clockresolution;
 
-        int  maxclients=MAX_RADARS*MAX_CHANNELS;
+        int  maxclients=MAX_RADARS*MAX_CHANNELS+1;
         int  max_seq_count;
         int  seq_count[MAX_RADARS][MAX_CHANNELS];
         int32_t  current_pulse_index[MAX_RADARS][MAX_CHANNELS];
@@ -395,7 +395,7 @@ int main(){
 		      case DDS_PRETRIGGER:
 	                one_shot_b(ics660[pci_master]);
                         gettimeofday(&t0,NULL);
-			if(verbose > 0 ) {
+			if(verbose > 1 ) {
                           fprintf(stdout,"Setup DDS Card for PRE-trigger Numclients : %d\n",numclients);	
                         }
                         if(numclients>0) {
@@ -420,7 +420,9 @@ int main(){
 	                    for (c=0;c<MAX_CHANNELS;c++){
                               if (ready_index[r][c]>0) {
                                   new_seq_flag=new_seq_flag+1;
-                                  ready_index[r][c]=0;
+                                  ready_index[r][c]=-1;
+                              } else {
+                                //active[r][c]=-1;
                               } 
                             }
                           }  
@@ -459,22 +461,21 @@ int main(){
 	                    c= clients[i].channel;
 		            if (verbose > 1) fprintf(stdout,"  Client:: r: %d c: %d\n",r,c);	
 		            if (verbose > 1) fprintf(stdout,"  Client:: freq: %lf\n",freq_in);	
+/*
                             load_frequency(ics660[pci_ind], r, c, freq_in);
                             load_phase(ics660[pci_ind],r,c,0.0);
                             load_filter_taps(ics660[pci_ind],r,c,T_rise,state_time);
-                            if (verbose>2) fprintf(stdout," Loading %d freq: %lf chip: %d channel: %d\n",i,freq_in,r,c);
-/*
-                            for(cc=1;cc<=DDS_MAX_CHANNELS;cc++) {
-                              if(active[r-1][cc-1]==(c-1)) {
-//                                fprintf(stdout,"Active channel r: %d c: %d cc: %d active: %d\n",
-//                                    r,c,cc,active[r-1][cc-1]);
-                                gettimeofday(&t3,NULL);
-                                load_frequency(ics660[pci_ind], r, cc, freq_in);
-                                load_phase(ics660[pci_ind],r,cc,0.0);
-                                load_filter_taps(ics660[pci_ind],r,cc,T_rise,state_time);
-                              }
-                            }
 */
+                            if (verbose>2) fprintf(stdout," Loading %d freq: %lf chip: %d channel: %d\n",i,freq_in,r,c);
+                            if(active[r-1][c-1]==(c-1)) {
+                                if(verbose > 0 ) fprintf(stdout,"Active channel r: %d c: %d cc: %d active: %d\n",
+                                    r-1,c-1,-1,active[r-1][c-1]);
+                                gettimeofday(&t3,NULL);
+                                load_frequency(ics660[pci_ind], r, c, freq_in);
+                                load_phase(ics660[pci_ind],r,c,0.0);
+                                load_filter_taps(ics660[pci_ind],r,c,T_rise,state_time);
+                            }
+
                             if((ifmode==1) && (IMAGING==0)) {                   
                               r=clients[i].radar+2;
 
