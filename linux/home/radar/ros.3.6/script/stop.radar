@@ -1,7 +1,9 @@
 #!/bin/bash
 
 killall -s 2 schedule
-
+killall -s 2 schedule
+killall -s 2 schedule
+sleep 5
 killall schedule 
 killall rtserver
 killall fitacfwrite
@@ -10,6 +12,6 @@ killall iqwrite
 
 killall shellserver
 killall errlog
-
+rm $HOME/radops_active.txt
 
 
