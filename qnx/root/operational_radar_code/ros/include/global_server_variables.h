@@ -87,6 +87,7 @@ struct ControlState {
      float current_assigned_noise; 
      int gpssecond;
      int gpsnsecond;
+     int gpscapture;
      double best_assigned_pwr; 
      double current_assigned_pwr; 
      int freq_change_needed; 
