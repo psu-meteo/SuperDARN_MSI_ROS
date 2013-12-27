@@ -59,23 +59,9 @@ void terminate(pid_t prog_id) {
 
   kill(prog_id,SIGUSR1);
   waitpid(prog_id,NULL,0);
-  kill(prog_id,SIGINT);
-  waitpid(prog_id,NULL,0);
-  kill(prog_id,SIGINT);
-  waitpid(prog_id,NULL,0);
-  kill(prog_id,SIGINT);
-  waitpid(prog_id,NULL,0);
   
   if (resetflg==1) {  
     fprintf(stderr,"killing task.\n");
-    kill(prog_id,SIGUSR1);
-    waitpid(prog_id,NULL,0);
-    kill(prog_id,SIGINT);
-    waitpid(prog_id,NULL,0);
-    kill(prog_id,SIGINT);
-    waitpid(prog_id,NULL,0);
-    kill(prog_id,SIGINT);
-    waitpid(prog_id,NULL,0);
     kill(prog_id,SIGKILL);
     waitpid(prog_id,NULL,0);
     resetflg=0;

@@ -1,0 +1,174 @@
+#!/bin/sh
+
+dir=$1
+ext=$2
+
+# IP address of the QNX machine.
+
+
+mail=$HOME/radar.mail
+report=$HOME/radar.report
+
+# echo this is the buffer size, if the size of the requested files results
+# is larger than the free space on the disc minus the buffer size
+# then don't get the data
+
+let buffer=40*1024
+let bufmg=buffer/1024
+datestr=`date -u +%Y%m%d`
+
+dsize=`df -k /data | tail -1 | tr -s " " | cut -f 4 -d" "`
+let dsize=dsize-buffer
+let dszmg=dsize/1024
+
+echo "cp_files:"${datestr}" /data/"${dir}" "${ext}
+echo "cp_files:"${datestr}" /data/"${dir}" "${ext} > $report
+echo "cp_files:"${datestr}" /data/"${dir}" "${ext} > $mail
+date 
+date >> $report
+date >> $mail 
+
+
+filedir="/data/ros/${dir}"
+tmpdir=$HOME/tmp_data
+dstdir="$HOME/data/daily"
+rawdir="$HOME/data/rawdata"
+if [ -d $tmpdir ]; then
+	echo "Tmp Directory exists"
+else 
+	echo "Tmp Directory does not exists"
+        exit
+fi 
+if [ -d $rawdir ]; then
+	echo "Raw Directory exists"
+else 
+	echo "Raw Directory does not exists"
+        exit
+fi
+if [ -d $dstdir ]; then
+	echo "Dst Directory exists"
+else 
+	echo "Dst Directory does not exists"
+        exit
+fi
+if [ -d $filedir ]; then
+	echo "Requested Directory exists"
+else 
+	echo "Requested Directory does not exists"
+        exit
+fi
+getlist=$HOME/src/file.list
+dirlist=$HOME/src/dir.list
+
+echo "Date: ${datestr}"
+# build a list of files including the file size 
+cd ${filedir}
+activedir=`pwd`
+if test $filedir != $activedir
+  then
+  echo "Wrong Directory  $filedir $activedir"
+  exit
+fi
+ls -1 -o *.${ext} > ${dirlist}
+cat ${dirlist}| tr -s " " | cut -f 4,8 -d " " | egrep -v ${datestr} > $getlist
+
+echo "Remote Files:"
+cat $getlist | tr " " "\t"
+echo "Remote Files:" >> $report
+cat $getlist | tr " " "\t" >> $report
+
+fsze=`cat ${getlist} | cut -f 1 -d " "`
+let fsize=0
+for sze in $fsze
+  do
+   let fsize=1+fsize+${sze}/1024
+  done
+let fszmg=fsize/1024
+echo "Total Disk Space Required:"${fszmg}" MB"
+echo "Total Disk Space Required:"${fszmg}" MB" >> $report
+echo "Total Disk Space Required:"${fszmg}" MB" >> $mail
+
+
+echo "Usable Disk Space ("$bufmg" MB buffer):"${dszmg}" MB"
+echo "Usable Disk Space ("$bufmg" MB buffer):"${dszmg}" MB" >> $report
+echo "Usable Disk Space ("$bufmg" MB buffer):"${dszmg}" MB" >> $mail
+ 
+
+if test $dsize -le $fsize 
+  then
+    echo "Insufficient Disk Space for Transfer"
+    echo "Insufficient Disk Space for Transfer" >> $report
+    echo "Insufficient Disk Space for Transfer" >> $mail
+ 
+    exit
+  fi
+  echo "Starting CP Transfer"
+  echo "Starting CP Transfer" >> $report
+flist=`cat ${getlist} | cut -f 2 -d " "`
+cd ${dstdir}
+activedir=`pwd`
+if test $activedir != $dstdir
+  then
+  echo "Wrong Directory  $dstdir $activedir"
+  exit
+fi
+
+for fname in $flist
+  do
+    echo ${filedir}/${fname}
+    cp ${filedir}/${fname} ${dstdir} 
+  done
+## now make sure that the file sizes all agree and delete the 
+## correctly copied files
+#
+cd ${dstdir}
+activedir=`pwd`
+if test $activedir != $dstdir
+  then
+  echo "Wrong Directory  $dstdir $activedir"
+  exit
+fi
+
+flist=`ls -1 *.${ext}`
+for fname in $flist
+  do
+    rsize=`egrep ${fname} ${getlist} | cut -f 1 -d " "`
+    lsize=`ls -l ${fname} | tr -s " " | cut -f 5 -d " "`
+    echo $fname $lsize $rsize
+    if test $lsize -eq $rsize 
+    then 
+      echo "Got:"${fname}
+      echo "Got:"${fname} >> $report
+      rm  ${filedir}/${fname}
+    fi
+  done
+#
+## now compress the files and put them in rawdata ready for the CD 
+## creator
+flist=`ls -1 *.${ext}`
+for fname in $flist
+  do
+    flow=`echo $fname | tr [:upper:] [:lower:]`
+    suffix=${flow#??????????}
+    troot=${flow%$suffix}
+    tval=${troot#??}
+    idcode=${suffix%%.*}
+    ext=${suffix#$idcode.}
+    bzip2 --best -vf $fname
+    mv ${fname}.bz2 ${rawdir}
+##    mv ${fname}.bz2 ${rawdir}/${tval}.${idcode}${ext:0:1}
+    if test ${ext:0:1} != s
+	then
+	cp  ${rawdir}/${fname}.bz2 ${tmpdir}
+    fi
+
+  done
+
+
+
+
+
+
+
+
+

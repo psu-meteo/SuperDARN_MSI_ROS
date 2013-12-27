@@ -12,9 +12,6 @@ superdarn codebase/superdarn/src.lib/tk lib
 superdarn codebase/superdarn/src.lib/os lib
 superdarn codebase/superdarn/src.bin/os bin
 superdarn codebase/superdarn/src.doc doc
-
-analysis codebase/analysis/src.lib lib 
-
 superdarn usr/codebase/superdarn/src.lib/tk lib
 superdarn usr/codebase/superdarn/src.lib/os lib
 superdarn usr/codebase/superdarn/src.bin/os bin

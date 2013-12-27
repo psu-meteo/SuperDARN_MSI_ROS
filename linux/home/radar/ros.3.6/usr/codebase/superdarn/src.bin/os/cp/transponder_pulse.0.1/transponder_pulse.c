@@ -75,7 +75,7 @@
 void CP_Exit(int signum);
 
 char *ststr=NULL;
-char *dfststr="tst";
+char *libstr=NULL;
 
 void *tmpbuf;
 size_t tmpsze;
@@ -147,8 +147,8 @@ int main(int argc,char *argv[]) {
  *  100 repeated clock periods with code==0x00
  */
   struct SeqPRM   tprm;
-  unsigned char rep[3] = {100,200,100};
-  unsigned char code[3] = {0x00,0xFF,0x00};
+  unsigned char rep[7] = {   20,   10, 180,   200,   10,   10};
+  unsigned char code[7] = {0x80, 0x02, 0x06, 0x06, 0x02, 0x00};
 
   struct ROSMsg smsg,rmsg;
   int exitpoll=0;
@@ -163,6 +163,7 @@ int main(int argc,char *argv[]) {
   OptionAdd( &opt, "fixfrq", 'i', &fixfrq);  /* lets you set a frequency */
   OptionAdd( &opt,"ros",'t',&roshost);  /* lets you override the ip address of the ros server */
   OptionAdd( &opt,"stid",'t',&ststr);  /* lets you override the superdarn stid */
+  OptionAdd( &opt,"libstr",'t',&libstr);  /* lets you override the superdarn stid */
   OptionAdd( &opt, "single", 'x', &single); /* test program to do just one timing sequence */
   OptionAdd( &opt,"sb",'i',&sbm); /* start beam number */
   OptionAdd( &opt,"eb",'i',&ebm); /* end beam number */
@@ -171,7 +172,9 @@ int main(int argc,char *argv[]) {
 
   arg=OptionProcess(1,argc,argv,&opt,NULL);  
  
-  if (ststr==NULL) ststr=dfststr;
+  if (ststr==NULL) ststr= getenv("STSTR");
+  if (libstr==NULL) libstr = getenv("LIBSTR");
+  if (libstr==NULL) libstr=ststr;
 
   if (roshost==NULL) roshost=getenv("ROSHOST");
   if (roshost==NULL) roshost=droshost;
@@ -246,7 +249,7 @@ int main(int argc,char *argv[]) {
   tprm.step=CLOCK_PERIOD;
   tprm.samples=0;
   tprm.smdelay=0;
-  tprm.len=3;
+  tprm.len=7;
   smsg.type=REGISTER_SEQ;
   TCPIPMsgSend(sock, &smsg, sizeof(struct ROSMsg));
   TCPIPMsgSend(sock, &tprm, sizeof(struct SeqPRM));

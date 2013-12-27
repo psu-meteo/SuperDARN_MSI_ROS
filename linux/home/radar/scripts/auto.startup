@@ -1,6 +1,0 @@
-#!/bin/sh
-#
-# This is used in rc.local to delay start.radar init by a few seconds
-sleep 10
-start.radar
-

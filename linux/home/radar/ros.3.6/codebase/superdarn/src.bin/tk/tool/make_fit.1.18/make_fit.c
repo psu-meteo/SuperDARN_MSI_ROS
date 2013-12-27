@@ -4,7 +4,7 @@
 */
 
 /*
- (c) 2010 JHU/APL & Others - Please Consult LICENSE.superdarn-rst.3.1-beta-18-gf704e97.txt for more information.
+ (c) 2010 JHU/APL & Others - Please Consult LICENSE.superdarn-rst.3.2-beta-4-g32f7302.txt for more information.
  
  
  
@@ -16,7 +16,7 @@
 #include <string.h>
 #include <time.h>
 #include <zlib.h>
-
+ 
 #include "rtypes.h"
 #include "option.h"
 
