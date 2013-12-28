@@ -197,7 +197,7 @@ int main(int argc,char *argv[]) {
   int sounder_freq;
   int sounder_beam_loop=1;
   int normal_intt=5;
-  int fast_intt=2;
+  int fast_intt=3;
   int sounder_intt=2;
   int do_new_freq_search=0;
   float sounder_time, time_needed=1.25;
