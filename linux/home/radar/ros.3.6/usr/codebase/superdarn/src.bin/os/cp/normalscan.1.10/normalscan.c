@@ -264,6 +264,8 @@ int main(int argc,char *argv[]) {
     cp=151;
     scnsc=60;
     scnus=0;
+    intsc=3;
+    intus=500000;
   } else {
     scnsc=120;
     scnus=0;
