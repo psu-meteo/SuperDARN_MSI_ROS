@@ -60,8 +60,8 @@ int txread[MAX_RADARS];
 struct SiteSettings site_settings;
 struct GPSStatus gpsstatus;
 struct TRTimes bad_transmit_times;
-int32 gpsrate=GPS_DEFAULT_TRIGRATE;
-int verbose=0;
+int32_t gpsrate=GPS_DEFAULT_TRIGRATE;
+int verbose=10;
 
 struct timeval t_pre_start,t_pre_end,t_ready_first,t_ready_final,t_post_start,t_post_end;
 
@@ -182,8 +182,9 @@ int main()
 /* end DIO */
   int policy;
   struct sched_param sp;
-
+/*
   fprintf(stdout,"Policy Options F: %d R:%d O:%d S: %d\n",SCHED_FIFO,SCHED_RR,SCHED_OTHER,SCHED_SPORADIC);
+*/
   pthread_getschedparam(pthread_self(),&policy,&sp);
   fprintf(stdout,"Policy %d Prio: %d\n",policy,sp.sched_priority);
   sp.sched_priority = 60;
