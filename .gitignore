@@ -21,6 +21,7 @@ linux/home/radar/ros.3.6/bin/
 linux/home/radar/ros.3.6/usr/bin/
 linux/home/radar/ros.3.6/build/bin
 linux/home/radar/ros.3.6/include/
+qnx/root/operational_radar_code/ros/ddsserver_tcp_driver/dds_tcp_driver
 qnx/root/operational_radar_code/ros/fftw-3.2.2/libtool
 qnx/root/operational_radar_code/ros/dio_tcp_driver/dio_tcp_driver
 qnx/root/operational_radar_code/ros/fftw-3.2.2/tools/fftw-wisdom
