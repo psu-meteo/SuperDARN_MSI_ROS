@@ -178,6 +178,8 @@ int main(int argc,char *argv[]) {
  
   OptionAdd(&opt,"fast",'x',&fast);
   OptionAdd(&opt,"nowait",'x',&scannowait);
+  OptionAdd(&opt,"c",'i',&cnum);
+  OptionAdd(&opt,"r",'i',&rnum);
    
   arg=OptionProcess(1,argc,argv,&opt,NULL);  
  
@@ -195,6 +197,7 @@ int main(int argc,char *argv[]) {
   if(nbaud==7) bcode=bcode7;
   if(nbaud==11) bcode=bcode11;
   if(nbaud==13) bcode=bcode13;
+  printf("Nbaud: %d\n",nbaud);
   pcode=(int *)malloc((size_t)sizeof(int)*mppul*nbaud);
   for(i=0;i<mppul;i++){
     for(n=0;n<nbaud;n++){
