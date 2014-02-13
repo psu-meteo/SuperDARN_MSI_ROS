@@ -18,12 +18,6 @@
 #define DDS_MASTER_INDEX 0 
 #define DDS_TERM_INDEX 0 
 
-// Below set the maximum DDS output for each radar to ensure correct maximum driving signal into the transmitters with
-//  a single active radar channel
 
-// SPS values, 2014-01-11 
-// second output not used for single site set to zero
-//#define DDS_MAX_RADAR_OUTPUT { 28355,0 }
-#define DDS_MAX_RADAR_OUTPUT { 32000,0 }
 
 #endif

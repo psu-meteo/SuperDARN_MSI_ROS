@@ -2,7 +2,7 @@
 #define _SITE_H
 
 /* All of this should be turned into runtime ini configs */
-#define ANTENNA_SEPARATION 12.8016 // meters
+#define ANTENNA_SEPARATION 15.24 // meters
 #define MAX_ANTENNAS 20
 #define MAX_TRANSMITTERS 16
 #define MAX_BACK_ARRAY 4
@@ -24,7 +24,7 @@
  * for tuned transmit performance
  * length should match MAX_RADARS 
 */ 
-#define DDS_MAX_RADAR_OUTPUT { 28355 }
+#define DDS_MAX_RADAR_OUTPUT { 32000 }
 
 #endif
 
