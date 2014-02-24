@@ -217,6 +217,14 @@ int SiteRosStart(char *host,char *ststr) {
   } else {
     backward=ltemp;
   }
+  if(! config_lookup_int(&cfg, "xcf", &ltemp)) {
+    /* Radar number to register  with ROS server*/
+    xcnt=0;
+    fprintf(stderr,"Site Cfg Warning:: \'xcf\' setting undefined in site cfg file using default value: %d\n",xcnt); 
+  } else {
+    xcnt=ltemp;
+    fprintf(stderr,"Site Cfg:: \'xcf\' setting in site cfg file using value: %d\n",xcnt); 
+  }
   if(! config_lookup_int(&cfg, "sbm", &ltemp)) {
     sbm=0;
     fprintf(stderr,"Site Cfg Warning:: \'sbm\' setting undefined in site cfg file using default value: %d\n",sbm); 
