@@ -264,6 +264,7 @@ int32_t _write_phase(uint32_t base, int32_t radar, int32_t card, int32_t maddr, 
         if(type==1) {
     // toggle write enable bit
           set_WE(base,ON,radar,type);
+          usleep(50);
           set_WE(base,OFF,radar,type);
         } else {
           temp=_select_card(base,radar,card);

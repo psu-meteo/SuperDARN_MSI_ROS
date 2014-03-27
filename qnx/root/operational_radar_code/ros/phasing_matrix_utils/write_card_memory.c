@@ -22,7 +22,7 @@
 #include "rtypes.h"
 #define IMAGING 0
 
-int verbose=2;
+int verbose=0;
 int configured=1;
  
 int main(int argc, char *argv[]){
