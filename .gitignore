@@ -16,6 +16,8 @@ temp.out*
 *.Plo
 .libs/
 .deps/
+#Installed header files.
+linux/home/radar/ros.3.6/include/
 # binaries
 linux/home/radar/ros.3.6/bin/
 linux/home/radar/ros.3.6/usr/bin/
