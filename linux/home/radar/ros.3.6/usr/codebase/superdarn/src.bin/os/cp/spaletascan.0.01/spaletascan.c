@@ -1,6 +1,5 @@
-/* uafscan.c
+/* spaletascan.c
    ============
-   Author: R.J.Barnes & J.Spaleta & J.Klein
 */
 
 /*
@@ -66,8 +65,8 @@
 #define ARG_MAXERRORS 30
 
 int main(int argc,char *argv[]) {
-  char progid[80]={"uafscan"};
-  char progname[256]="uafscan";
+  char progid[80]={"spaletascan"};
+  char progname[256]="spaletascan";
   char modestr[32];
 
   char *roshost=NULL;
@@ -109,36 +108,130 @@ int main(int argc,char *argv[]) {
   int bcode13[13]={1,1,1,1,1,-1,-1,1,1,-1,1,-1,1};
 
 /* Pulse sequence Table */
-  int ptab[8] = {0,14,22,24,27,31,42,43};
-
-/* Lag sequence Table */
+  int ptab[16] = {0,4,19,42,78,127,191,270,364,474,600,745,905,1083,1280,1495};
   int lags[LAG_SIZE][2] = {
-    { 0, 0},		/*  0 */
-    {42,43},		/*  1 */
-    {22,24},		/*  2 */
-    {24,27},		/*  3 */
-    {27,31},		/*  4 */
-    {22,27},		/*  5 */
-    /* Lag 6 gap */
-    {24,31},		/*  7 */
-    {14,22},		/*  8 */
-    {22,31},		/*  9 */
-    {14,24},		/* 10 */
-    {31,42},		/* 11 */
-    {31,43},		/* 12 */
-    {14,27},		/* 13 */
-    { 0,14},		/* 14 */
-    {27,42},		/* 15 */
-    {27,43},		/* 16 */
-    {14,31},		/* 17 */
-    {24,42},		/* 18 */
-    {24,43},		/* 19 */
-    {22,42},		/* 20 */
-    {22,43},		/* 21 */
-    { 0,22},		/* 22 */
-    /* Lag 23 gap */
-    { 0,24},		/* 24 */
-    {43,43}};		/* alternate lag-0  */
+  {1495,1495},          /*  0 */
+  {0,4},                /*  1 */
+  {4,19},               /*  2 */
+  {0,19},               /*  3 */
+  {19,42},              /*  4 */
+  {42,78},              /*  5 */
+  {4,42},               /*  6 */
+  {0,42},               /*  7 */
+  {78,127},             /*  8 */
+  {19,78},              /*  9 */
+  {127,191},            /*  10 */
+  {4,78},               /*  11 */
+  {0,78},               /*  12 */
+  {191,270},            /*  13 */
+  {42,127},             /*  14 */
+  {270,364},            /*  15 */
+  {19,127},             /*  16 */
+  {364,474},            /*  17 */
+  {78,191},             /*  18 */
+  {4,127},              /*  19 */
+  {474,600},            /*  20 */
+  {0,127},              /*  21 */
+  {127,270},            /*  22 */
+  {600,745},            /*  23 */
+  {42,191},             /*  24 */
+  {745,905},            /*  25 */
+  {191,364},            /*  26 */
+  {19,191},             /*  27 */
+  {905,1083},           /*  28 */
+  {4,191},              /*  29 */
+  {0,191},              /*  30 */
+  {78,270},             /*  31 */
+  {1083,1280},          /*  32 */
+  {270,474},            /*  33 */
+  {1280,1495},          /*  34 */
+  {42,270},             /*  35 */
+  {127,364},            /*  36 */
+  {364,600},            /*  37 */
+  {19,270},             /*  38 */
+  {4,270},              /*  39 */
+  {0,270},              /*  40 */
+  {474,745},            /*  41 */
+  {191,474},            /*  42 */
+  {78,364},             /*  43 */
+  {600,905},            /*  44 */
+  {42,364},             /*  45 */
+  {270,600},            /*  46 */
+  {745,1083},           /*  47 */
+  {19,364},             /*  48 */
+  {127,474},            /*  49 */
+  {4,364},              /*  50 */
+  {0,364},              /*  51 */
+  {905,1280},           /*  52 */
+  {364,745},            /*  53 */
+  {78,474},             /*  54 */
+  {191,600},            /*  55 */
+  {1083,1495},          /*  56 */
+  {474,905},            /*  57 */
+  {42,474},             /*  58 */
+  {19,474},             /*  59 */
+  {4,474},              /*  60 */
+  {127,600},            /*  61 */
+  {0,474},              /*  62 */
+  {270,745},            /*  63 */
+  {600,1083},           /*  64 */
+  {78,600},             /*  65 */
+  {745,1280},           /*  66 */
+  {364,905},            /*  67 */
+  {191,745},            /*  68 */
+  {42,600},             /*  69 */
+  {19,600},             /*  70 */
+  {905,1495},           /*  71 */
+  {4,600},              /*  72 */
+  {0,600},              /*  73 */
+  {474,1083},           /*  74 */
+  {127,745},            /*  75 */
+  {270,905},            /*  76 */
+  {78,745},             /*  77 */
+  {600,1280},           /*  78 */
+  {42,745},             /*  79 */
+  {191,905},            /*  80 */
+  {364,1083},           /*  81 */
+  {19,745},             /*  82 */
+  {4,745},              /*  83 */
+  {0,745},              /*  84 */
+  {745,1495},           /*  85 */
+  {127,905},            /*  86 */
+  {474,1280},           /*  87 */
+  {270,1083},           /*  88 */
+  {78,905},             /*  89 */
+  {42,905},             /*  90 */
+ {19,905},             /*  91 */
+  {191,1083},           /*  92 */
+  {600,1495},           /*  93 */
+  {4,905},              /*  94 */
+  {0,905},              /*  95 */
+  {364,1280},           /*  96 */
+  {127,1083},           /*  97 */
+  {78,1083},            /*  98 */
+  {270,1280},           /*  99 */
+  {474,1495},           /*  100 */
+  {42,1083},            /*  101 */
+  {19,1083},            /*  102 */
+  {4,1083},             /*  103 */
+  {0,1083},             /*  104 */
+  {191,1280},           /*  105 */
+  {364,1495},           /*  106 */
+  {127,1280},           /*  107 */
+  {78,1280},            /*  108 */
+  {270,1495},           /*  109 */
+  {42,1280},            /*  110 */
+  {19,1280},            /*  111 */
+  {4,1280},             /*  112 */
+  {0,1280},             /*  113 */
+  {191,1495},           /*  114 */
+  {127,1495},           /*  115 */
+  {78,1495},            /*  116 */
+  {42,1495},            /*  117 */
+  {19,1495},            /*  118 */
+  {4,1495},             /*  119 */
+  {0,1495},             /*  120 */
+  {1495,1495}};         /*  121 */
 
 /* Integration period variables */
   int scnsc=120;
@@ -208,16 +301,16 @@ int main(int argc,char *argv[]) {
 /* END of variable defines */
 
 /* Set default values of globally defined variables here*/
-  cp=150;
+  cp=9100;
   intsc=7;
   intus=0;
-  mppul=8;
-  mplgs=23;
-  mpinc=1500;
-  dmpinc=1500;
-  nrang=75;
-  rsep=45;
-  txpl=300;
+  mppul=16;
+  mplgs=121;
+  mpinc=100;
+  dmpinc=100;
+  nrang=225;
+  rsep=15;
+  txpl=100;
   nbaud=1;
 
 /* Set default values for all the cmdline options */
@@ -251,7 +344,7 @@ int main(int argc,char *argv[]) {
   nerrors = arg_parse(argc,argv,argtable);
 
   if (nerrors > 0) {
-    arg_print_errors(stdout,ae_argend,"uafscan");
+    arg_print_errors(stdout,ae_argend,"spaletascan");
   }
   
   if (argc == 1) {
@@ -261,7 +354,7 @@ int main(int argc,char *argv[]) {
   if(al_help->count > 0) {
     printf("Usage: %s", progid);
     arg_print_syntax(stdout,argtable,"\n");
-    /* TODO: Add other useful help text describing the purpose of uafscan here */
+    /* TODO: Add other useful help text describing the purpose of spaletascan here */
     arg_print_glossary(stdout,argtable,"  %-25s %s\n");
     arg_freetable(argtable, sizeof(argtable)/sizeof(argtable[0]));
     return 0;
@@ -377,7 +470,7 @@ int main(int argc,char *argv[]) {
   beams=abs(ebm-sbm)+1;
   if (al_fast->count) {
     /* If fast option selected use 1 minute scan boundaries */
-    cp=151;
+    cp=9101;
     intsc=3;
     intus=500000;
     scnsc=60;
@@ -393,7 +486,7 @@ int main(int argc,char *argv[]) {
   }
   if (al_onesec->count) {
     /* If onesec option selected , no longer wait for scan boundaries, activate clear frequency skip option*/
-    cp=152;
+    cp=9102;
     intsc=1;
     intus=0;
     scnsc=beams+4;
@@ -409,8 +502,8 @@ int main(int argc,char *argv[]) {
     strncat(progname,modestr,strlen(modestr)+1);
     al_nowait->count=1;
     if(ai_clrskip->ival[0] < 0) ai_clrskip->ival[0]=default_clrskip_secs;
-    cp=153;
-    sprintf(logtxt,"uafscan configured for camping beam");
+    cp=9103;
+    sprintf(logtxt,"spaletascan configured for camping beam");
     ErrLog(errlog.sock,progname,logtxt);
     sprintf(logtxt," fast: %d onesec: %d cp: %d clrskip_secs: %d intsc: %d",al_fast->count,al_onesec->count,cp,ai_clrskip->ival[0],intsc);
     ErrLog(errlog.sock,progname,logtxt);
@@ -563,7 +656,7 @@ int main(int argc,char *argv[]) {
 
     if (nerrors > 0) {
         fprintf(stdout,"Errors found in commandline arguements: \n");
-        arg_print_errors(stdout,ae_argend,"uafscan");
+        arg_print_errors(stdout,ae_argend,"spaletascan");
     }
     OpsFitACFStart();
  
