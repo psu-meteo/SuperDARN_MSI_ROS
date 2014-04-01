@@ -3,7 +3,7 @@
 # returns 0 if younger than DAYS.
 # returns 1 if older than DAYS.
 DAYS=120
-DIR=/home/radar2/data/rawdata/
+DIR=/home/radar/data/rawdata/
 if [ -z "$DIR" ]
 then
   echo "No Directory requested"
