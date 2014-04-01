@@ -218,7 +218,7 @@ int SiteRosStart(char *host,char *ststr) {
     backward=ltemp;
   }
   if(! config_lookup_int(&cfg, "xcf", &ltemp)) {
-    /* Radar number to register  with ROS server*/
+    /* xcf count value: 1 means every integration period. 2 means every other. N means every Nth.*/
     xcnt=0;
     fprintf(stderr,"Site Cfg Warning:: \'xcf\' setting undefined in site cfg file using default value: %d\n",xcnt); 
   } else {
