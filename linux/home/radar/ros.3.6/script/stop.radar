@@ -1,6 +1,10 @@
 #!/bin/bash
 
+rm $HOME/radops_active.txt
+
+
 killall -s 2 schedule
+sleep 1
 
 killall schedule 
 killall rtserver

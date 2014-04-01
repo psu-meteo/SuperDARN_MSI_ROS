@@ -188,7 +188,7 @@ int main(int argc,char *argv[]) {
   /* the file contains one integer value per line */
   int freq_dwell=15; /* after so many minutes a new optimal frequency is evaluated */
   int sounder_freqs_total=8;
-  int sounder_freqs[ MAX_SND_FREQS]= { 10400,10900, 12000, 13000, 14500, 15000, 16000, 17000, 18000, 0, 0, 0 };
+  int sounder_freqs[ MAX_SND_FREQS]= { 10100, 10700, 11400, 12500,13700 , 14400, 15200, 17000, 18400, 0, 0, 0 };
   time_t last_freq_search, t_now;
   int fw=0; /* frequency weighting flag used in selecting the optimal freq */
   int sounder_beams[]={0,2,4,6,8,10,12,14};
@@ -196,8 +196,8 @@ int main(int argc,char *argv[]) {
   int sounder_beams_total=8, odd_beams=0;
   int sounder_freq;
   int sounder_beam_loop=1;
-  int normal_intt=5;
-  int fast_intt=2;
+  int normal_intt=6;
+  int fast_intt=3;
   int sounder_intt=2;
   int do_new_freq_search=0;
   float sounder_time, time_needed=1.25;

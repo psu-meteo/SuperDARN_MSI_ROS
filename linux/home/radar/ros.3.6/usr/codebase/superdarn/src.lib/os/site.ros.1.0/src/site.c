@@ -55,6 +55,7 @@ FILE *f_diagnostic_ascii=NULL,*fp=NULL;
 
 int yday=-1;
 int iqbufsize=0;
+int switch_rx=0;
 
 void SiteRosExit(int signum) {
 
@@ -312,10 +313,24 @@ int SiteRosStart(char *host,char *ststr) {
  *  invert=0  No inversion necessary 
  *   invert=non-zero  Inversion necassary 
 */
-    invert=1;
+    invert=0;
     fprintf(stderr,"Site Cfg Warning:: \'invert\' setting undefined in site cfg file using default value: %d\n",invert); 
   } else {
     invert=ltemp;
+  }
+  if(! config_lookup_int(&cfg, "switch_rx", &ltemp)) {
+/* 
+ *  Switch interf array and main array recv samples while still transmitting 
+ *  on main array. Introduced as a workaround for McM reflector curtain 
+ *  failure on main array. 
+ *  switch_rx=0 standard
+ *  switch_rx=non-zero  switch 
+*/
+    switch_rx=0;
+    fprintf(stderr,"Site Cfg Warning:: \'switch_rx\' setting undefined in site cfg file using default value: %d\n",switch_rx); 
+  } else {
+    switch_rx=(int)ltemp;
+    fprintf(stderr,"Site Cfg:: \'switch_rx\' setting in site cfg file using value: %d\n",switch_rx); 
   }
   if(! config_lookup_int(&cfg, "rxchn", &ltemp)) {
 /* rxchn number of channels typically 1*/
@@ -939,15 +954,18 @@ usleep(usecs);
       }
       rdata.main=malloc(sizeof(uint32)*dprm.samples);
       rdata.back=malloc(sizeof(uint32)*dprm.samples);
-      if (debug) {
-        fprintf(stderr,"%s GET_DATA: recv main\n",station);
+      switch(switch_rx) {
+	case 1:
+/* JDS: 20140124: switch main and interf samples if cfg is set to switch_rx=1*/
+          TCPIPMsgRecv(sock, rdata.back, sizeof(uint32)*dprm.samples);
+          TCPIPMsgRecv(sock, rdata.main, sizeof(uint32)*dprm.samples);
+          break;
+        case 0:
+        default:
+          TCPIPMsgRecv(sock, rdata.main, sizeof(uint32)*dprm.samples);
+          TCPIPMsgRecv(sock, rdata.back, sizeof(uint32)*dprm.samples);
+          break;
       }
-      TCPIPMsgRecv(sock, rdata.main, sizeof(uint32)*dprm.samples);
-      if (debug) {
-        fprintf(stderr,"%s GET_DATA: recv back\n",station);
-      }
-      TCPIPMsgRecv(sock, rdata.back, sizeof(uint32)*dprm.samples);
-
       if (badtrdat.start_usec !=NULL) free(badtrdat.start_usec);
       if (badtrdat.duration_usec !=NULL) free(badtrdat.duration_usec);
       badtrdat.start_usec=NULL;
