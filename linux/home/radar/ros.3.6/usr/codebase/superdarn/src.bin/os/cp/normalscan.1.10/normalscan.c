@@ -371,7 +371,7 @@ int main(int argc,char *argv[]) {
     } else xcf=0;
 
     skip=OpsFindSkip(scnsc,scnus);
-    
+
     if (backward) {
       bmnum=sbm-skip;
       if (bmnum<ebm) bmnum=sbm;
@@ -404,8 +404,9 @@ int main(int argc,char *argv[]) {
 
       ErrLog(errlog.sock,progname,"Starting Integration.");
             
-    printf("Entering Site Start Intt Station ID: %s  %d\n",ststr,stid);
+      printf("Entering Site Start Intt Station ID: %s  %d\n",ststr,stid);
       SiteStartIntt(intsc,intus);
+      gettimeofday(&t1,NULL);
       elapsed_secs=t1.tv_sec-t0.tv_sec;
       if(elapsed_secs<0) elapsed_secs=0;
       if((elapsed_secs >= clrskip_secs)||(startup==1)) {
@@ -420,6 +421,9 @@ int main(int argc,char *argv[]) {
         }
         t0.tv_sec=t1.tv_sec;
         t0.tv_usec=t1.tv_usec;
+      } else {
+        sprintf(logtxt,"Clear Search Skipped, next search in %d secs",(int)(clrskip_secs-elapsed_secs));
+        ErrLog(errlog.sock,progname,logtxt);
       }
       sprintf(logtxt,"Transmitting on: %d (Noise=%g)",tfreq,noise);
       ErrLog(errlog.sock,progname,logtxt);
