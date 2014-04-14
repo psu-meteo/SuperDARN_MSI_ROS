@@ -362,7 +362,7 @@ int main(int argc,char *argv[]) {
             
       printf("FRQ: %d %d", stfrq, frqrng);
       if(fixfrq<0) {
-        tfreq=SiteFCLR(stfrq-frqrng/2,stfrq+frqrng/2);
+        tfreq=SiteFCLR(stfrq,stfrq+frqrng);
       } 
       sprintf(logtxt,"Transmitting on: %d (Noise=%g)",tfreq,noise);
       ErrLog(errlog.sock,progname,logtxt);

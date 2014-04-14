@@ -417,7 +417,7 @@ int main(int argc,char *argv[]) {
         ErrLog(errlog.sock,progname, logtxt);
 
         if(fixfrq<0) {
-          tfreq=SiteFCLR(stfrq-frqrng/2,stfrq+frqrng/2);
+          tfreq=SiteFCLR(stfrq,stfrq+frqrng);
         }
         t0.tv_sec=t1.tv_sec;
         t0.tv_usec=t1.tv_usec;
