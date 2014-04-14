@@ -58,7 +58,7 @@ size_t tmpsze;
 
 
 
-char progid[80]={"pcodecamp_bm3_15km"};
+char progid[80]={"pcodecamp_bm9_15km"};
 char progname[256];
 
 int arg=0;
@@ -406,10 +406,10 @@ int main(int argc,char *argv[]) {
 
   txpl=(nbaud*rsep*20)/3;
 
-  if (onesec) sprintf(progname,"pcodecamp_bm3_15km (onesec)");
+  if (onesec) sprintf(progname,"pcodecamp_bm9_15km (onesec)");
   else { 
-    if (fast) sprintf(progname,"pcodecamp_bm3_15km (fast)");
-    else sprintf(progname,"pcodescan_bm3_15km");
+    if (fast) sprintf(progname,"pcodecamp_bm9_15km (fast)");
+    else sprintf(progname,"pcodescan_bm9_15km");
   }
   OpsLogStart(errlog.sock,progname,argc,argv);  
 
