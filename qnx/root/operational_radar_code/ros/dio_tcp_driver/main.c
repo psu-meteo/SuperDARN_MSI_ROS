@@ -399,13 +399,14 @@ int main(){
                                                   fprintf(stdout,"DIO driver: Table 1: %s\n",radar_table_1);
                                                   fprintf(stdout,"DIO driver: Table 2: %s\n",radar_table_2);
                                                 }
-						for(r=0;r<MAX_RADARS;r++) {
-                                                  strcpy(filename,"");
-                                                  if(r==0) strcpy(filename,radar_table_1);
-                                                  if(r==1) strcpy(filename,radar_table_2);
-                                                  fprintf(stdout,"Opening: %s\n",filename);
-      						  beamtablefile=fopen(filename,"r");
-      						  if(beamtablefile!=NULL) {
+                                                if(use_beam_table==1) {
+						  for(r=0;r<MAX_RADARS;r++) {
+                                                    strcpy(filename,"");
+                                                    if(r==0) strcpy(filename,radar_table_1);
+                                                    if(r==1) strcpy(filename,radar_table_2);
+                                                    fprintf(stdout,"Opening: %s\n",filename);
+      						    beamtablefile=fopen(filename,"r");
+      						    if(beamtablefile!=NULL) {
                                                         fprintf(stdout,"Opened: %p\n",beamtablefile);
 						        fread(&num_freqs[r],sizeof(int32_t),1,beamtablefile);
 						        fread(&num_angles[r],sizeof(int32_t),1,beamtablefile);
@@ -440,7 +441,7 @@ int main(){
                                                         fprintf(stdout,"Closing: %s\n",filename);
         						fclose(beamtablefile);
         						beamtablefile=NULL;
-      						  } else {
+      						    } else {
                                                         if(freqs[r]!=NULL) free(freqs[r]);
 							freqs[r]=NULL;
                                                         if(angles[r]!=NULL) free(angles[r]);
@@ -456,8 +457,9 @@ int main(){
 								final_angles[r][c]=NULL;
 							}
         						fprintf(stderr,"Error opening beam lookup table file\n");
-						  }
-						}
+						    } // end of failed open
+						  }  // radar loop
+                                                } // test for use table
                                                 break;
 					default:
 						if (verbose > 0) fprintf(stderr,"BAD CODE: %c : %d\n",datacode,datacode);
