@@ -22,7 +22,7 @@
  * for tuned transmit performance
  * length should match MAX_RADARS 
 */ 
-#define DDS_MAX_RADAR_OUTPUT { 28355,30355 }
+#define DDS_MAX_RADAR_OUTPUT { 30355,30355 }
 
 #endif
 
