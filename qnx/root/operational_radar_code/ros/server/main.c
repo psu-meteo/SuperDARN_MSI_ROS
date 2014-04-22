@@ -60,7 +60,7 @@ int txread[MAX_RADARS];
 struct SiteSettings site_settings;
 struct GPSStatus gpsstatus;
 struct TRTimes bad_transmit_times;
-int32 gpsrate=GPS_DEFAULT_TRIGRATE;
+int32_t gpsrate=GPS_DEFAULT_TRIGRATE;
 int verbose=0;
 
 struct timeval t_pre_start,t_pre_end,t_ready_first,t_ready_final,t_post_start,t_post_end;
@@ -182,8 +182,18 @@ int main()
 /* end DIO */
   int policy;
   struct sched_param sp;
+  char *envstr=NULL;
+  char site_dir[128]="";
 
-  fprintf(stdout,"Policy Options F: %d R:%d O:%d S: %d\n",SCHED_FIFO,SCHED_RR,SCHED_OTHER,SCHED_SPORADIC);
+  envstr=getenv("MSI_SITE_DIR");
+  if (envstr == NULL) {
+       sprintf(site_dir,"%s",SITE_DIR);
+  } else {
+       sprintf(site_dir,"%s",envstr);
+  }
+
+
+  fprintf(stdout,"Policy Options F: %d R:%d O:%d S: %d\n",SCHED_FIFO,SCHED_RR,SCHED_OTHER);
   pthread_getschedparam(pthread_self(),&policy,&sp);
   fprintf(stdout,"Policy %d Prio: %d\n",policy,sp.sched_priority);
   sp.sched_priority = 60;
@@ -272,7 +282,7 @@ int main()
   bad_transmit_times.duration_usec=NULL;
   blacklist_count_pointer=malloc(sizeof(int));
   blacklist_count=0;
-  sprintf(restrict_file,"%s/restrict.dat",SITE_DIR);
+  sprintf(restrict_file,"%s/restrict.dat",site_dir);
   fprintf(stdout,"Opening restricted file: %s\n",restrict_file);
   fd=fopen(restrict_file,"r+");
   restrict_count=0;
@@ -287,7 +297,7 @@ int main()
   blacklist = (struct BlackList*) malloc(sizeof(struct BlackList) * (restrict_count+Max_Control_THREADS*4));
   fprintf(stdout,"Blacklist : %p\n",blacklist);
   
-  sprintf(restrict_file,"%s/restrict.dat",SITE_DIR);
+  sprintf(restrict_file,"%s/restrict.dat",site_dir);
   fd=fopen(restrict_file,"r+");
   s=fgets(hmm,120,fd);
   while (s!=NULL) {

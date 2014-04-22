@@ -13,21 +13,28 @@ extern int verbose;
 extern pthread_mutex_t settings_lock;
 extern dictionary *Site_INI;
 extern int trigger_type;
-extern int32 gpsrate;
+extern int32_t gpsrate;
 
 void *settings_parse_ini_file(struct SiteSettings *ros_settings) {
      char ini_name[80]="/root/test.ini";
      char entry_name[80]="";
      char entry_value[256]="";
      int exists_flag;
-
+     char site_dir[128]="";
+     char *envstr=NULL;  
      pthread_mutex_unlock(&settings_lock);
 
      if(Site_INI!=NULL) {
        iniparser_freedict(Site_INI);
        Site_INI=NULL;
      }
-     sprintf(ini_name,"%s/site.ini",SITE_DIR);
+     envstr=getenv("MSI_SITE_DIR");
+     if (envstr == NULL) {
+       sprintf(site_dir,"%s",SITE_DIR);
+     } else {
+       sprintf(site_dir,"%s",envstr);
+     } 
+     sprintf(ini_name,"%s/site.ini",site_dir);
      fprintf(stderr, "parsing file: %s\n", ini_name);
      Site_INI=iniparser_load(ini_name);
      if (Site_INI==NULL) {
