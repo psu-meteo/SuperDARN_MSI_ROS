@@ -21,36 +21,34 @@
 
 extern int verbose;
 extern uint32_t use_beam_table;
-extern int32_t *final_beamcodes[MAX_RADARS][32],*final_attencodes[MAX_RADARS][32];
-extern double *final_freqs[MAX_RADARS][32],*final_angles[MAX_RADARS][32];
-extern double f0[MAX_RADARS],fm[MAX_RADARS],df[MAX_RADARS];
-extern int32_t num_freqs[MAX_RADARS],max_angles[MAX_RADARS],num_angles[MAX_RADARS],num_beamcodes[MAX_RADARS],num_fsteps[MAX_RADARS],fstep[MAX_RADARS],foffset[MAX_RADARS],num_cards[MAX_RADARS];
+extern int32_t *f_bmnum[MAX_RADARS];
+extern double *f_lo[MAX_RADARS],*f_hi[MAX_RADARS],*f_c[MAX_RADARS];
+extern int32_t num_freqs[MAX_RADARS],num_beamcodes[MAX_RADARS],num_fsteps[MAX_RADARS],foffset[MAX_RADARS];
 
 int lookup_beamcode_by_freq(int r, double freq_mhz,double beamnm){
   int beamcode=beamnm;
-  int b,f,a,best_fstep;
-  double freq,tdiff,fdiff,best_freq;
-  if (use_beam_table && final_freqs[r][0]) {
+  int foff,bcodes;
+  int b,best_b;
+  double fdiff=1E13;
+  foff=foffset[r];
+  bcodes=num_beamcodes[r];
+  best_b=-1;
+  if (use_beam_table) {
     if(freq_mhz>0) {
-      a=beamnm;
-      fdiff=fm[r];
-      best_fstep=0;
-      best_freq=0.0;
-      for (f=0;f<=num_fsteps[r];f++) {
-        if(f==0) {
-          b=a;  
-        } else {
-          b=(f-1)*max_angles[r]+a+foffset[r];
+      for(b=foff;b<bcodes;b++) {
+        if(f_bmnum[r][b]==beamnm) {
+          if (fabs(f_c[r][b]-freq_mhz) < fdiff) {
+            best_b=b;
+          }
         }
-        freq=final_freqs[r][0][b];
-        tdiff=fabs(freq-(double)freq_mhz);
-        if(tdiff < fdiff) {
-          fdiff=tdiff;
-          best_fstep=f;
-          best_freq=final_freqs[r][0][b];
-          beamcode=b;
-        }    
-      }
+      }  
+    } else {
+      beamcode=beamnm;
+    }
+    if ((best_b >= foff) && (best_b < bcodes)) {
+      beamcode=best_b;
+    } else {
+      beamcode=beamnm;
     }
   } else {
     beamcode=beamnm;
