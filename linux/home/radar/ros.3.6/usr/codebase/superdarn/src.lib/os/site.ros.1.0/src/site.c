@@ -316,6 +316,7 @@ int SiteRosStart(char *host,char *ststr) {
     fprintf(stderr,"Site Cfg Warning:: \'invert\' setting undefined in site cfg file using default value: %d\n",invert); 
   } else {
     invert=ltemp;
+    fprintf(stderr,"Site Cfg:: \'invert\' setting in site cfg file using value: %d\n",invert); 
   }
   if(! config_lookup_int(&cfg, "rxchn", &ltemp)) {
 /* rxchn number of channels typically 1*/
