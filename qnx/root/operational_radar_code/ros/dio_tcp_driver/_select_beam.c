@@ -25,7 +25,7 @@ extern int32_t *f_bmnum[MAX_RADARS];
 extern double *f_lo[MAX_RADARS],*f_hi[MAX_RADARS],*f_c[MAX_RADARS];
 extern int32_t num_freqs[MAX_RADARS],num_beamcodes[MAX_RADARS],num_fsteps[MAX_RADARS],foffset[MAX_RADARS];
 
-int lookup_beamcode_by_freq(int r, double freq_hz,double beamnm){
+int lookup_beamcode_by_freq(int r, double freq_hz,int beamnm){
   int beamcode=beamnm;
   int foff,bcodes;
   int b,best_b;
@@ -39,6 +39,7 @@ int lookup_beamcode_by_freq(int r, double freq_hz,double beamnm){
         if(f_bmnum[r][b]==beamnm) {
           if (fabs(f_c[r][b]-freq_hz) < fdiff) {
             best_b=b;
+            fdiff=fabs(f_c[r][b]-freq_hz);
           }
         }
       }  
@@ -53,6 +54,8 @@ int lookup_beamcode_by_freq(int r, double freq_hz,double beamnm){
   } else {
     beamcode=beamnm;
   }
+  if (verbose > -1 ) fprintf(stdout,"Beam: %d MemLoc: %d F_c: %e Fdiff: %e\n",
+                       beamnm, beamcode,f_c[r][beamcode], fdiff);
   return beamcode;
 }
 
@@ -104,7 +107,7 @@ int _select_beam(unsigned int base,struct ControlPRM *client){
         
         int code, beamnm, temp, oldB, oldC,hi,lo;
         double freq_hz,angle;
-
+        
         unsigned int portA,portB,portC,cntl;        
         if (verbose > 1) { 
           printf("DIO: Select beam\n",client->tfreq);	
@@ -132,6 +135,8 @@ int _select_beam(unsigned int base,struct ControlPRM *client){
         }
 
         freq_hz=client->tfreq*1E3;
+        if(freq_hz < 0 || freq_hz > 2E7) freq_hz=10E6;
+        fprintf(stdout,"Freq: %f %d\n",freq_hz,client->tfreq);
         /* the beam code is 13 bits, pAD0 thru pAD12.  This code
            uses bits 0-7 of CH0, PortA, and bits 0-4 of CH0, PortB
            to output the beam code. Note: The beam code is an address

@@ -399,19 +399,26 @@ int main(){
 						        fread(&num_beamcodes[r],sizeof(int32_t),1,beamtablefile);
 						        fread(&foffset[r],sizeof(int32_t),1,beamtablefile);
 						        fread(&num_fsteps[r],sizeof(int32_t),1,beamtablefile);
+                                                        f_bmnum[r]=(int32_t *)malloc(sizeof(int32_t)*num_beamcodes[r]); 
 
-                                                        f_bmnum[r]=malloc(sizeof(int32_t)*num_beamcodes[r]); 
                                                         f_c[r]=malloc(sizeof(double)*num_beamcodes[r]); 
                                                         f_lo[r]=malloc(sizeof(double)*num_beamcodes[r]); 
                                                         f_hi[r]=malloc(sizeof(double)*num_beamcodes[r]); 
 
-						        fread(f_bmnum[r],sizeof(int32_t),num_beamcodes,beamtablefile);
-						        fread(f_c[r],sizeof(double),num_beamcodes,beamtablefile);
-						        fread(f_lo[r],sizeof(double),num_beamcodes,beamtablefile);
-						        fread(f_hi[r],sizeof(double),num_beamcodes,beamtablefile);
+						        fread(f_bmnum[r],sizeof(int32_t),num_beamcodes[r],beamtablefile);
+						        fread(f_c[r],sizeof(double),num_beamcodes[r],beamtablefile);
+						        fread(f_lo[r],sizeof(double),num_beamcodes[r],beamtablefile);
+						        fread(f_hi[r],sizeof(double),num_beamcodes[r],beamtablefile);
+
                                                         fprintf(stdout,"Closing: %s\n",filename);
         						fclose(beamtablefile);
         						beamtablefile=NULL;
+/*
+                                                        for (b=0;b<num_beamcodes[r];b++) {
+                                                          fprintf(stdout,"R: %d %d Code: %d Beam %d F_c: %e\n",
+                                                            r,num_beamcodes[r],b,f_bmnum[r][b],f_c[r][b]);
+                                                        } 
+*/
       						  } else {
                                                         if(f_bmnum[r]!=NULL) free(f_bmnum[r]); 
                                                         if(f_c[r]!=NULL) free(f_c[r]); 
