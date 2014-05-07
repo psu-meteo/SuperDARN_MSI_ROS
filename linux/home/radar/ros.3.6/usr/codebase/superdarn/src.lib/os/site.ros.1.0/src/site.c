@@ -623,7 +623,7 @@ int SiteRosTimeSeq(int *ptab) {
   int i;
   int flag,index=0;
   struct ROSMsg smsg,rmsg;
-
+  int32_t parr[1]={1};
   struct SeqPRM tprm;
   SiteRosExit(0);
   if (tsgbuf !=NULL) TSGFree(tsgbuf);
@@ -650,22 +650,35 @@ int SiteRosTimeSeq(int *ptab) {
 
   if (tsgbuf==NULL) return -1;
   tprm.index=index;
-/*  memcpy(&tprm.buf,tsgbuf,sizeof(struct TSGbuf));*/
   tprm.len=tsgbuf->len;
   tprm.step=CLOCK_PERIOD;
   tprm.samples=tsgprm.samples;
   tprm.smdelay=tsgprm.smdelay;
-
+  tprm.nrang=tsgprm.nrang;
+  tprm.frang=tsgprm.frang;
+  tprm.rsep=tsgprm.rsep;
+  tprm.smsep=tsgprm.smsep;
+  tprm.lagfr=tsgprm.lagfr;
+  tprm.txpl=tsgprm.txpl;
+  tprm.mppul=tsgprm.mppul;
+  tprm.mpinc=tsgprm.mpinc;
+  tprm.mlag=tsgprm.mlag;
+  tprm.nbaud=tsgprm.nbaud;
+  tprm.stdelay=tsgprm.stdelay;
+  tprm.gort=tsgprm.gort;
+  tprm.rtoxmin=tsgprm.rtoxmin;
+  
   smsg.type=REGISTER_SEQ;
   TCPIPMsgSend(sock, &smsg, sizeof(struct ROSMsg));
   TCPIPMsgSend(sock, &tprm, sizeof(struct SeqPRM));
   TCPIPMsgSend(sock, tsgbuf->rep, sizeof(unsigned char)*tprm.len);
   TCPIPMsgSend(sock, tsgbuf->code, sizeof(unsigned char)*tprm.len);
-
-  TCPIPMsgSend(sock, &tsgprm, sizeof(struct TSGprm));
-  TCPIPMsgSend(sock, &tsgprm.pat, sizeof(int32_t)*tsgprm.mppul);
-  TCPIPMsgSend(sock, &tsgprm.code, sizeof(int32_t)*tsgprm.nbaud);
-
+  TCPIPMsgSend(sock, tsgprm.pat, sizeof(int32_t)*tprm.mppul);
+  if (nbaud > 1) {
+    TCPIPMsgSend(sock, tsgprm.code, sizeof(int32_t)*tprm.nbaud);
+  } else {
+    TCPIPMsgSend(sock, parr, sizeof(int32_t)*tprm.nbaud);
+  }
   TCPIPMsgRecv(sock, &rmsg, sizeof(struct ROSMsg));
   if (debug) {
     fprintf(stderr,"REGISTER_SEQ:type=%c\n",rmsg.type);
