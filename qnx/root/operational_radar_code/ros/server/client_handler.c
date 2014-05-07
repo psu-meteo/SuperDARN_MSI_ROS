@@ -296,7 +296,6 @@ struct ControlProgram *control_init() {
 
        for (i=0;i<MAX_SEQS;i++) {
          control_program->state->pulseseqs[i]=NULL;
-         control_program->state->tsgprm[i]=NULL;
        }
        return control_program;
 }
@@ -378,7 +377,6 @@ void controlprogram_exit(struct ControlProgram *control_program)
      if (verbose> 1) fprintf(stderr,"Client Exit: Freeing internal structures for %p\n",control_program); 
      for (i=0;i<MAX_SEQS;i++) {
        if(control_program->state->pulseseqs[i]!=NULL) TSGFree(control_program->state->pulseseqs[i]);
-       if(control_program->state->tsgprm[i]!=NULL)    TSGprmFree(control_program->state->tsgprm[i]);
      }
      if (verbose> 1) fprintf(stderr,"Client Exit: Freeing controlprogram state %p\n",control_program->state); 
      if(control_program->state!=NULL) {
@@ -438,7 +436,6 @@ void *control_handler(struct ControlProgram *control_program)
    struct ControlPRM control_parameters; 
    struct SiteSettings settings;
    struct TSGbuf *pulseseq;
-   struct TSGprm tsgprm;
    struct SeqPRM tprm;
    int data_int;
    pthread_t thread,threads[10];
@@ -740,8 +737,8 @@ control_program);
             //fflush(stdout);
             break;
           case GET_DATA:
-            //printf("GET_DATA: START\n");
-            //printf("GET_DATA: Event :: sec: %d nsec: %d\n",control_program->data->event_secs,control_program->data->event_nsecs);
+            printf("GET_DATA: START\n");
+            printf("GET_DATA: Event :: sec: %d nsec: %d\n",control_program->data->event_secs,control_program->data->event_nsecs);
             //printf("GET_DATA: bad_transmit_times:: length %d \n",bad_transmit_times.length);
             //for(i=0;i<bad_transmit_times.length;i++) {
             //  printf("GET_DATA: bad_transmit_times:: %d : %d %d\n",i,bad_transmit_times.start_usec[i],bad_transmit_times.duration_usec[i]);
@@ -765,7 +762,7 @@ control_program);
                 pthread_join(thread,NULL);
                 send_data(socket, control_program->data, sizeof(struct DataPRM));
                 if(control_program->data->status==0) {
-                  //printf("GET_DATA: main: %d %d\n",sizeof(uint32_t),sizeof(uint32)*control_program->data->samples);
+                  printf("GET_DATA: main: %d %d\n",sizeof(uint32_t),sizeof(uint32)*control_program->data->samples);
                   send_data(socket, control_program->main, sizeof(uint32_t)*control_program->data->samples);
                   send_data(socket, control_program->back, sizeof(uint32_t)*control_program->data->samples);
                   send_data(socket, &bad_transmit_times.length, sizeof(bad_transmit_times.length));
@@ -787,7 +784,7 @@ control_program);
               elapsed+=(t1.tv_usec-t0.tv_usec);
               if (verbose > 1 ) printf("Client:  Get Data Elapsed Microseconds: %ld\n",elapsed);
             }
-            //printf("GET_DATA: END\n");
+            printf("GET_DATA: END\n");
             gettimeofday(&t_get_data_end,NULL);
             if (verbose > 1) {
               elapsed=(t_get_data_end.tv_sec-t_pre_start.tv_sec)*1E6;
@@ -824,10 +821,19 @@ control_program);
             recv_data(socket,&tprm, sizeof(struct SeqPRM)); // requested pulseseq
             pthread_mutex_lock(&controlprogram_list_lock);
             control_program->state->pulseseqs[tprm.index]=malloc(sizeof(struct TSGbuf));
+            memset(control_program->state->pulseseqs[tprm.index],0,sizeof(struct TSGbuf));
             control_program->parameters->current_pulseseq_index=tprm.index;
             control_program->state->pulseseqs[tprm.index]->len=tprm.len;
             control_program->state->pulseseqs[tprm.index]->step=tprm.step;
             control_program->state->pulseseqs[tprm.index]->index=tprm.index;
+            control_program->state->pulseseqs[tprm.index]->mppul=tprm.mppul;
+            control_program->state->pulseseqs[tprm.index]->nbaud=tprm.nbaud;
+            control_program->state->pulseseqs[tprm.index]->nrang=tprm.nrang;
+            control_program->state->pulseseqs[tprm.index]->mpinc=tprm.mpinc;
+            control_program->state->pulseseqs[tprm.index]->smsep=tprm.smsep;
+            control_program->state->pulseseqs[tprm.index]->lagfr=tprm.lagfr;
+            control_program->state->pulseseqs[tprm.index]->txpl=tprm.txpl;
+
             control_program->state->pulseseqs[tprm.index]->rep=
                 malloc(sizeof(unsigned char)*control_program->state->pulseseqs[tprm.index]->len);
             control_program->state->pulseseqs[tprm.index]->code=
@@ -837,17 +843,14 @@ control_program);
             recv_data(socket,control_program->state->pulseseqs[tprm.index]->code, 
                 sizeof(unsigned char)*control_program->state->pulseseqs[tprm.index]->len); // requested pulseseq
 
-            control_program->state->tsgprm[tprm.index]=malloc(sizeof(struct TSGprm));
-            memset(control_program->state->tsgprm[tprm.index],0,sizeof(struct TSGprm));
-            recv_data(socket,control_program->state->tsgprm[tprm.index], sizeof(struct TSGprm)); // requested tsgprm 
-            control_program->state->tsgprm[tprm.index]->pat=
-                malloc(sizeof(int32_t)*control_program->state->tsgprm[tprm.index]->mppul);
-            control_program->state->tsgprm[tprm.index]->code=
-                malloc(sizeof(int32_t)*control_program->state->tsgprm[tprm.index]->nbaud);
-            recv_data(socket,control_program->state->tsgprm[tprm.index]->pat, 
-                sizeof(int32_t)*control_program->state->tsgprm[tprm.index]->mppul); // requested pulse table
-            recv_data(socket,control_program->state->tsgprm[tprm.index]->code, 
-                sizeof(int32_t)*control_program->state->tsgprm[tprm.index]->nbaud); // requested pcode table
+            control_program->state->pulseseqs[tprm.index]->ppat=
+                malloc(sizeof(int32_t)*control_program->state->pulseseqs[tprm.index]->mppul);
+            recv_data(socket,control_program->state->pulseseqs[tprm.index]->ppat, 
+                sizeof(int32_t)*control_program->state->pulseseqs[tprm.index]->mppul); // requested pulse table
+            control_program->state->pulseseqs[tprm.index]->pcode=
+                malloc(sizeof(int32_t)*control_program->state->pulseseqs[tprm.index]->nbaud);
+            recv_data(socket,control_program->state->pulseseqs[tprm.index]->pcode, 
+                sizeof(int32_t)*control_program->state->pulseseqs[tprm.index]->nbaud); // requested pcode table
             if ( (r < 0) || (c < 0)) {
               msg.status=-1;
             } else {
@@ -864,7 +867,7 @@ control_program);
               pthread_join(threads[2],NULL);
             }
             pthread_mutex_unlock(&controlprogram_list_lock);
-            //printf("REGISTER_SEQ: SEND ROSMsg\n");
+            //fprintf(stdout,"REGISTER_SEQ: SEND ROSMsg\n");
             send_data(socket, &msg, sizeof(struct ROSMsg));
             gettimeofday(&t1,NULL);
             if (verbose > 1) {

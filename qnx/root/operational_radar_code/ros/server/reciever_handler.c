@@ -66,11 +66,10 @@ void *receiver_register_seq(void *arg)
   send_data(recvsock,control_program->state->pulseseqs[index]->code,
     sizeof(unsigned char)*control_program->state->pulseseqs[index]->len); // requested pulseseq
 
-  send_data(recvsock,control_program->state->tsgprm[index], sizeof(struct TSGprm)); // requested pulseseq
-  send_data(recvsock,control_program->state->tsgprm[index]->pat,
-    sizeof(int32_t)*control_program->state->tsgprm[index]->mppul); // requested pulseseq
-  send_data(recvsock,control_program->state->tsgprm[index]->code,
-    sizeof(int32_t)*control_program->state->tsgprm[index]->nbaud); // requested pulseseq
+  send_data(recvsock,control_program->state->pulseseqs[index]->ppat,
+    sizeof(int32_t)*control_program->state->pulseseqs[index]->mppul); // requested pulseseq
+  send_data(recvsock,control_program->state->pulseseqs[index]->pcode,
+    sizeof(int32_t)*control_program->state->pulseseqs[index]->nbaud); // requested pulseseq
 
   recv_data(recvsock, &msg, sizeof(struct DriverMsg));
   pthread_mutex_unlock(&recv_comm_lock);
@@ -834,23 +833,23 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
         arg->data->samples=0;
       }      
       if (arg->data->status==0 ) {
-        //printf("RECV: GET_DATA: status good\n");
+        printf("RECV: GET_DATA: status good\n");
         recv_data(recvsock,&arg->data->shm_memory,sizeof(arg->data->shm_memory));
         recv_data(recvsock,&arg->data->frame_header,sizeof(arg->data->frame_header));
         recv_data(recvsock,&arg->data->bufnum,sizeof(arg->data->bufnum));
         recv_data(recvsock,&arg->data->samples,sizeof(arg->data->samples));
-        recv_data(recvsock,&arg->main_address,sizeof(arg->main_address));
-        recv_data(recvsock,&arg->back_address,sizeof(arg->back_address));
-        //printf("RECV: GET_DATA: data recv'd\n");
+        recv_data(recvsock,&arg->main_address,sizeof(unsigned int));
+        recv_data(recvsock,&arg->back_address,sizeof(unsigned int));
+        printf("RECV: GET_DATA: data recv'd\n");
         r=arg->parameters->radar-1;
         c=arg->parameters->channel-1;
         b=arg->data->bufnum;
 
-        //printf("RECV: GET_DATA: samples %d\n",arg->data->samples);
-        //printf("RECV: GET_DATA: frame header %d\n",arg->data->frame_header);
-        //printf("RECV: GET_DATA: shm flag %d\n",arg->data->shm_memory);
+        printf("RECV: GET_DATA: samples %d\n",arg->data->samples);
+        printf("RECV: GET_DATA: frame header %d\n",arg->data->frame_header);
+        printf("RECV: GET_DATA: shm flag %d\n",arg->data->shm_memory);
         if(arg->data->shm_memory) {
-          //printf("RECV: GET_DATA: set up shm memory space\n");
+          printf("RECV: GET_DATA: set up shm memory space\n");
           sprintf(shm_device,"/receiver_main_%d_%d_%d",r,c,b);
           shm_fd=shm_open(shm_device,O_RDONLY,S_IRUSR | S_IWUSR);
           if (shm_fd == -1) fprintf(stderr,"shm_open error\n");              
@@ -860,7 +859,7 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
           shm_fd=shm_open(shm_device,O_RDONLY,S_IRUSR | S_IWUSR);
           arg->back=mmap(0,sizeof(unsigned int)*arg->data->samples,PROT_READ,MAP_SHARED,shm_fd,0);
           close(shm_fd);
-          //printf("RECV: GET_DATA: end set up shm memory space\n");
+          printf("RECV: GET_DATA: end set up shm memory space\n");
 
         } else {
 #ifdef __QNX__
@@ -893,10 +892,10 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
       }
 
       if (error_flag==0) {
-        //printf("RECV: GET_DATA: recv RosMsg\n");
+        printf("RECV: GET_DATA: recv RosMsg\n");
         recv_data(recvsock, &msg, sizeof(struct DriverMsg));
       }
-      //printf("RECV: GET_DATA: unlock comm lock\n");
+      printf("RECV: GET_DATA: unlock comm lock\n");
       pthread_mutex_unlock(&recv_comm_lock);
     }
   }

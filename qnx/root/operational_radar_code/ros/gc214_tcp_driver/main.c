@@ -60,6 +60,7 @@ unsigned int     main_physical[MAX_RADARS][MAX_CHANNELS][BUFS],back_physical[MAX
 unsigned int     *main_test_data[MAX_RADARS][MAX_CHANNELS][BUFS],*back_test_data[MAX_RADARS][MAX_CHANNELS][BUFS],*aux_test_data[MAX_RADARS][MAX_CHANNELS][BUFS];
 unsigned int     *shm_main_addresses[MAX_RADARS][MAX_CHANNELS][BUFS];
 unsigned int     *shm_back_addresses[MAX_RADARS][MAX_CHANNELS][BUFS];
+struct  TSGbuf   *pulseseqs[MAX_RADARS][MAX_CHANNELS][MAX_SEQS];
 
 struct GC4016Global global;
 struct GC4016Channel chana,chanb,chanc,chand;
@@ -200,7 +201,7 @@ int main(int argc, char **argv){
         int shm_fd;
         int32 shm_memory=0;
         unsigned int main_offset,back_offset;
-
+        int32_t sindex;
         unsigned int CLOCK_RES;
         int pci_handle, pci_handle_dio,IRQ;
         fftw_complex *in=NULL, *out=NULL;
@@ -228,6 +229,15 @@ int main(int argc, char **argv){
             ready_index[r][c]=-1;
           }
         }
+        for (r=0;r<MAX_RADARS;r++){
+          for (c=0;c<MAX_CHANNELS;c++){
+            ready_index[r][c]=-1;
+            for (i=0;i<MAX_SEQS;i++) {
+              pulseseqs[r][c][i]=NULL;
+            }
+          }
+        }
+
 #ifdef __QNX__
    /* SET UP COMMUNICATION TO GC314 DRIVERS */
         configured=1;
@@ -561,6 +571,61 @@ int main(int argc, char **argv){
 //                          gc314ChannelAbort(gc314fs[card], c);
 //                        }
                         break;
+                      case RECV_REGISTER_SEQ:
+                        if (verbose > -1) fprintf(stdout,"\nRegister new timing sequence\n");
+                        rval=recv_data(msgsock,&client,sizeof(struct ControlPRM));
+                        r=client.radar-1;
+                        c=client.channel-1;
+                        ready_index[r][c]=-1;
+                        if (verbose > -1) fprintf(stdout,"  Radar: %d, Channel: %d Beamnum: %d Status %d\n",
+                          client.radar,client.channel,client.tbeam,msg.status);
+                        rval=recv_data(msgsock,&sindex,sizeof(sindex));
+                        if (pulseseqs[r][c][sindex]!=NULL) {
+                          if (verbose > -1) fprintf(stdout,"  Pulse index %d exists %p\n",sindex,pulseseqs[r][c][sindex]);
+                          if (pulseseqs[r][c][sindex]->rep!=NULL) free(pulseseqs[r][c][sindex]->rep);
+                          pulseseqs[r][c][sindex]->rep=NULL;
+                          if (pulseseqs[r][c][sindex]->code!=NULL) free(pulseseqs[r][c][sindex]->code);
+                          pulseseqs[r][c][sindex]->code=NULL;
+                          if (pulseseqs[r][c][sindex]->ppat!=NULL) free(pulseseqs[r][c][sindex]->ppat);
+                          pulseseqs[r][c][sindex]->ppat=NULL;
+                          if (pulseseqs[r][c][sindex]->pcode!=NULL) free(pulseseqs[r][c][sindex]->pcode)
+;
+                          pulseseqs[r][c][sindex]->pcode=NULL;
+                          free(pulseseqs[r][c][sindex]);
+                          pulseseqs[r][c][sindex]=NULL;
+                          if (verbose > -1) fprintf(stdout,"  Freed Pulse index %d %p\n",sindex,pulseseqs[r][c][sindex]);
+                        }
+                        pulseseqs[r][c][sindex]=malloc(sizeof(struct TSGbuf));
+                        memset(pulseseqs[r][c][sindex],0,sizeof(struct TSGbuf));
+                        rval=recv_data(msgsock,pulseseqs[r][c][sindex], sizeof(struct TSGbuf)); // requested pulseseq
+                        pulseseqs[r][c][sindex]->rep=
+                          malloc(sizeof(unsigned char)*pulseseqs[r][c][sindex]->len);
+                        pulseseqs[r][c][sindex]->code=
+                          malloc(sizeof(unsigned char)*pulseseqs[r][c][sindex]->len);
+                        pulseseqs[r][c][sindex]->ppat=
+                          malloc(sizeof(int32_t)*pulseseqs[r][c][sindex]->mppul);
+                        pulseseqs[r][c][sindex]->pcode=
+                          malloc(sizeof(int32_t)*pulseseqs[r][c][sindex]->nbaud);
+
+                        rval=recv_data(msgsock,pulseseqs[r][c][sindex]->rep,
+                          sizeof(unsigned char)*pulseseqs[r][c][sindex]->len);
+                        rval=recv_data(msgsock,pulseseqs[r][c][sindex]->code,
+                          sizeof(unsigned char)*pulseseqs[r][c][sindex]->len);
+
+                        rval=recv_data(msgsock,pulseseqs[r][c][sindex]->ppat,
+                          sizeof(int32_t)*pulseseqs[r][c][sindex]->mppul);
+                        rval=recv_data(msgsock,pulseseqs[r][c][sindex]->pcode,
+                          sizeof(int32_t)*pulseseqs[r][c][sindex]->nbaud);
+
+
+                        if (verbose > -1) {
+                          fprintf(stdout,"  New Pulse index %d : %p\n",sindex,pulseseqs[r][c][sindex]);
+                          fprintf(stdout,"    Pulseseq length: %d\n",pulseseqs[r][c][sindex]->len);
+                        }
+                        rval=send_data(msgsock, &msg, sizeof(struct DriverMsg));
+                        break;
+
+
                       case RECV_RXFE_SETTINGS:
                         if (verbose > -1) printf("RECV driver: Configuring for IF Mode\n");
                         rval=recv_data(msgsock,&ifmode,sizeof(ifmode)); 

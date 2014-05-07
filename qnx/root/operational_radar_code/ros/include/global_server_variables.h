@@ -95,7 +95,6 @@ struct ControlState {
      int rx_sideband; //in kHz
      int N; 
      struct TSGbuf *pulseseqs[MAX_SEQS]; //array of pulseseq pointers
-     struct TSGprm *tsgprm[MAX_SEQS]; //array of tsg prm pointers
      struct ControlProgram *linked_program;
      struct timeval trigger_timeout;
 //     struct timeval last_trigger_event;

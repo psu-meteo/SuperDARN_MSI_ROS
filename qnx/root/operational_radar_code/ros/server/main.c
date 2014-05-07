@@ -61,7 +61,7 @@ struct SiteSettings site_settings;
 struct GPSStatus gpsstatus;
 struct TRTimes bad_transmit_times;
 int32_t gpsrate=GPS_DEFAULT_TRIGRATE;
-int verbose=0;
+int verbose=10;
 
 struct timeval t_pre_start,t_pre_end,t_ready_first,t_ready_final,t_post_start,t_post_end;
 

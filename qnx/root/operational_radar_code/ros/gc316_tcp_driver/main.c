@@ -54,7 +54,6 @@ FILE *clr_data;
 int sock,msgsock;
 FILE 		 *gc314fs[MAX_CARDS];
 struct  TSGbuf   *pulseseqs[MAX_RADARS][MAX_CHANNELS][MAX_SEQS];
-struct  TSGprm   *tsgprm[MAX_RADARS][MAX_CHANNELS][MAX_SEQS];
 int32_t sindex;
 unsigned int     virtual_addresses[MAX_CARDS][MAX_INPUTS][MAX_CHANNELS][BUFS];
 unsigned int     physical_addresses[MAX_CARDS][MAX_INPUTS][MAX_CHANNELS][BUFS];
@@ -464,7 +463,6 @@ int main(int argc, char **argv){
             ready_index[r][c]=-1;
             for (i=0;i<MAX_SEQS;i++) {
               pulseseqs[r][c][i]=NULL;
-              tsgprm[r][c][i]=NULL;
             }
           }
         }
@@ -678,40 +676,36 @@ int main(int argc, char **argv){
                           pulseseqs[r][c][sindex]->rep=NULL;
                           if (pulseseqs[r][c][sindex]->code!=NULL) free(pulseseqs[r][c][sindex]->code);
                           pulseseqs[r][c][sindex]->code=NULL;
+                          if (pulseseqs[r][c][sindex]->ppat!=NULL) free(pulseseqs[r][c][sindex]->ppat);
+                          pulseseqs[r][c][sindex]->ppat=NULL;
+                          if (pulseseqs[r][c][sindex]->pcode!=NULL) free(pulseseqs[r][c][sindex]->pcode);
+                          pulseseqs[r][c][sindex]->pcode=NULL;
                           free(pulseseqs[r][c][sindex]);
                           pulseseqs[r][c][sindex]=NULL;
                           if (verbose > -1) fprintf(stdout,"  Freed Pulse index %d %p\n",sindex,pulseseqs[r][c][sindex]);
                         }
-                        if (tsgprm[r][c][sindex]!=NULL) {
-                          if (verbose > -1) fprintf(stdout,"  Pulse index %d exists %p\n",sindex,tsgprm[r][c][sindex]);
-                          if (tsgprm[r][c][sindex]->pat!=NULL) free(tsgprm[r][c][sindex]->pat);
-                          tsgprm[r][c][sindex]->pat=NULL;
-                          if (tsgprm[r][c][sindex]->code!=NULL) free(tsgprm[r][c][sindex]->code);
-                          tsgprm[r][c][sindex]->code=NULL;
-                          free(tsgprm[r][c][sindex]);
-                          tsgprm[r][c][sindex]=NULL;
-                          if (verbose > -1) fprintf(stdout,"  Freed Pulse prm %d %p\n",sindex,tsgprm[r][c][sindex]);
-                        }
                         pulseseqs[r][c][sindex]=malloc(sizeof(struct TSGbuf));
+                        memset(pulseseqs[r][c][sindex],0,sizeof(struct TSGbuf));
                         rval=recv_data(msgsock,pulseseqs[r][c][sindex], sizeof(struct TSGbuf)); // requested pulseseq
                         pulseseqs[r][c][sindex]->rep=
                           malloc(sizeof(unsigned char)*pulseseqs[r][c][sindex]->len);
                         pulseseqs[r][c][sindex]->code=
                           malloc(sizeof(unsigned char)*pulseseqs[r][c][sindex]->len);
+                        pulseseqs[r][c][sindex]->ppat=
+                          malloc(sizeof(int32_t)*pulseseqs[r][c][sindex]->mppul);
+                        pulseseqs[r][c][sindex]->pcode=
+                          malloc(sizeof(int32_t)*pulseseqs[r][c][sindex]->nbaud);
+
                         rval=recv_data(msgsock,pulseseqs[r][c][sindex]->rep,
                           sizeof(unsigned char)*pulseseqs[r][c][sindex]->len);
                         rval=recv_data(msgsock,pulseseqs[r][c][sindex]->code,
                           sizeof(unsigned char)*pulseseqs[r][c][sindex]->len);
 
-                        rval=recv_data(msgsock,tsgprm[r][c][sindex], sizeof(struct TSGprm)); // requested pulseseq
-                        tsgprm[r][c][sindex]->pat=
-                          malloc(sizeof(int32_t)*tsgprm[r][c][sindex]->mppul);
-                        tsgprm[r][c][sindex]->code=
-                          malloc(sizeof(int32_t)*tsgprm[r][c][sindex]->nbaud);
-                        rval=recv_data(msgsock,tsgprm[r][c][sindex]->pat,
-                          sizeof(int32_t)*tsgprm[r][c][sindex]->mppul);
-                        rval=recv_data(msgsock,tsgprm[r][c][sindex]->code,
-                          sizeof(int32_t)*tsgprm[r][c][sindex]->nbaud);
+                        rval=recv_data(msgsock,pulseseqs[r][c][sindex]->ppat,
+                          sizeof(int32_t)*pulseseqs[r][c][sindex]->mppul);
+                        rval=recv_data(msgsock,pulseseqs[r][c][sindex]->pcode,
+                          sizeof(int32_t)*pulseseqs[r][c][sindex]->nbaud);
+
 
                         if (verbose > -1) {
                           fprintf(stdout,"  New Pulse index %d : %p\n",sindex,pulseseqs[r][c][sindex]);
@@ -951,25 +945,29 @@ int main(int argc, char **argv){
                               back_address=physical_addresses[r][back_input][c][b];
 			      if(verbose > 1 ) printf("Send physical addresses%p %p\n",main_address,back_address);	
                               write_raw_files (client.tfreq, client.tbeam, samples+RECV_SAMPLE_HEADER,  r, c,  b);
-			      rval=send_data(msgsock,&main_address,sizeof(main_address));
-			      rval=send_data(msgsock,&back_address,sizeof(back_address));
+			      rval=send_data(msgsock,&main_address,sizeof(uint64_t));
+			      rval=send_data(msgsock,&back_address,sizeof(uint64_t));
                             } else {
 			      if(verbose >1) printf("Send imaging shm addresses %p %p\n",
                                                 summed_main_addresses[r][c][0],summed_back_addresses[r][c][0]);	
                               phasediff=add_phase(client.rfreq*1000, client.rbeam, samples+RECV_SAMPLE_HEADER, r, c, b,write_out);
                               write_raw_files (client.tfreq, client.tbeam, samples+RECV_SAMPLE_HEADER,  r, c,  b);
                               post_clr[c]=0;
-                              rval=send_data(msgsock,&summed_main_addresses[r][c][b],sizeof(unsigned int));
-                              rval=send_data(msgsock,&summed_back_addresses[r][c][b],sizeof(unsigned int));
+                              main_address=(uint64_t) summed_main_addresses[r][c][b];
+                              back_address=(uint64_t) summed_back_addresses[r][c][b];
+			      rval=send_data(msgsock,&main_address,sizeof(uint64_t));
+			      rval=send_data(msgsock,&back_address,sizeof(uint64_t));
                             }
                           } else {
                               //status non-zero
                           }    
                         } else {
                           //unconfigured
+			  if(verbose > 1 ) printf("  unconfigured\n");	
                           usleep(100000);
                           status=0;
                           rval=send_data(msgsock,&status,sizeof(status));
+
 			  if(verbose > 1 ) printf("  SHM Memory: %d\n",shm_memory);	
                           rval=send_data(msgsock,&shm_memory,sizeof(shm_memory));
 			  if(verbose > 1 ) printf("  FRAME Offset: %d\n",RECV_SAMPLE_HEADER);	
@@ -982,10 +980,13 @@ int main(int argc, char **argv){
 			  if(verbose > 1 ) printf("Sent Number of Samples %d\n",samples);	
 			  if(verbose >1) printf("Send test shm addresses %p %p\n",
                                             main_test_data[r][c][0],back_test_data[r][c][0]);	
-			  rval=send_data(msgsock,&main_test_data[r][c][0],sizeof(unsigned int));
-			  rval=send_data(msgsock,&back_test_data[r][c][0],sizeof(unsigned int));
+                          main_address=(uint64_t) &main_test_data[r][c][0];
+                          back_address=(uint64_t) &back_test_data[r][c][0];
+			  rval=send_data(msgsock,&main_address,sizeof(uint64_t));
+			  rval=send_data(msgsock,&back_address,sizeof(uint64_t));
                         }
                         msg.status=status;
+			if(verbose > 1 ) printf("  Sending end message\n");	
                         rval=send_data(msgsock, &msg, sizeof(struct DriverMsg));
                         gettimeofday(&t2,NULL);
                         gettimeofday(&tpost,NULL);
@@ -1005,69 +1006,71 @@ int main(int argc, char **argv){
                         if(verbose > 1 ) gettimeofday(&t0,NULL);
 			rval=recv_data(msgsock,&clrfreq_parameters, sizeof(struct CLRFreqPRM));
                         rval=recv_data(msgsock,&client,sizeof(struct ControlPRM));
+                        
 			if(verbose > 1 ) printf("Clear Frequency Search %d %d\n",
                                             client.radar-1,client.channel-1);	
-                        nave=0;
-                        centre=(clrfreq_parameters.end+clrfreq_parameters.start)/2;
-                        usable_bandwidth=clrfreq_parameters.end-clrfreq_parameters.start;
-			if(verbose > 1 ) printf("  requested values\n");	
-			if(verbose > 1 ) printf("    start: %d\n",clrfreq_parameters.start);	
-			if(verbose > 1 ) printf("    end: %d\n",clrfreq_parameters.end);	
-			if(verbose > 1 ) printf("    centre: %d\n",centre);	
-			if(verbose > 1 ) printf("    bandwidth: %lf in Khz\n",usable_bandwidth);	
-			if(verbose > 1 ) printf("    nave:  %d %d\n",nave,clrfreq_parameters.nave);	
-                        usable_bandwidth=floor(usable_bandwidth/2)*2 ;
+                        if(configured) {
+                          nave=0;
+                          centre=(clrfreq_parameters.end+clrfreq_parameters.start)/2;
+                          usable_bandwidth=clrfreq_parameters.end-clrfreq_parameters.start;
+			  if(verbose > 1 ) printf("  requested values\n");	
+			  if(verbose > 1 ) printf("    start: %d\n",clrfreq_parameters.start);	
+			  if(verbose > 1 ) printf("    end: %d\n",clrfreq_parameters.end);	
+			  if(verbose > 1 ) printf("    centre: %d\n",centre);	
+			  if(verbose > 1 ) printf("    bandwidth: %lf in Khz\n",usable_bandwidth);	
+			  if(verbose > 1 ) printf("    nave:  %d %d\n",nave,clrfreq_parameters.nave);	
+                          usable_bandwidth=floor(usable_bandwidth/2)*2 ;
 /*
 *  Set up fft variables
 */
-                        N=(int)pow(2,ceil(log10(1.25*(float)usable_bandwidth)/log10(2)));
-                        if(N>1024){
-                          N=512;
-                          usable_bandwidth=300;
-                          start=(int)(centre-usable_bandwidth/2+0.49999);
-                          end=(int)(centre+usable_bandwidth/2+0.49999);
-                        }
+                          N=(int)pow(2,ceil(log10(1.25*(float)usable_bandwidth)/log10(2)));
+                          if(N>1024){
+                            N=512;
+                            usable_bandwidth=300;
+                            start=(int)(centre-usable_bandwidth/2+0.49999);
+                            end=(int)(centre+usable_bandwidth/2+0.49999);
+                          }
 /* 1 kHz fft boundaries*/
-                        /* set up search parameters search_bandwidth > usable_bandwidth */
-                        search_bandwidth=N;            
-                        //search_bandwidth=800;            
-                        start=(int)(centre-search_bandwidth/2.0+0.49999);
-                        end=(int)(centre+search_bandwidth/2+0.49999);
-                        unusable_sideband=(search_bandwidth-usable_bandwidth)/2;
-                        clrfreq_parameters.start=start;
-                        clrfreq_parameters.end=end;
-			if(verbose > 1 ) printf("  search values\n");	
-			if(verbose > 1 ) printf("  start: %d %d\n",start,clrfreq_parameters.start);	
-			if(verbose > 1 ) printf("  end: %d %d\n",end,clrfreq_parameters.end);	
-			if(verbose > 1 ) printf("  centre: %d\n",centre);	
-			if(verbose > 1 ) printf("  search_bandwidth: %lf in Khz\n",search_bandwidth);	
-			if(verbose > 1 ) printf("  usable_bandwidth: %d in Khz\n",usable_bandwidth);	
-			if(verbose > 1 ) printf("  unusable_sideband: %lf in Khz\n",unusable_sideband);	
-			if(verbose > 1 ) printf("  N: %d\n",N);	
+                          /* set up search parameters search_bandwidth > usable_bandwidth */
+                          search_bandwidth=N;            
+                          //search_bandwidth=800;            
+                          start=(int)(centre-search_bandwidth/2.0+0.49999);
+                          end=(int)(centre+search_bandwidth/2+0.49999);
+                          unusable_sideband=(search_bandwidth-usable_bandwidth)/2;
+                          clrfreq_parameters.start=start;
+                          clrfreq_parameters.end=end;
+			  if(verbose > 1 ) printf("  search values\n");	
+			  if(verbose > 1 ) printf("  start: %d %d\n",start,clrfreq_parameters.start);	
+			  if(verbose > 1 ) printf("  end: %d %d\n",end,clrfreq_parameters.end);	
+			  if(verbose > 1 ) printf("  centre: %d\n",centre);	
+			  if(verbose > 1 ) printf("  search_bandwidth: %lf in Khz\n",search_bandwidth);	
+			  if(verbose > 1 ) printf("  usable_bandwidth: %d in Khz\n",usable_bandwidth);	
+			  if(verbose > 1 ) printf("  unusable_sideband: %lf in Khz\n",unusable_sideband);	
+			  if(verbose > 1 ) printf("  N: %d\n",N);	
   
-			if(verbose > 1 ) printf("Malloc fftw_complex arrays %d\n",N);	
-                        if(in!=NULL) free(in);
-                        in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) *N);
-                        if(out!=NULL) free(out);
-                        out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex)*N);
-                        if(pwr!=NULL) free(pwr);
-                        pwr = (double*) malloc(sizeof(double)*N);
-                        if(pwr2!=NULL) free(pwr2);
-                        pwr2 = (double*) malloc(sizeof(double)*N);
-			if(verbose > 1 ) printf("Malloc fftw_complex arrays %p %p\n",in,out);	
-			if(verbose > 1 ) printf("Build Plan\n");	
-                        plan = fftw_plan_dft_1d(N, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
+			  if(verbose > 1 ) printf("Malloc fftw_complex arrays %d\n",N);	
+                          if(in!=NULL) free(in);
+                          in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) *N);
+                          if(out!=NULL) free(out);
+                          out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex)*N);
+                          if(pwr!=NULL) free(pwr);
+                          pwr = (double*) malloc(sizeof(double)*N);
+                          if(pwr2!=NULL) free(pwr2);
+                          pwr2 = (double*) malloc(sizeof(double)*N);
+			  if(verbose > 1 ) printf("Malloc fftw_complex arrays %p %p\n",in,out);	
+			  if(verbose > 1 ) printf("Build Plan\n");	
+                          plan = fftw_plan_dft_1d(N, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
 
-                        for (i=0;i<N;i++) {
-                          pwr[i]=0;
-                        }
+                          for (i=0;i<N;i++) {
+                            pwr[i]=0;
+                          }
 
-                       msg.status=1;
-                       if (clrfreq_parameters.nave > 10 ) clrfreq_parameters.nave=10;
-                       nave=clrfreq_parameters.nave;
-                       ii=0;
+                          msg.status=1;
+                          if (clrfreq_parameters.nave > 10 ) clrfreq_parameters.nave=10;
+                          nave=clrfreq_parameters.nave;
+                          ii=0;
 #ifdef __QNX__
-                         if(!armed){
+                          if(!armed){
 		           if(verbose > 1 ) printf("Nave %d %d\n",nave, clrfreq_parameters.nave);	
                            r=client.radar-1;
                            c=client.channel-1;
@@ -1178,13 +1181,13 @@ int main(int argc, char **argv){
                                 printf("  Reciever:: CLRFREQ: Bad Data: %d %d\n",ii,status);
                               }    
                            } 
-                         } else {
+                          } else {
                             //if armed set an error condition
                             msg.status=-1;
-                         }
+                          }
 #endif
                          //printf("  Reciever:: CLRFREQ: averaging msg_status: %d\n",msg.status);
-                         for(ii=0;ii<nave;ii++) {
+                          for(ii=0;ii<nave;ii++) {
                            for (j=0;j<N;j++) {
 #ifdef __QNX__
                              if (msg.status) {
@@ -1217,21 +1220,21 @@ int main(int argc, char **argv){
                                printf("%d :: Out: %lf %lf  pwr: %lf\n",j,out[j][0],out[j][1],pwr[j]);
                              }
                            }
-                         } //end of nave loop
+                          } //end of nave loop
 
 /* take average power for nave number of calculations */
-                       if(verbose > 1 ) printf("Average pwr\n");	
-                       if (nave > 0 ) for(i=0;i<N;i++) pwr[i]=pwr[i]/(nave);
+                        if(verbose > 1 ) printf("Average pwr\n");	
+                        if (nave > 0 ) for(i=0;i<N;i++) pwr[i]=pwr[i]/(nave);
   /* Re-arrange the output of the fft to go from start to end (fftshift).
      This centers the fft, so now the first element in pwr2 corresponds
      with the start freq, and goes up to the end freq
   */
-                       if(verbose > 1 ) printf("Reorder pwr\n");	
-                       for(i=0;i<(N/2);i++){
+                        if(verbose > 1 ) printf("Reorder pwr\n");	
+                        for(i=0;i<(N/2);i++){
                           pwr2[N/2+i]=pwr[i];
                           pwr2[i]=pwr[N/2+i];
-                       }
-                       if(verbose > 4 ) {
+                        }
+                        if(verbose > 4 ) {
                           printf("fft power\n");	
                           printf(": Index : Freq : Shifted\n");	
                           if(write_clr_file) 
@@ -1242,12 +1245,17 @@ int main(int argc, char **argv){
                               fprintf(clr_data,"%4d %8d %8.3lf\n",i,start+i,pwr2[i]);
                           }
                           fclose(clr_data);  
+                        }
+                        if(pwr!=NULL) free(pwr);
+                        pwr=NULL; 
+                        /* Lets shave off the unusable_sideband and just send over the * 
+                         *   the usable_bandwidth centered of the centre frequency     */
+                        pwr=&pwr2[(int)unusable_sideband]; 
+                       } else { // if configured
+                         msg.status=-1;
+                         if(pwr!=NULL) free(pwr);
+                         pwr=calloc(usable_bandwidth,sizeof(double)); 
                        }
-                       if(pwr!=NULL) free(pwr);
-                       pwr=NULL; 
-                       /* Lets shave off the unusable_sideband and just send over the * 
-                        *   the usable_bandwidth centered of the centre frequency     */
-                       pwr=&pwr2[(int)unusable_sideband]; 
                        if(verbose > 0 ) printf("Send clrfreq data back\n");	
                        rval=send_data(msgsock, &clrfreq_parameters, sizeof(struct CLRFreqPRM));
                        rval=send_data(msgsock, &usable_bandwidth, sizeof(int));
@@ -1262,14 +1270,16 @@ int main(int argc, char **argv){
                        post_clr[3]=1;
                        rval=send_data(msgsock, pwr, sizeof(double)*usable_bandwidth);  //freq order power
                        rval=send_data(msgsock, &msg, sizeof(struct DriverMsg));
-                       fftw_destroy_plan(plan);
-                       fftw_free(in); 
-                       fftw_free(out);
-                       in=NULL;
-                       out=NULL;
-                       pwr=NULL;
-                       if(pwr2!=NULL) free(pwr2);
-                       pwr2=NULL;  
+                       if(configured) {
+                         fftw_destroy_plan(plan);
+                         fftw_free(in); 
+                         fftw_free(out);
+                         in=NULL;
+                         out=NULL;
+                         pwr=NULL;
+                         if(pwr2!=NULL) free(pwr2);
+                         pwr2=NULL;  
+                       }
                        if (verbose > 1) { 
                           gettimeofday(&t4,NULL);
                           elapsed=(t4.tv_sec-t0.tv_sec)*1E6;

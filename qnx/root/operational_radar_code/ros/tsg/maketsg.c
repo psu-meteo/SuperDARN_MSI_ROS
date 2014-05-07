@@ -44,6 +44,7 @@
 */
 
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #include "tsg.h"
@@ -193,10 +194,8 @@ void TSGWrBuf(struct TSGbuf *tsg,
 void TSGFree(struct TSGbuf *ptr) {
   if (ptr->code !=NULL) free(ptr->code);
   if (ptr->rep !=NULL) free(ptr->rep);
+  if (ptr->pcode !=NULL) free(ptr->pcode);
+  if (ptr->ppat !=NULL) free(ptr->ppat);
 }
 
-void TSGprmFree(struct TSGprm *ptr) {
-  if (ptr->code !=NULL) free(ptr->code);
-  if (ptr->pat !=NULL) free(ptr->pat);
-}
 
