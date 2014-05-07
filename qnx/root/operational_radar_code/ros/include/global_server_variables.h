@@ -11,7 +11,7 @@
 
 #define SITE_NAME "azr"
 
-#define SITE_DIR "/root/operational_radar_code/site_data/"
+#define SITE_DIR "/usr/local/operational_radar_code/site_data/"
 //#define SITE_DIR "/tmp/site_data/"
 
 #define IF_ENABLED         0 
