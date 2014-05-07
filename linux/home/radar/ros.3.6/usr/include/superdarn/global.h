@@ -101,7 +101,7 @@ extern int mxpwr;
 extern int lvmax;
 extern int cp;
 
-extern int *pcode;
+extern int32_t *pcode;
 
 extern int noisefac;
 extern int noiselim;

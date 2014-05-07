@@ -9,7 +9,7 @@
 #define _GLOBAL_SERVER_H
 
 #define SITE_NAME "unknown"
-#define SITE_DIR "/root/operational_radar_code/site_data/"
+#define SITE_DIR "/usr/local/operational_radar_code/site_data/"
 
 #define IF_ENABLED         0 
 #define IF_FREQ            71000 // in KHz
@@ -95,6 +95,7 @@ struct ControlState {
      int rx_sideband; //in kHz
      int N; 
      struct TSGbuf *pulseseqs[MAX_SEQS]; //array of pulseseq pointers
+     struct TSGprm *tsgprm[MAX_SEQS]; //array of tsg prm pointers
      struct ControlProgram *linked_program;
      struct timeval trigger_timeout;
 //     struct timeval last_trigger_event;
@@ -126,10 +127,11 @@ struct BlackList {
 // ros state variables
      int start;
      int end;
-     uint64_t program;
+     void *program;
 };
 #define TIMING_REGISTER_SEQ '+'
 #define DDS_REGISTER_SEQ '+'
+#define RECV_REGISTER_SEQ '+'
 
 #define DIO_CtrlProg_READY '1'
 #define DDS_CtrlProg_READY '1'

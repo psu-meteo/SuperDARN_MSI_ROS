@@ -1,5 +1,7 @@
 #include "global_server_variables.h"
 
+void *receiver_register_seq(void *arg);
+
 void *receiver_rxfe_settings(void *arg);
 void *receiver_end_controlprogram(struct ControlProgram *arg);
 

@@ -119,7 +119,7 @@ int mxpwr=DEFAULT_MXPWR;
 int lvmax=DEFAULT_LVMAX;
 int cp=50;
 
-int *pcode=NULL;
+int32_t *pcode=NULL;
 
 int noisefac=0;
 int noiselim=0;

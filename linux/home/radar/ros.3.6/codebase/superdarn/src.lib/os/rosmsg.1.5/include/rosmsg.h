@@ -15,6 +15,7 @@
 #define _ROSMSG_H
 
 #include "rtypes.h"
+#include "stdint.h"
 
 struct RXFESettings {
      uint32 ifmode;  /* IF Enabled */
@@ -144,11 +145,11 @@ struct CLRFreqPRM {
 };
 
 struct SeqPRM {
-  uint32 index;
-  uint32 len;
-  uint32 step;  /* packed timesequence stepsize in microseconds */
-  uint32 samples;
-  uint32 smdelay;
+  uint32_t index;
+  uint32_t len;
+  uint32_t step;  /* packed timesequence stepsize in microseconds */
+  uint32_t samples;
+  uint32_t smdelay;
 };
 
 struct TXStatus {

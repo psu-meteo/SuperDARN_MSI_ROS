@@ -296,6 +296,7 @@ struct ControlProgram *control_init() {
 
        for (i=0;i<MAX_SEQS;i++) {
          control_program->state->pulseseqs[i]=NULL;
+         control_program->state->tsgprm[i]=NULL;
        }
        return control_program;
 }
@@ -377,6 +378,7 @@ void controlprogram_exit(struct ControlProgram *control_program)
      if (verbose> 1) fprintf(stderr,"Client Exit: Freeing internal structures for %p\n",control_program); 
      for (i=0;i<MAX_SEQS;i++) {
        if(control_program->state->pulseseqs[i]!=NULL) TSGFree(control_program->state->pulseseqs[i]);
+       if(control_program->state->tsgprm[i]!=NULL)    TSGprmFree(control_program->state->tsgprm[i]);
      }
      if (verbose> 1) fprintf(stderr,"Client Exit: Freeing controlprogram state %p\n",control_program->state); 
      if(control_program->state!=NULL) {
@@ -436,6 +438,7 @@ void *control_handler(struct ControlProgram *control_program)
    struct ControlPRM control_parameters; 
    struct SiteSettings settings;
    struct TSGbuf *pulseseq;
+   struct TSGprm tsgprm;
    struct SeqPRM tprm;
    int data_int;
    pthread_t thread,threads[10];
@@ -833,6 +836,18 @@ control_program);
                 sizeof(unsigned char)*control_program->state->pulseseqs[tprm.index]->len); // requested pulseseq
             recv_data(socket,control_program->state->pulseseqs[tprm.index]->code, 
                 sizeof(unsigned char)*control_program->state->pulseseqs[tprm.index]->len); // requested pulseseq
+
+            control_program->state->tsgprm[tprm.index]=malloc(sizeof(struct TSGprm));
+            memset(control_program->state->tsgprm[tprm.index],0,sizeof(struct TSGprm));
+            recv_data(socket,control_program->state->tsgprm[tprm.index], sizeof(struct TSGprm)); // requested tsgprm 
+            control_program->state->tsgprm[tprm.index]->pat=
+                malloc(sizeof(int32_t)*control_program->state->tsgprm[tprm.index]->mppul);
+            control_program->state->tsgprm[tprm.index]->code=
+                malloc(sizeof(int32_t)*control_program->state->tsgprm[tprm.index]->nbaud);
+            recv_data(socket,control_program->state->tsgprm[tprm.index]->pat, 
+                sizeof(int32_t)*control_program->state->tsgprm[tprm.index]->mppul); // requested pulse table
+            recv_data(socket,control_program->state->tsgprm[tprm.index]->code, 
+                sizeof(int32_t)*control_program->state->tsgprm[tprm.index]->nbaud); // requested pcode table
             if ( (r < 0) || (c < 0)) {
               msg.status=-1;
             } else {
@@ -840,10 +855,13 @@ control_program);
               rc = pthread_create(&threads[0], NULL, (void *)&timing_register_seq,(void *) control_program);
             //send on to dds socket
               rc = pthread_create(&threads[1], NULL, (void *)&dds_register_seq,(void *) control_program);
+              rc = pthread_create(&threads[2], NULL, (void *)&receiver_register_seq,(void *) control_program);
               //printf("Waiting on Timing Thread\n");
               pthread_join(threads[0],NULL);
               //printf("Waiting on DDS\n"); 
               pthread_join(threads[1],NULL);
+              //printf("Waiting on recv\n"); 
+              pthread_join(threads[2],NULL);
             }
             pthread_mutex_unlock(&controlprogram_list_lock);
             //printf("REGISTER_SEQ: SEND ROSMsg\n");

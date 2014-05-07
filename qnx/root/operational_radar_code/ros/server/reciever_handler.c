@@ -43,6 +43,40 @@ int compare_structs(const void *a, const void *b){
     else return -1;
 
 }
+void *receiver_register_seq(void *arg)
+{
+  struct DriverMsg msg;
+  struct ControlProgram *control_program;
+  struct timeval t0,t1;
+  int index;
+
+  control_program=arg;
+  pthread_mutex_lock(&recv_comm_lock);
+
+  msg.type=RECV_REGISTER_SEQ;
+  msg.status=1;
+  send_data(recvsock, &msg, sizeof(struct DriverMsg));
+  send_data(recvsock, control_program->parameters, sizeof(struct ControlPRM));
+  index=control_program->parameters->current_pulseseq_index;
+  send_data(recvsock, &index, sizeof(index)); //requested index
+
+  send_data(recvsock,control_program->state->pulseseqs[index], sizeof(struct TSGbuf)); // requested pulseseq
+  send_data(recvsock,control_program->state->pulseseqs[index]->rep,
+    sizeof(unsigned char)*control_program->state->pulseseqs[index]->len); // requested pulseseq
+  send_data(recvsock,control_program->state->pulseseqs[index]->code,
+    sizeof(unsigned char)*control_program->state->pulseseqs[index]->len); // requested pulseseq
+
+  send_data(recvsock,control_program->state->tsgprm[index], sizeof(struct TSGprm)); // requested pulseseq
+  send_data(recvsock,control_program->state->tsgprm[index]->pat,
+    sizeof(int32_t)*control_program->state->tsgprm[index]->mppul); // requested pulseseq
+  send_data(recvsock,control_program->state->tsgprm[index]->code,
+    sizeof(int32_t)*control_program->state->tsgprm[index]->nbaud); // requested pulseseq
+
+  recv_data(recvsock, &msg, sizeof(struct DriverMsg));
+  pthread_mutex_unlock(&recv_comm_lock);
+  pthread_exit(NULL);
+}
+
 
 void *receiver_rxfe_settings(void *arg) {
 
@@ -460,12 +494,12 @@ void receiver_assign_frequency(struct ControlProgram *arg){
 							if(minimum_separation > controlprogram->state->rx_sideband ) {
            							blacklist[blacklist_count].start=controlprogram->state->best_assigned_freq-minimum_separation;
            							blacklist[blacklist_count].end=controlprogram->state->best_assigned_freq+minimum_separation;
-           							blacklist[blacklist_count].program=(unsigned int)controlprogram;
+           							blacklist[blacklist_count].program=(void *)controlprogram;
 
 							} else {
            							blacklist[blacklist_count].start=controlprogram->state->best_assigned_freq-controlprogram->state->rx_sideband;
            							blacklist[blacklist_count].end=controlprogram->state->best_assigned_freq+controlprogram->state->rx_sideband;
-           							blacklist[blacklist_count].program=(unsigned int)controlprogram;
+           							blacklist[blacklist_count].program=(void *)controlprogram;
 							}
            						if (verbose>1) fprintf(stderr,"  %d %d :: Adding blacklist :: %d %d :  %d %d\n",
                        						arg->parameters->radar,arg->parameters->channel,
@@ -507,7 +541,7 @@ void receiver_assign_frequency(struct ControlProgram *arg){
 	       			write(f_fft, &temp, sizeof(int32_t));
 			}
 			for (k=0; k<blacklist_count; k++) {
-				temp=blacklist[k].program;
+				temp=(int32_t)blacklist[k].program;
 	       			write(f_fft, &temp, sizeof(int32_t));
 			}
 		}

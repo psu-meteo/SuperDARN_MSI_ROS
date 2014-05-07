@@ -37,11 +37,11 @@
 struct TSGbuf {
   unsigned char *code;
   unsigned char *rep;
-  int len;
+  int32_t len;
 };
 
 struct TSGprm {
-  int nrang,          /* number of ranges */
+  int32_t nrang,          /* number of ranges */
       frang,          /* distance to first range */
       rsep,           /* range gate separation */
       smsep,          /* sample separation */
@@ -55,8 +55,8 @@ struct TSGprm {
       smdelay,        /* sample delay */
       stdelay,        /* delay at front of sequence */
       gort;           /* gate or trigger with scope sync*/
-  int rtoxmin;        /* delay between receiver off and pulse */
-      int *pat,	      /* pointer to the pulse pattern */
+  int32_t rtoxmin;        /* delay between receiver off and pulse */
+  int32_t *pat,	      /* pointer to the pulse pattern */
 	  *code;      /* pointer to the phase code table */
 };
 

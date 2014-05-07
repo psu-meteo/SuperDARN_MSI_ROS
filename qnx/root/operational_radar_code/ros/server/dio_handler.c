@@ -90,10 +90,11 @@ void *DIO_pretrigger(void *arg)
    pthread_exit(NULL);
 };
 
-void *DIO_transmitter_status(int radar)
+void *DIO_transmitter_status(int *arg)
 {
   struct DriverMsg msg;
   int tx;
+  int radar=*arg;
   pthread_mutex_lock(&dio_comm_lock);
 
   msg.type=DIO_GET_TX_STATUS;

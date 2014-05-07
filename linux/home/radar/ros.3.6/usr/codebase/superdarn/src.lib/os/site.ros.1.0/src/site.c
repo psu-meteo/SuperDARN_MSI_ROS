@@ -643,7 +643,7 @@ int SiteRosTimeSeq(int *ptab) {
   tsgprm.mlag=0;
   tsgprm.nbaud=nbaud;
   tsgprm.code=pcode;
-  tsgprm.pat=malloc(sizeof(int)*tsgprm.mppul);
+  tsgprm.pat=malloc(sizeof(int32_t)*tsgprm.mppul);
   for (i=0;i<tsgprm.mppul;i++) tsgprm.pat[i]=ptab[i];
 
   tsgbuf=TSGMake(&tsgprm,&flag);
@@ -661,6 +661,11 @@ int SiteRosTimeSeq(int *ptab) {
   TCPIPMsgSend(sock, &tprm, sizeof(struct SeqPRM));
   TCPIPMsgSend(sock, tsgbuf->rep, sizeof(unsigned char)*tprm.len);
   TCPIPMsgSend(sock, tsgbuf->code, sizeof(unsigned char)*tprm.len);
+
+  TCPIPMsgSend(sock, &tsgprm, sizeof(struct TSGprm));
+  TCPIPMsgSend(sock, &tsgprm.pat, sizeof(int32_t)*tsgprm.mppul);
+  TCPIPMsgSend(sock, &tsgprm.code, sizeof(int32_t)*tsgprm.nbaud);
+
   TCPIPMsgRecv(sock, &rmsg, sizeof(struct ROSMsg));
   if (debug) {
     fprintf(stderr,"REGISTER_SEQ:type=%c\n",rmsg.type);

@@ -44,7 +44,7 @@ unsigned long gc314GetBufferAddress(unsigned int *physical_addr,int filedes, int
 	}
 	return address;
 #else
-        return NULL;
+        return (unsigned long)NULL;
 #endif
 
 }

@@ -118,7 +118,7 @@ int main(){
 
 	// counter and temporary variables
 	int	i,ant,j,k,r,c,cc,count;
-        int     configured,buf,ratio,index,last_num=-1,numclients=0;
+        int32_t     configured,buf,ratio,index,last_num=-1,numclients=0;
 	int	tempcode;
         double microseconds;
         // ics660 variables

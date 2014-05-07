@@ -191,8 +191,12 @@ void TSGWrBuf(struct TSGbuf *tsg,
 }
 
 void TSGFree(struct TSGbuf *ptr) {
-  struct TSGprm *tsgprm;
   if (ptr->code !=NULL) free(ptr->code);
   if (ptr->rep !=NULL) free(ptr->rep);
+}
+
+void TSGprmFree(struct TSGprm *ptr) {
+  if (ptr->code !=NULL) free(ptr->code);
+  if (ptr->pat !=NULL) free(ptr->pat);
 }
 

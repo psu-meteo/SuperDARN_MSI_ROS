@@ -95,9 +95,10 @@ void *timing_pretrigger(void *arg)
   pthread_exit(NULL);
 };
 
-void *timing_trigger(int trigger_type)
+void *timing_trigger(int *arg)
 {
   struct DriverMsg msg;
+  int trigger_type=*arg;
   pthread_mutex_lock(&timing_comm_lock);
   switch(trigger_type) {
     case 0:
