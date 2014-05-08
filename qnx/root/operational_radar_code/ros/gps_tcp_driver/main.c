@@ -62,11 +62,12 @@ void graceful_cleanup(int signum)
 }
 /*-MAIN--------------------------------------------------------------*/
  main(){
-	int		 temp, pci_handle, i, frame_size, status, temp2, ch;
+	int		 temp, pci_handle, i, frame_size, temp2, ch;
 	unsigned int	 *mmap_io_ptr, CLOCK_RES;
 	struct		 timespec now,start_p, stop_p;
 	struct		 timespec new, old;
 	int32_t		 gpssecond,gpsnsecond,gpscapture;
+        int32_t          status;
         struct timeval tv;
         struct DriverMsg msg;
 	// socket and message passing variables
@@ -306,7 +307,7 @@ void graceful_cleanup(int signum)
 				case GPS_TRIGGER_NOW:
 					//this function does not yet work
 					status=0;
-					rval=send_data(msgsock,&status, sizeof(int));
+					rval=send_data(msgsock,&status, sizeof(int32_t));
 					break;
 				default:	
 					if (verbose > 0) fprintf(stderr,"BAD CODE: %c : %d\n",datacode,datacode);

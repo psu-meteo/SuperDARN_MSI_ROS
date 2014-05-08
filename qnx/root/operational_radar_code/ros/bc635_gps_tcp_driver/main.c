@@ -66,7 +66,7 @@ void graceful_cleanup(int signum)
 }
 /*-MAIN--------------------------------------------------------------*/
  main(){
-	int		 temp, pci_handle, i, frame_size, status, temp2, ch;
+	int		 temp, pci_handle, i, frame_size, temp2, ch;
         char		 buffer[256];
         char		 lock_status;
         uint16		 *puint16;
@@ -79,6 +79,7 @@ void graceful_cleanup(int signum)
 	struct		 timespec now,start_p;
 	struct		 timespec new, old;
 	int32_t		 gpssecond,gpsnsecond,gpscapture;
+        int32_t          status;
         struct timeval tv;
         struct DriverMsg msg;
 	// socket and message passing variables
