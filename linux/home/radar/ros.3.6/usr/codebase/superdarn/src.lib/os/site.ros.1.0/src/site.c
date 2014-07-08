@@ -742,6 +742,7 @@ int SiteRosIntegrate(int (*lags)[2]) {
   int total_samples=0; /*AJ*/
   int usecs;
   short I,Q;
+  double dds_pwr=0;
   double phi_m,phi_i,phi_d;
   int32 temp32;
   /* phase code declarations */
@@ -1222,8 +1223,9 @@ usleep(usecs);
           for(n=0;n<10;n++){
             Q=(short)((rdata.main[n] & 0xffff0000) >> 16);
             I=(short)(rdata.main[n] & 0x0000ffff);
-            if (I*I+Q*Q > diagnostics.dds_pwr_threshold) {
-              fprintf(stderr,"Low DDS pwr\n");
+            dds_pwr=pow((double)I,2.0)+pow((double)Q,2.0);
+            if (dds_pwr > diagnostics.dds_pwr_threshold) {
+              fprintf(stderr,"Low DDS pwr %lf\n",dds_pwr);
               diagnostics.dds_low_pwr=0;
             }
           }
