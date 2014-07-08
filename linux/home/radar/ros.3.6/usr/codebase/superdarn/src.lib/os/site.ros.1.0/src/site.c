@@ -1226,8 +1226,8 @@ usleep(usecs);
             dds_pwr=pow((double)I,2.0)+pow((double)Q,2.0);
             if (dds_pwr > diagnostics.dds_pwr_threshold) {
               diagnostics.dds_low_pwr=0;
+              fprintf(stderr,"High DDS %d :: pwr %lf > %lf\n",n,dds_pwr, (double)diagnostics.dds_pwr_threshold);
             } else {
-              fprintf(stderr,"Low DDS pwr %lf < %lf\n",dds_pwr, (double)diagnostics.dds_pwr_threshold);
             }
           }
         } else {
@@ -1385,13 +1385,13 @@ usleep(usecs);
    }
    if (diagnostics.dds_pwr_threshold > 0) {
      diagnostics.dds_report_fp=NULL;
-     diagnostics.dds_report_fp=fopen(diagnostics.dds_report_file,"w");
-     if (diagnostics.dds_report_fp) {
-       if (diagnostics.dds_low_pwr > 0) {
+     if (diagnostics.dds_low_pwr > 0) {
+       printf(stderr,"Reporting Low DDS PWR\n");
+       diagnostics.dds_report_fp=fopen(diagnostics.dds_report_file,"w");
+       if (diagnostics.dds_report_fp) {
         fprintf(diagnostics.dds_report_fp,"%ld",(long) time(NULL));
-        fprintf(stderr,"Reporting Low DDS PWR\n");
+        fclose(diagnostics.dds_report_fp);
        }
-       fclose(diagnostics.dds_report_fp);
        diagnostics.dds_report_fp=NULL;
      }
    }
