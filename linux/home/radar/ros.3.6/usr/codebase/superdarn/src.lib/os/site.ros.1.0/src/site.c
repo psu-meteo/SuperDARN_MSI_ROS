@@ -912,7 +912,7 @@ int SiteRosIntegrate(int (*lags)[2]) {
 
     rprm.tbeam=bmnum;   
     rprm.tfreq=tfreq;   
-    rprm.rfreq=tfreq;   
+    rprm.rfreq=tfreq+diagnostics.rfreq_offset;   
     rprm.trise=5000;   
     rprm.baseband_samplerate=((double)nbaud/(double)txpl)*1E6; 
     rprm.filter_bandwidth=rprm.baseband_samplerate; 
