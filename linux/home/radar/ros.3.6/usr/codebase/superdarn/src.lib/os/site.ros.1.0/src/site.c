@@ -1252,7 +1252,7 @@ usleep(usecs);
         seq_dds_low_pwr_flag=0; 
       }
       if (seq_dds_low_pwr_flag==1) {
-              fprintf(stderr,"Sequence: %d :: Low DDS drive signal :: pwr <  %lf\n",nave, (double)diagnostics.dds_pwr_threshold);
+              fprintf(stderr,"%s :: Sequence: %d :: Low DDS drive signal :: pwr <  %lf\n",station,nave, (double)diagnostics.dds_pwr_threshold);
       }
     /* copy samples here */
 
