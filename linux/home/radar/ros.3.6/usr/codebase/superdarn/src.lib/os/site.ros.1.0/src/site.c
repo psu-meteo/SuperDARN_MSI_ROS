@@ -39,6 +39,14 @@
 /* TODO: PUT STATIC OFFSET INTO DMAP TO ACCOUNT FOR OFFSET BETWEEN DDS AND RX */ 
 
 config_t cfg;
+
+struct {
+  int dds_pwr_threshold;
+  char dds_report_file[256];
+  int dds_low_pwr;
+  FILE *dds_report_fp;
+} diagnostics;
+
 char *config_dir=NULL;
 char config_filepath[256]="/tmp/tst.cfg";
 char channame[5]="\0";
@@ -211,12 +219,29 @@ int SiteRosStart(char *host,char *ststr) {
   } else {
     dmatch=ltemp;
   }
+
   if(! config_lookup_int(&cfg, "backward", &ltemp)) {
     backward=0;
     fprintf(stderr,"Site Cfg Warning:: \'backward\' setting undefined in site cfg file using default value: %d\n",backward); 
   } else {
     backward=ltemp;
   }
+
+  if(! config_lookup_int(&cfg, "diagnostics.dds_pwr_threshold", &ltemp)) {
+    diagnostics.dds_pwr_threshold=0;
+    fprintf(stderr,"Site Cfg Warning:: \'diagnostics.dds_pwr_threshold\' setting undefined in site cfg file using default value: %d\n",diagnostics.dds_pwr_threshold); 
+  } else {
+    diagnostics.dds_pwr_threshold=ltemp;
+    fprintf(stderr,"Site Cfg:: \'diagnostics.dds_pwr_threshold\' setting in site cfg file using value: %d\n",diagnostics.dds_pwr_threshold); 
+  }
+  if(! config_lookup_string(&cfg, "diagnostics.dds_report_file", &str)) {
+    strncpy(diagnostics.dds_report_file,"/tmp/ros_dds_pwr_report.txt",256);
+    fprintf(stderr,"Site Cfg:: \'diagnostics.dds_report_file\' setting not in site cfg file. Using File %s for reporting \n",diagnostics.dds_report_file); 
+  } else {
+    strncpy(diagnostics.dds_report_file,str,256);
+    fprintf(stderr,"Site Cfg:: \'diagnostics.dds_report_file\' setting in site cfg file. Using File %s for reporting \n",diagnostics.dds_report_file); 
+  }
+
   if(! config_lookup_int(&cfg, "xcf", &ltemp)) {
     /* xcf count value: 1 means every integration period. 2 means every other. N means every Nth.*/
     xcnt=0;
@@ -353,6 +378,7 @@ int SiteRosStart(char *host,char *ststr) {
     nfrq=ltemp;
     fprintf(stderr,"Site Cfg:: \'nfrq\' setting in site cfg file using value: %d\n",nfrq); 
   }
+
   return 0;
 }
 
@@ -845,6 +871,9 @@ int SiteRosIntegrate(int (*lags)[2]) {
 /* Seq loop to trigger and collect data */
   while (1) {
     SiteRosExit(0);
+    if (diagnostics.dds_pwr_threshold > 0) {
+      diagnostics.dds_low_pwr=1;
+    }
     if(f_diagnostic_ascii!=NULL) {
       clock_gettime(CLOCK_REALTIME, &time_now);
       ttime=time_now.tv_sec;
@@ -1107,7 +1136,7 @@ usleep(usecs);
           phi_m=atan2(Q,I);
           if(f_diagnostic_ascii!=NULL) {
             fprintf(f_diagnostic_ascii,"%8d %8d %8d %8d %8.3lf ", n, I, Q, (int)(I*I+Q*Q), phi_m);
-           }
+          }
           Q=(short)((rdata.back[n] & 0xffff0000) >> 16);
           I=(short)(rdata.back[n] & 0x0000ffff);
           phi_i=atan2(Q,I);
@@ -1184,6 +1213,24 @@ usleep(usecs);
         fflush(stderr);
       }
 */
+      /* 
+       * Test for output power associated with first transmit pulse. Use power threshold
+       * from config file setting. If unset skip this test.
+      */ 
+      if (diagnostics.dds_pwr_threshold > 0) {
+        if(nsamp>=10) {
+          for(n=0;n<10;n++){
+            Q=(short)((rdata.main[n] & 0xffff0000) >> 16);
+            I=(short)(rdata.main[n] & 0x0000ffff);
+            if (I*I+Q*Q > diagnostics.dds_pwr_threshold) {
+              fprintf(stderr,"Low DDS pwr\n");
+              diagnostics.dds_low_pwr=0;
+            }
+          }
+        } else {
+          diagnostics.dds_low_pwr=0;
+        }
+      }
     /* copy samples here */
 
       seqoff[nave]=iqsze/2;/*Sequence offset in 16bit units */
@@ -1333,7 +1380,18 @@ usleep(usecs);
      fclose(f_diagnostic_ascii);
      f_diagnostic_ascii=NULL;
    }
-
+   if (diagnostics.dds_pwr_threshold > 0) {
+     diagnostics.dds_report_fp=NULL;
+     diagnostics.dds_report_fp=fopen(diagnostics.dds_report_file,"w");
+     if (diagnostics.dds_report_fp) {
+       if (diagnostics.dds_low_pwr > 0) {
+        fprintf(diagnostics.dds_report_fp,"%ld",(long) time(NULL));
+        fprintf(stderr,"Reporting Low DDS PWR\n");
+       }
+       fclose(diagnostics.dds_report_fp);
+       diagnostics.dds_report_fp=NULL;
+     }
+   }
    SiteRosExit(0);
    return nave;
 }
