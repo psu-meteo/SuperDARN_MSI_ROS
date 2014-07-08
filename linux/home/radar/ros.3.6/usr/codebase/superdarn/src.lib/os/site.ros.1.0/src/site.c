@@ -1407,13 +1407,13 @@ usleep(usecs);
      fclose(f_diagnostic_ascii);
      f_diagnostic_ascii=NULL;
    }
-   if (diagnostics.dds_pwr_threshold > 0) {
+   if ((diagnostics.dds_pwr_threshold > 0) && (nave > 0)) {
      diagnostics.dds_report_fp=NULL;
      if (beam_dds_low_pwr_flag > 0) {
        fprintf(stderr,"Reporting Low DDS PWR for beam: %d\n",bmnum);
        diagnostics.dds_report_fp=fopen(diagnostics.dds_report_file,"w");
        if (diagnostics.dds_report_fp) {
-        fprintf(diagnostics.dds_report_fp,"%d %ld",(int)bmnum,(long) time(NULL));
+        fprintf(diagnostics.dds_report_fp,"%d %d %ld",(int)nave,(int)bmnum,(long) time(NULL));
         fclose(diagnostics.dds_report_fp);
        }
      }
