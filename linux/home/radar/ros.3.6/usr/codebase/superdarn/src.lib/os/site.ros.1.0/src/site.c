@@ -756,7 +756,8 @@ int SiteRosIntegrate(int (*lags)[2]) {
   int usecs;
   short I,Q;
   double dds_pwr=0;
-  int dds_low_pwr_flag=0;
+  int seq_dds_low_pwr_flag=0;
+  int beam_dds_low_pwr_flag=0;
   double phi_m,phi_i,phi_d;
   int32 temp32;
   /* phase code declarations */
@@ -886,6 +887,7 @@ int SiteRosIntegrate(int (*lags)[2]) {
 /* Seq loop to trigger and collect data */
   while (1) {
     SiteRosExit(0);
+    beam_dds_low_pwr_flag=1; 
     if(f_diagnostic_ascii!=NULL) {
       clock_gettime(CLOCK_REALTIME, &time_now);
       ttime=time_now.tv_sec;
@@ -1231,23 +1233,26 @@ usleep(usecs);
       */ 
       if (diagnostics.dds_pwr_threshold > 0) {
         if(nsamp>=10) {
-          dds_low_pwr_flag=1; 
+          seq_dds_low_pwr_flag=1; 
           for(n=0;n<10;n++){
             Q=(short)((rdata.main[n] & 0xffff0000) >> 16);
             I=(short)(rdata.main[n] & 0x0000ffff);
             dds_pwr=pow((double)I,2.0)+pow((double)Q,2.0);
             if (dds_pwr > diagnostics.dds_pwr_threshold) {
-              dds_low_pwr_flag=0; 
+              seq_dds_low_pwr_flag=0; 
               /*fprintf(stderr,"High DDS %d :: pwr %lf > %lf\n",n,dds_pwr, (double)diagnostics.dds_pwr_threshold);*/
               break;
             } else {
             }
           }
         } else {
-          dds_low_pwr_flag=0; 
+          seq_dds_low_pwr_flag=0; 
         }
       } else {
-        dds_low_pwr_flag=0; 
+        seq_dds_low_pwr_flag=0; 
+      }
+      if (seq_dds_low_pwr_flag==1) {
+              fprintf(stderr,"Sequence: %d :: Low DDS drive signal :: pwr <  %lf\n",nave, (double)diagnostics.dds_pwr_threshold);
       }
     /* copy samples here */
 
@@ -1352,6 +1357,10 @@ usleep(usecs);
       iqoff=iqsze;  /* set the offset bytes for the next sequence */
 
     } else {
+      seq_dds_low_pwr_flag=0; 
+    }
+    if (seq_dds_low_pwr_flag==0) {
+      beam_dds_low_pwr_flag==0;
     }
     gettimeofday(&tick,NULL);
     if(f_diagnostic_ascii!=NULL) fprintf(f_diagnostic_ascii,"Sequence: END\n");
@@ -1400,11 +1409,11 @@ usleep(usecs);
    }
    if (diagnostics.dds_pwr_threshold > 0) {
      diagnostics.dds_report_fp=NULL;
-     if (dds_low_pwr_flag > 0) {
-       fprintf(stderr,"Reporting Low DDS PWR\n");
+     if (beam_dds_low_pwr_flag > 0) {
+       fprintf(stderr,"Reporting Low DDS PWR for beam: %d\n",bmnum);
        diagnostics.dds_report_fp=fopen(diagnostics.dds_report_file,"w");
        if (diagnostics.dds_report_fp) {
-        fprintf(diagnostics.dds_report_fp,"%ld",(long) time(NULL));
+        fprintf(diagnostics.dds_report_fp,"%d %ld",(int)bmnum,(long) time(NULL));
         fclose(diagnostics.dds_report_fp);
        }
      }
