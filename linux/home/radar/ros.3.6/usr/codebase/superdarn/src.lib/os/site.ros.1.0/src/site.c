@@ -885,9 +885,9 @@ int SiteRosIntegrate(int (*lags)[2]) {
   }
 
 /* Seq loop to trigger and collect data */
+  beam_dds_low_pwr_flag=1; 
   while (1) {
     SiteRosExit(0);
-    beam_dds_low_pwr_flag=1; 
     if(f_diagnostic_ascii!=NULL) {
       clock_gettime(CLOCK_REALTIME, &time_now);
       ttime=time_now.tv_sec;
