@@ -42,6 +42,7 @@ config_t cfg;
 
 struct {
   int dds_pwr_threshold;
+  int rfreq_offset;
   char dds_report_file[256];
   FILE *dds_report_fp;
 } diagnostics;
@@ -239,6 +240,13 @@ int SiteRosStart(char *host,char *ststr) {
   } else {
     strncpy(diagnostics.dds_report_file,str,256);
     fprintf(stderr,"Site Cfg:: \'diagnostics.dds_report_file\' setting in site cfg file. Using File %s for reporting \n",diagnostics.dds_report_file); 
+  }
+  if(! config_lookup_int(&cfg, "diagnostics.rfreq_offset", &ltemp)) {
+    diagnostics.rfreq_offset=0;
+    fprintf(stderr,"Site Cfg Warning:: \'diagnostics.rfreq_offset\' setting undefined in site cfg file using default value: %d\n",diagnostics.rfreq_offset); 
+  } else {
+    diagnostics.rfreq_offset=ltemp;
+    fprintf(stderr,"Site Cfg:: \'diagnostics.rfreq_offset\' setting in site cfg file using value: %d\n",diagnostics.rfreq_offset); 
   }
 
   if(! config_lookup_int(&cfg, "xcf", &ltemp)) {
@@ -597,7 +605,7 @@ int SiteRosFCLR(int stfreq,int edfreq) {
   total_samples=tsgprm.samples+tsgprm.smdelay;
   rprm.tbeam=bmnum;   
   rprm.tfreq=tfreq;   
-  rprm.rfreq=tfreq+1000;   
+  rprm.rfreq=tfreq+diagnostics.rfreq_offset;   
   rprm.trise=5000;   
   rprm.baseband_samplerate=((double)nbaud/(double)txpl)*1E6; 
   rprm.filter_bandwidth=rprm.baseband_samplerate; 
