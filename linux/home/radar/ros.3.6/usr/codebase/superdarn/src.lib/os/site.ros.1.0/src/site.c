@@ -41,7 +41,7 @@
 config_t cfg;
 
 struct {
-  int dds_pwr_threshold;
+  double dds_pwr_threshold;
   int rfreq_offset;
   char dds_report_file[256];
   FILE *dds_report_fp;
@@ -145,6 +145,7 @@ void SiteRosExit(int signum) {
 int SiteRosStart(char *host,char *ststr) {
   int retval;
   long ltemp;
+  double dtemp;
   const char *str;
   char *dfststr="tst";
   char *chanstr=NULL;
@@ -227,12 +228,17 @@ int SiteRosStart(char *host,char *ststr) {
     backward=ltemp;
   }
 
-  if(! config_lookup_int(&cfg, "diagnostics.dds_pwr_threshold", &ltemp)) {
-    diagnostics.dds_pwr_threshold=0;
-    fprintf(stderr,"Site Cfg Warning:: \'diagnostics.dds_pwr_threshold\' setting undefined in site cfg file using default value: %d\n",diagnostics.dds_pwr_threshold); 
+  if(! config_lookup_float(&cfg, "diagnostics.dds_pwr_threshold", &dtemp)) {
+    if(! config_lookup_int(&cfg, "diagnostics.dds_pwr_threshold", &ltemp)) {
+      diagnostics.dds_pwr_threshold=0;
+      fprintf(stderr,"Site Cfg Warning:: \'diagnostics.dds_pwr_threshold\' setting undefined in site cfg file using default value: %lf\n",diagnostics.dds_pwr_threshold); 
+    } else {
+      diagnostics.dds_pwr_threshold=ltemp;
+      fprintf(stderr,"Site Cfg:: \'diagnostics.dds_pwr_threshold\' setting in site cfg file using value: %lf\n",diagnostics.dds_pwr_threshold); 
+    }
   } else {
-    diagnostics.dds_pwr_threshold=ltemp;
-    fprintf(stderr,"Site Cfg:: \'diagnostics.dds_pwr_threshold\' setting in site cfg file using value: %d\n",diagnostics.dds_pwr_threshold); 
+    diagnostics.dds_pwr_threshold=dtemp;
+    fprintf(stderr,"Site Cfg:: \'diagnostics.dds_pwr_threshold\' setting in site cfg file using value: %lf\n",diagnostics.dds_pwr_threshold); 
   }
   if(! config_lookup_string(&cfg, "diagnostics.dds_report_file", &str)) {
     strncpy(diagnostics.dds_report_file,"/tmp/ros_dds_pwr_report.txt",256);
