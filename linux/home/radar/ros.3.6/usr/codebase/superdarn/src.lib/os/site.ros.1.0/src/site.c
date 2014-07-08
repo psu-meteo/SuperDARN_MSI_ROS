@@ -1225,8 +1225,9 @@ usleep(usecs);
             I=(short)(rdata.main[n] & 0x0000ffff);
             dds_pwr=pow((double)I,2.0)+pow((double)Q,2.0);
             if (dds_pwr > diagnostics.dds_pwr_threshold) {
-              fprintf(stderr,"Low DDS pwr %lf\n",dds_pwr);
               diagnostics.dds_low_pwr=0;
+            } else {
+              fprintf(stderr,"Low DDS pwr %lf < %lf\n",dds_pwr, (double)diagnostics.dds_pwr_threshold);
             }
           }
         } else {
