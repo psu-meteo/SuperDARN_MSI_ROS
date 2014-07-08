@@ -1360,7 +1360,7 @@ usleep(usecs);
       seq_dds_low_pwr_flag=0; 
     }
     if (seq_dds_low_pwr_flag==0) {
-      beam_dds_low_pwr_flag==0;
+      beam_dds_low_pwr_flag=0;
     }
     gettimeofday(&tick,NULL);
     if(f_diagnostic_ascii!=NULL) fprintf(f_diagnostic_ascii,"Sequence: END\n");
