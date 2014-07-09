@@ -1398,7 +1398,13 @@ usleep(usecs);
       beam_dds_low_pwr_flag=0;
     }
     gettimeofday(&tick,NULL);
-    if(f_diagnostic_ascii!=NULL) fprintf(f_diagnostic_ascii,"Sequence: END\n");
+    if(f_diagnostic_ascii!=NULL) {
+      if(bad_trigger_flag==1) 
+        fprintf(f_diagnostic_ascii,"Sequence: Bad_Trigger\n");
+      if(seq_dds_low_pwr_flag==1) 
+        fprintf(f_diagnostic_ascii,"Sequence: DDS_Low_Pwr\n");
+      fprintf(f_diagnostic_ascii,"Sequence: END\n");
+    }
 
 
   }
