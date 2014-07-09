@@ -42,6 +42,7 @@ config_t cfg;
 
 struct {
   double dds_pwr_threshold;
+  double bad_trigger_pwr_threshold;
   int rfreq_offset;
   char dds_report_file[256];
   FILE *dds_report_fp;
@@ -240,6 +241,19 @@ int SiteRosStart(char *host,char *ststr) {
     diagnostics.dds_pwr_threshold=dtemp;
     fprintf(stderr,"Site Cfg:: \'diagnostics.dds_pwr_threshold\' setting in site cfg file using value: %lf\n",diagnostics.dds_pwr_threshold); 
   }
+  if(! config_lookup_float(&cfg, "diagnostics.bad_trigger_pwr_threshold", &dtemp)) {
+    if(! config_lookup_int(&cfg, "diagnostics.bad_trigger_pwr_threshold", &ltemp)) {
+      diagnostics.bad_trigger_pwr_threshold=0;
+      fprintf(stderr,"Site Cfg Warning:: \'diagnostics.bad_trigger_pwr_threshold\' setting undefined in site cfg file using default value: %lf\n",diagnostics.bad_trigger_pwr_threshold); 
+    } else {
+      diagnostics.bad_trigger_pwr_threshold=ltemp;
+      fprintf(stderr,"Site Cfg:: \'diagnostics.bad_trigger_pwr_threshold\' setting in site cfg file using value: %lf\n",diagnostics.bad_trigger_pwr_threshold); 
+    }
+  } else {
+    diagnostics.bad_trigger_pwr_threshold=dtemp;
+    fprintf(stderr,"Site Cfg:: \'diagnostics.bad_trigger_pwr_threshold\' setting in site cfg file using value: %lf\n",diagnostics.bad_trigger_pwr_threshold); 
+  }
+
   if(! config_lookup_string(&cfg, "diagnostics.dds_report_file", &str)) {
     strncpy(diagnostics.dds_report_file,"/tmp/ros_dds_pwr_report.txt",256);
     fprintf(stderr,"Site Cfg:: \'diagnostics.dds_report_file\' setting not in site cfg file. Using File %s for reporting \n",diagnostics.dds_report_file); 
@@ -757,6 +771,7 @@ int SiteRosIntegrate(int (*lags)[2]) {
   short I,Q;
   double dds_pwr=0;
   int seq_dds_low_pwr_flag=0;
+  int bad_trigger_flag=0;
   int beam_dds_low_pwr_flag=0;
   double phi_m,phi_i,phi_d;
   int32 temp32;
@@ -1231,6 +1246,25 @@ usleep(usecs);
        * Test for output power associated with first transmit pulse. Use power threshold
        * from config file setting. If unset skip this test.
       */ 
+      if (diagnostics.bad_trigger_pwr_threshold > 0) {
+        if(nsamp>=10) {
+          bad_trigger_flag=1; 
+          for(n=0;n<10;n++){
+            Q=(short)((rdata.main[n] & 0xffff0000) >> 16);
+            I=(short)(rdata.main[n] & 0x0000ffff);
+            dds_pwr=pow((double)I,2.0)+pow((double)Q,2.0);
+            if (dds_pwr > diagnostics.bad_trigger_pwr_threshold) {
+              bad_trigger_flag=0; 
+              break;
+            } else {
+            }
+          }
+        } else {
+          bad_trigger_flag=0; 
+        }
+      } else {
+          bad_trigger_flag=0; 
+      }
       if (diagnostics.dds_pwr_threshold > 0) {
         if(nsamp>=10) {
           seq_dds_low_pwr_flag=1; 
@@ -1254,22 +1288,25 @@ usleep(usecs);
       if (seq_dds_low_pwr_flag==1) {
               fprintf(stderr,"%s :: Sequence: %d :: Low DDS drive signal :: pwr <  %lf\n",station,nave, (double)diagnostics.dds_pwr_threshold);
       }
+      if (bad_trigger_flag==1) {
+              fprintf(stderr,"%s :: Sequence: %d :: Bad recv trigger :: pwr <  %lf\n",station,nave, (double)diagnostics.bad_trigger_pwr_threshold);
+      } else {
     /* copy samples here */
 
-      seqoff[nave]=iqsze/2;/*Sequence offset in 16bit units */
-      seqsze[nave]=dprm.samples*2*2; /* Sequence length in 16bit units */
+        seqoff[nave]=iqsze/2;/*Sequence offset in 16bit units */
+        seqsze[nave]=dprm.samples*2*2; /* Sequence length in 16bit units */
 
-      if(seqbadtr[nave].start!=NULL)  free(seqbadtr[nave].start);
-      if(seqbadtr[nave].length!=NULL) free(seqbadtr[nave].length);
-      seqbadtr[nave].start=NULL;
-      seqbadtr[nave].length=NULL;
-      seqbadtr[nave].num=badtrdat.length;
-      seqbadtr[nave].start=malloc(sizeof(uint32)*badtrdat.length);
-      seqbadtr[nave].length=malloc(sizeof(uint32)*badtrdat.length);
+        if(seqbadtr[nave].start!=NULL)  free(seqbadtr[nave].start);
+        if(seqbadtr[nave].length!=NULL) free(seqbadtr[nave].length);
+        seqbadtr[nave].start=NULL;
+        seqbadtr[nave].length=NULL;
+        seqbadtr[nave].num=badtrdat.length;
+        seqbadtr[nave].start=malloc(sizeof(uint32)*badtrdat.length);
+        seqbadtr[nave].length=malloc(sizeof(uint32)*badtrdat.length);
 
-      memcpy(seqbadtr[nave].start,badtrdat.start_usec,
+        memcpy(seqbadtr[nave].start,badtrdat.start_usec,
            sizeof(uint32)*badtrdat.length);
-      memcpy(seqbadtr[nave].length,badtrdat.duration_usec,
+        memcpy(seqbadtr[nave].length,badtrdat.duration_usec,
            sizeof(uint32)*badtrdat.length);
 
 /* AJ new way, does work for some reason */
@@ -1279,83 +1316,81 @@ usleep(usecs);
 /* total_samples*8 represents number of bytes for main and back samples */
 
       
-      dest = (void *)(samples);  /* look iqoff bytes into samples area */
-      dest+=iqoff;
-      if ((iqoff+dprm.samples*2*sizeof(uint32) )<iqbufsize) {
-        memmove(dest,rdata.main,dprm.samples*sizeof(uint32));
-        dest += dprm.samples*sizeof(uint32); /* skip ahead number of samples * 32 bit per sample to account for rdata.main*/
-        memmove(dest,rdata.back,dprm.samples*sizeof(uint32));
-      } else {
-        fprintf(stderr,"IQ Buffer overrun in SiteIntegrate\n");
-        fflush(stderr);
-      }
-      iqsze+=dprm.samples*sizeof(uint32)*2;  /*  Total of number bytes so far copied into samples array */
-      if (debug) {
-        fprintf(stderr,"%s seq %d :: ioff: %8d\n",station,nave,iqoff);
-        fprintf(stderr,"%s seq %d :: rdata.main 16bit :\n",station,nave);
-        fprintf(stderr," [  n  ] :: [  Im  ] [  Qm  ] :: [ Ii ] [ Qi ]\n");
-        nsamp=(int)dprm.samples;
-        for(n=0;n<(nsamp);n++){
-          Q=((rdata.main)[n] & 0xffff0000) >> 16;
-          I=(rdata.main)[n] & 0x0000ffff;
-          fprintf(stderr," %7d :: %7d %7d ",n,(int)I,(int)Q);
-          Q=((rdata.back)[n] & 0xffff0000) >> 16;
-          I=(rdata.back)[n] & 0x0000ffff;
-          fprintf(stderr,":: %7d %7d\n",(int)I,(int)Q);
+        dest = (void *)(samples);  /* look iqoff bytes into samples area */
+        dest+=iqoff;
+        if ((iqoff+dprm.samples*2*sizeof(uint32) )<iqbufsize) {
+          memmove(dest,rdata.main,dprm.samples*sizeof(uint32));
+          dest += dprm.samples*sizeof(uint32); /* skip ahead number of samples * 32 bit per sample to account for rdata.main*/
+          memmove(dest,rdata.back,dprm.samples*sizeof(uint32));
+        } else {
+          fprintf(stderr,"IQ Buffer overrun in SiteIntegrate\n");
+          fflush(stderr);
         }
-        dest = (void *)(samples);
-        dest += iqoff;
-        fprintf(stderr,"%s seq %d :: rdata.back 16bit 30: %8d %8d\n",station,nave,
+        iqsze+=dprm.samples*sizeof(uint32)*2;  /*  Total of number bytes so far copied into samples array */
+        if (debug) {
+          fprintf(stderr,"%s seq %d :: ioff: %8d\n",station,nave,iqoff);
+          fprintf(stderr,"%s seq %d :: rdata.main 16bit :\n",station,nave);
+          fprintf(stderr," [  n  ] :: [  Im  ] [  Qm  ] :: [ Ii ] [ Qi ]\n");
+          nsamp=(int)dprm.samples;
+          for(n=0;n<(nsamp);n++){
+            Q=((rdata.main)[n] & 0xffff0000) >> 16;
+            I=(rdata.main)[n] & 0x0000ffff;
+            fprintf(stderr," %7d :: %7d %7d ",n,(int)I,(int)Q);
+            Q=((rdata.back)[n] & 0xffff0000) >> 16;
+            I=(rdata.back)[n] & 0x0000ffff;
+            fprintf(stderr,":: %7d %7d\n",(int)I,(int)Q);
+          }
+          dest = (void *)(samples);
+          dest += iqoff;
+          fprintf(stderr,"%s seq %d :: rdata.back 16bit 30: %8d %8d\n",station,nave,
            ((int16 *)rdata.back)[60],((int16 *)rdata.back)[61]);
-        dest += dprm.samples*sizeof(uint32);
-        fprintf(stderr,"%s seq %d :: samples    16bit 30: %8d %8d\n",station,nave,
+          dest += dprm.samples*sizeof(uint32);
+          fprintf(stderr,"%s seq %d :: samples    16bit 30: %8d %8d\n",station,nave,
            ((int16 *)dest)[60],((int16 *)dest)[61]);
-        fprintf(stderr,"%s seq %d :: iqsze: %8d\n",station,nave,iqsze);
-      }
+          fprintf(stderr,"%s seq %d :: iqsze: %8d\n",station,nave,iqsze);
+        }
 
     /* calculate ACF */   
-      if (mplgexs==0) {
-        dest = (void *)(samples);
-        dest += iqoff;
-        rngoff=2*rxchn; 
-        if (debug) 
-        fprintf(stderr,"%s seq %d :: rngoff %d rxchn %d\n",station,nave,rngoff,rxchn);
-        if (debug) 
-        fprintf(stderr,"%s seq %d :: ACFSumPower\n",station,nave);
-        aflg=ACFSumPower(&tsgprm,mplgs,lagtable,pwr0,
+        if (mplgexs==0) {
+          dest = (void *)(samples);
+          dest += iqoff;
+          rngoff=2*rxchn; 
+          if (debug) 
+          fprintf(stderr,"%s seq %d :: rngoff %d rxchn %d\n",station,nave,rngoff,rxchn);
+          if (debug) 
+          fprintf(stderr,"%s seq %d :: ACFSumPower\n",station,nave);
+          aflg=ACFSumPower(&tsgprm,mplgs,lagtable,pwr0,
 		     (int16 *) dest,rngoff,skpnum!=0,
                      roff,ioff,badrng,
                      noise,mxpwr,seqatten[nave]*atstp,
                      thr,lmt,&abflg);
-        if (debug) 
-        fprintf(stderr,"%s seq %d :: rngoff %d rxchn %d\n",station,nave,rngoff,rxchn);
-        if (debug) 
-        fprintf(stderr,"%s seq %d :: ACFCalculate acf\n",station,nave);
-        ACFCalculate(&tsgprm,(int16 *) dest,rngoff,skpnum!=0,
-          roff,ioff,mplgs,lagtable,acfd,ACF_PART,2*dprm.samples,badrng,seqatten[nave]*atstp,NULL);
-        if (xcf ==1 ){
           if (debug) 
-            fprintf(stderr,"%s seq %d :: rngoff %d rxchn %d\n",station,nave,rngoff,rxchn);
+          fprintf(stderr,"%s seq %d :: rngoff %d rxchn %d\n",station,nave,rngoff,rxchn);
           if (debug) 
-            fprintf(stderr,"%s seq %d :: ACFCalculate xcf\n",station,nave);
+          fprintf(stderr,"%s seq %d :: ACFCalculate acf\n",station,nave);
           ACFCalculate(&tsgprm,(int16 *) dest,rngoff,skpnum!=0,
+            roff,ioff,mplgs,lagtable,acfd,ACF_PART,2*dprm.samples,badrng,seqatten[nave]*atstp,NULL);
+          if (xcf ==1 ){
+            if (debug) 
+              fprintf(stderr,"%s seq %d :: rngoff %d rxchn %d\n",station,nave,rngoff,rxchn);
+            if (debug) 
+              fprintf(stderr,"%s seq %d :: ACFCalculate xcf\n",station,nave);
+            ACFCalculate(&tsgprm,(int16 *) dest,rngoff,skpnum!=0,
                     roff,ioff,mplgs,lagtable,xcfd,XCF_PART,2*dprm.samples,badrng,seqatten[nave]*atstp,NULL);
-        }
-        if ((nave>0) && (seqatten[nave] !=seqatten[nave])) {
-        if (debug) 
-        fprintf(stderr,"%s seq %d :: rngoff %d rxchn %d\n",station,nave,rngoff,rxchn);
-        if (debug) 
-          fprintf(stderr,"%s seq %d :: ACFNormalize\n",station,nave);
+          }
+          if ((nave>0) && (seqatten[nave] !=seqatten[nave])) {
+          if (debug) 
+          fprintf(stderr,"%s seq %d :: rngoff %d rxchn %d\n",station,nave,rngoff,rxchn);
+          if (debug) 
+            fprintf(stderr,"%s seq %d :: ACFNormalize\n",station,nave);
               ACFNormalize(pwr0,acfd,xcfd,tsgprm.nrang,mplgs,atstp); 
-        }  
-        if (debug) 
-        fprintf(stderr,"%s seq %d :: rngoff %d rxchn %d\n",station,nave,rngoff,rxchn);
-
-
-      }
-      nave++;
-      iqoff=iqsze;  /* set the offset bytes for the next sequence */
-
+          }  
+          if (debug) 
+          fprintf(stderr,"%s seq %d :: rngoff %d rxchn %d\n",station,nave,rngoff,rxchn);
+        }
+        nave++;
+        iqoff=iqsze;  /* set the offset bytes for the next sequence */
+      }  /* end else for bad trigger */
     } else {
       seq_dds_low_pwr_flag=0; 
     }
