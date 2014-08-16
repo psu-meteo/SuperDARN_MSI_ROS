@@ -15,13 +15,29 @@ extern dictionary *Site_INI;
 extern int trigger_type;
 extern int32_t gpsrate;
 
+void *settings_parse_ini_usrp(struct USRPSettings *usrp_settings) {
+
+     pthread_mutex_lock(&settings_lock);
+
+     usrp_settings->enabled=iniparser_getboolean(Site_INI,"site_settings:enable_usrp",0);
+     usrp_settings->use_for_timing=iniparser_getboolean(Site_INI,"usrp:use_for_timing",0);
+     usrp_settings->use_for_dio=iniparser_getboolean(Site_INI,"usrp:use_for_dio",0);
+     usrp_settings->use_for_dds=iniparser_getboolean(Site_INI,"usrp:use_for_dds",0);
+     usrp_settings->use_for_recv=iniparser_getboolean(Site_INI,"usrp:use_for_recv",0);
+     sprintf(usrp_settings->host,iniparser_getstring(Site_INI,"usrp:host",""));
+     usrp_settings->port=iniparser_getint(Site_INI,"usrp:port",0);
+
+     pthread_mutex_unlock(&settings_lock);
+     pthread_exit(NULL);
+}
+
 void *settings_parse_ini_file(struct SiteSettings *ros_settings) {
      char ini_name[80]="/root/test.ini";
      char entry_name[80]="";
      char entry_value[256]="";
      int exists_flag;
 
-     pthread_mutex_unlock(&settings_lock);
+     pthread_mutex_lock(&settings_lock);
 
      if(Site_INI!=NULL) {
        iniparser_freedict(Site_INI);

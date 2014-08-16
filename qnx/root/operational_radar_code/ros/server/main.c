@@ -352,6 +352,11 @@ int main()
   site_settings.if_settings.att2=0;
   site_settings.if_settings.att3=0;
   site_settings.rf_settings.att4=0;
+  usrp_settings.enabled=0;
+  usrp_settings.use_for_timing=0;
+  usrp_settings.use_for_dds=0;
+  usrp_settings.use_for_dio=0;
+  usrp_settings.use_for_recv=0;
 
   rc = pthread_create(&thread, NULL, (void *) &settings_parse_ini_file,(void *)&site_settings);
   pthread_join(thread,NULL);

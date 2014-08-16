@@ -70,6 +70,8 @@ struct USRPSettings {
      char use_for_dds;	
      char use_for_recv;	
      char use_for_dio;	
+     char host[256];
+     uint8_t port;
 };
 /*
 struct ChannelStatus {
