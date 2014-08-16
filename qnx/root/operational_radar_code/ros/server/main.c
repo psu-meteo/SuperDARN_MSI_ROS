@@ -280,6 +280,7 @@ int main()
   for(i=0;i<MAX_RADARS*MAX_CHANNELS;i++) {
     radar_channels[i]=NULL ;
   }
+  memset(&bad_transmit_times, 0, sizeof(bad_transmit_times));
   bad_transmit_times.length=0;
   bad_transmit_times.start_usec=NULL;
   bad_transmit_times.duration_usec=NULL;
