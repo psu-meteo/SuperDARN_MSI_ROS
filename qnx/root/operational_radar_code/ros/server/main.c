@@ -365,6 +365,15 @@ int main()
   rc = pthread_create(&thread, NULL, (void *) &settings_rxfe_update_if,(void *)&site_settings.if_settings);
   pthread_join(thread,NULL);
   fprintf(stdout,"Configured IF Enable flag : %d\n",site_settings.ifmode);
+
+  rc = pthread_create(&thread, NULL, (void *) &settings_parse_ini_usrp,(void *)&usrp_settings);
+  pthread_join(thread,NULL);
+  fprintf(stdout,"Is USRP Enabled : %d\n",usrp_settings.enabled);
+  fprintf(stdout,"  USRP timing : %d\n",usrp_settings.use_for_timing);
+  fprintf(stdout,"  USRP dio    : %d\n",usrp_settings.use_for_dio);
+  fprintf(stdout,"  USRP dds    : %d\n",usrp_settings.use_for_dds);
+  fprintf(stdout,"  USRP recv   : %d\n",usrp_settings.use_for_recv);
+
 /*
  * Set up the signal handling
 
