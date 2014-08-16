@@ -58,6 +58,7 @@ int *ready_state_pointer;
 struct tx_status txstatus[MAX_RADARS];
 int txread[MAX_RADARS];
 struct SiteSettings site_settings;
+struct USRPSettings usrp_settings;
 struct GPSStatus gpsstatus;
 struct TRTimes bad_transmit_times;
 int32_t gpsrate=GPS_DEFAULT_TRIGRATE;
