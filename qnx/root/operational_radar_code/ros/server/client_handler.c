@@ -244,6 +244,7 @@ struct ControlProgram *control_init() {
        control_program->state=malloc(sizeof(struct ControlState));
        control_program->radarinfo=malloc(sizeof(struct RadarPRM));
        control_program->data=malloc(sizeof(struct DataPRM));
+       control_program->mmap_length=0;
        control_program->main=NULL;
        control_program->back=NULL;
        control_program->main_address=NULL;
@@ -398,8 +399,9 @@ void controlprogram_exit(struct ControlProgram *control_program)
      }
      if (verbose>1) fprintf(stderr," %p\n",control_program->parameters); 
      if (verbose>1) fprintf(stderr,"Client Exit: Freeing controlprogram data %p\n",control_program->data); 
-     if(control_program->main!=NULL) munmap(control_program->main);
-     if(control_program->back!=NULL) munmap(control_program->back);
+     if(control_program->main!=NULL) munmap(control_program->main,control_program->mmap_length);
+     if(control_program->back!=NULL) munmap(control_program->back,control_program->mmap_length);
+     control_program->mmap_length=0;
      control_program->main=NULL;
      control_program->back=NULL;
      control_program->main_address=NULL;

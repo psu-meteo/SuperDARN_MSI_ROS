@@ -17,6 +17,7 @@ void dds_exit(void *arg)
 void *dds_register_seq(void *arg)
 {
   struct DriverMsg msg;
+  memset(&msg,0,sizeof(msg));
   struct ControlProgram *control_program;
   struct timeval t0,t1;
   int index;
@@ -44,6 +45,7 @@ void *dds_register_seq(void *arg)
 void *dds_rxfe_settings(void *arg)
 {
   struct DriverMsg msg;
+  memset(&msg, 0, sizeof(msg));
   struct SiteSettings *site_settings;
 
   site_settings=arg;
@@ -62,6 +64,7 @@ void *dds_rxfe_settings(void *arg)
 void *dds_ready_controlprogram(void *arg)
 {
   struct DriverMsg msg;
+  memset(&msg,0,sizeof(msg));
   struct ControlProgram *control_program;
   struct timeval t0,t1;
   control_program=arg;
@@ -84,6 +87,7 @@ void *dds_ready_controlprogram(void *arg)
 void *dds_end_controlprogram(void *arg)
 {
   struct DriverMsg msg;
+  memset(&msg,0,sizeof(msg));
   struct timeval t0,t1;
   pthread_mutex_lock(&dds_comm_lock);
   msg.type=DDS_CtrlProg_END;
@@ -99,6 +103,7 @@ void *dds_end_controlprogram(void *arg)
 void *dds_pretrigger(void *arg)
 {
   struct DriverMsg msg;
+  memset(&msg,0,sizeof(msg));
   struct ControlProgram *control_program;
   struct timeval t0,t1;
   int total=0;

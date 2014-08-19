@@ -113,6 +113,7 @@ struct ControlProgram {
      uint64_t main_address;
      uint32_t *back;
      uint64_t back_address;
+     uint64_t mmap_length;
      int active;
 };
 

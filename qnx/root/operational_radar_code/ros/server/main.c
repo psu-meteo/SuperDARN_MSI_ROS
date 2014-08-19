@@ -48,7 +48,7 @@ int recvsock=-1;
 /* Thread Management Global Variables */
 struct Thread_List_Item *controlprogram_threads;
 pthread_mutex_t controlprogram_list_lock,ros_state_lock,coord_lock,exit_lock;
-pthread_mutex_t dds_comm_lock,timing_comm_lock,gps_comm_lock,timing_comm_lock,recv_comm_lock,dio_comm_lock,usrp_comm_lock;
+pthread_mutex_t dds_comm_lock,timing_comm_lock,gps_comm_lock,recv_comm_lock,dio_comm_lock,usrp_comm_lock;
 pthread_mutex_t thread_list_lock,settings_lock;
 pthread_cond_t ready_flag;
 pthread_t timeout_thread=NULL;
@@ -222,7 +222,7 @@ int main()
   strcpy(coord_lock_buffer, "");
 
   printf("Size of Struct ROSMsg  %d\n",sizeof(struct ROSMsg));
-  printf("Size of Struct int32  %d\n",sizeof(int32_t));
+  printf("Size of Struct int32_t  %d\n",sizeof(int32_t));
   printf("Size of Struct float  %d\n",sizeof(float));
   printf("Size of Struct unsigned char  %d\n",sizeof(unsigned char));
   printf("Size of Struct ControlPRM  %d\n",sizeof(struct ControlPRM));

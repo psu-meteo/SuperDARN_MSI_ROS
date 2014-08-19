@@ -1,3 +1,5 @@
+#include <errno.h>
+
 #include <pthread.h>
 #include <limits.h>
 #include <math.h>
@@ -56,11 +58,13 @@ void *receiver_rxfe_settings(void *arg) {
   if (site_settings!=NULL) {
     msg.type=RECV_RXFE_SETTINGS;
     msg.status=1;
-    send_data(recvsock, &msg, sizeof(struct DriverMsg));
-    send_data(recvsock, &site_settings->ifmode, sizeof(site_settings->ifmode));
-    send_data(recvsock, &site_settings->rf_settings, sizeof(struct RXFESettings));
-    send_data(recvsock, &site_settings->if_settings, sizeof(struct RXFESettings));
-    recv_data(recvsock, &msg, sizeof(struct DriverMsg));                                    
+    if (recvsock > 0){
+        send_data(recvsock, &msg, sizeof(struct DriverMsg));
+        send_data(recvsock, &site_settings->ifmode, sizeof(site_settings->ifmode));
+        send_data(recvsock, &site_settings->rf_settings, sizeof(struct RXFESettings));
+        send_data(recvsock, &site_settings->if_settings, sizeof(struct RXFESettings));
+        recv_data(recvsock, &msg, sizeof(struct DriverMsg));                                    
+    }
   }                                                                                        
   pthread_mutex_unlock(&recv_comm_lock);
 }                                                           
@@ -446,9 +450,9 @@ void receiver_assign_frequency(struct ControlProgram *arg){
      		while (thread_list!=NULL) {
        			controlprogram=thread_list->data;
 			if(controlprogram!=arg) {                   
-           		if (verbose>1) fprintf(stderr,"  %d %d :: Checking Control Program :: %p  :: %d %d\n",
-                       		arg->parameters->radar,arg->parameters->channel,controlprogram,
-                       		controlprogram->parameters->radar,controlprogram->parameters->channel);
+           		//if (verbose>1) fprintf(stderr,"  %d %d :: Checking Control Program :: %p  :: %d %d\n",
+                //       		arg->parameters->radar,arg->parameters->channel,controlprogram,
+                //       		controlprogram->parameters->radar,controlprogram->parameters->channel);
        				if(controlprogram->active!=0) {
          			//if (controlprogram->parameters->priority < arg->parameters->priority){
            				if (blacklist_count < (Max_Control_THREADS+*blacklist_count_pointer)) {  
@@ -696,14 +700,15 @@ void receiver_exit(void *arg)
 void *receiver_end_controlprogram(struct ControlProgram *arg)
 {
   struct DriverMsg msg;
-  pthread_mutex_lock(&recv_comm_lock);
   if (arg!=NULL) {
      if (arg->state->pulseseqs[arg->parameters->current_pulseseq_index]!=NULL) {
        if (recvsock>0) {
+         pthread_mutex_lock(&recv_comm_lock);
          msg.type=RECV_CtrlProg_END;
          msg.status=1;
          send_data(recvsock, &msg, sizeof(struct DriverMsg));
          send_data(recvsock, arg->parameters, sizeof(struct ControlPRM));
+         pthread_mutex_unlock(&recv_comm_lock);
        }
        if (usrp_settings.use_for_recv && (usrpsock>0) ) {
          pthread_mutex_lock(&usrp_comm_lock);
@@ -715,7 +720,6 @@ void *receiver_end_controlprogram(struct ControlProgram *arg)
        }
      }
   }
-  pthread_mutex_unlock(&recv_comm_lock);
   pthread_exit(NULL);
 };
 
@@ -727,9 +731,11 @@ void *receiver_ready_controlprogram(struct ControlProgram *arg)
      if (arg->state->pulseseqs[arg->parameters->current_pulseseq_index]!=NULL) {
        msg.type=RECV_CtrlProg_READY;
        msg.status=1;
-       send_data(recvsock, &msg, sizeof(struct DriverMsg));
-       send_data(recvsock, arg->parameters, sizeof(struct ControlPRM));
-       recv_data(recvsock, &msg, sizeof(struct DriverMsg));
+       if (recvsock > 0){
+        send_data(recvsock, &msg, sizeof(struct DriverMsg));
+        send_data(recvsock, arg->parameters, sizeof(struct ControlPRM));
+        recv_data(recvsock, &msg, sizeof(struct DriverMsg));
+       }
      } 
   }
   pthread_mutex_unlock(&recv_comm_lock);
@@ -743,8 +749,10 @@ void *receiver_pretrigger(void *arg)
 
    msg.type=RECV_PRETRIGGER;
    msg.status=1;
-   send_data(recvsock, &msg, sizeof(struct DriverMsg));
-   recv_data(recvsock, &msg, sizeof(struct DriverMsg));
+   if (recvsock > 0){
+    send_data(recvsock, &msg, sizeof(struct DriverMsg));
+    recv_data(recvsock, &msg, sizeof(struct DriverMsg));
+   }
    pthread_mutex_unlock(&recv_comm_lock);
    pthread_exit(NULL);
 
@@ -757,18 +765,19 @@ void *receiver_posttrigger(void *arg)
 
    msg.type=RECV_POSTTRIGGER;
    msg.status=1;
-   send_data(recvsock, &msg, sizeof(struct DriverMsg));
-   recv_data(recvsock, &msg, sizeof(struct DriverMsg));
+   if (recvsock>0) send_data(recvsock, &msg, sizeof(struct DriverMsg));
+   if (recvsock>0) recv_data(recvsock, &msg, sizeof(struct DriverMsg));
    pthread_mutex_unlock(&recv_comm_lock);
    pthread_exit(NULL);
 };
 
 void *receiver_controlprogram_get_data(struct ControlProgram *arg)
 {
+  int i;
   struct DriverMsg msg;
   struct timeval t0,t1,t3;
   char *timestr;
-  int rval,ready_state;
+  int ready_state;
   char shm_device[80];
   int shm_fd;
   int r,c,b;
@@ -794,19 +803,25 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
           usleep(1);
         }
       } 
-      pthread_mutex_lock(&recv_comm_lock);
       collection_count++;
       if (error_flag==0) {
+        r=arg->parameters->radar-1;
+        c=arg->parameters->channel-1;
         arg->data->samples=arg->parameters->number_of_samples;
+        printf("munmap on main and back\n");
         if(arg->main!=NULL) munmap(arg->main,sizeof(unsigned int)*arg->data->samples);
+        //if(arg->main!=NULL) munmap(arg->main,MAX_SAMPLES*4);
         if(arg->back!=NULL) munmap(arg->back,sizeof(unsigned int)*arg->data->samples);
+        //if(arg->back!=NULL) munmap(arg->back,MAX_SAMPLES*4);
 
         if (recvsock>0) {
+          pthread_mutex_lock(&recv_comm_lock);
           msg.type=RECV_GET_DATA;
           msg.status=1;
           send_data(recvsock, &msg, sizeof(struct DriverMsg));
           send_data(recvsock, arg->parameters, sizeof(struct ControlPRM));
           recv_data(recvsock,&arg->data->status,sizeof(arg->data->status));
+          pthread_mutex_unlock(&recv_comm_lock);
         }
         if (usrp_settings.use_for_recv && (usrpsock>0) ) {
           pthread_mutex_lock(&usrp_comm_lock);
@@ -815,70 +830,138 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
           send_data(usrpsock, &msg, sizeof(struct DriverMsg));
           send_data(usrpsock, arg->parameters, sizeof(struct ControlPRM));
           recv_data(usrpsock,&arg->data->status,sizeof(arg->data->status));
+          printf("GET_DATA status: %i\n", arg->data->status);
           pthread_mutex_unlock(&usrp_comm_lock);
         }
       } else {
         arg->data->status=error_flag;
         arg->data->samples=0;
       }      
+      printf("arg->data->status: %i\n", arg->data->status);
       if (arg->data->status==0 ) {
         //printf("RECV: GET_DATA: status good\n");
         if (recvsock>0) {
+          pthread_mutex_lock(&recv_comm_lock);
           recv_data(recvsock,&arg->data->shm_memory,sizeof(arg->data->shm_memory));
           recv_data(recvsock,&arg->data->frame_header,sizeof(arg->data->frame_header));
           recv_data(recvsock,&arg->data->bufnum,sizeof(arg->data->bufnum));
           recv_data(recvsock,&arg->data->samples,sizeof(arg->data->samples));
-          recv_data(recvsock,&arg->main_address,sizeof(arg->main_address));
-          recv_data(recvsock,&arg->back_address,sizeof(arg->back_address));
+          b=arg->data->bufnum;
+          /* Note:
+ 	   *   main_address and back address are  uint64_t 
+ 	  */    
+          switch(arg->data->shm_memory) {
+            case 0: // DMA Memory access
+              recv_data(recvsock,&arg->main_address,sizeof(arg->main_address));
+              recv_data(recvsock,&arg->back_address,sizeof(arg->back_address));
+#ifdef __QNX__
+              //fprintf(stdout,"RECV: GET_DATA: set up DMA memory space\n");
+              arg->main =mmap( 0, sizeof(uint32_t)*arg->data->samples, 
+                        PROT_READ|PROT_NOCACHE, MAP_PHYS, NOFD, 
+                            arg->main_address+sizeof(uint32_t)*arg->data->frame_header);
+              arg->back =mmap( 0, sizeof(unint32_t)*arg->data->samples, 
+                        PROT_READ|PROT_NOCACHE, MAP_PHYS, NOFD, 
+                        arg->back_address+sizeof(uint32_t)*arg->data->frame_header);
+#else
+              fprintf(stderr,"RECV: GET_DATA: Direct DMA not supported on this OS\n");
+              arg->main=NULL;
+              arg->back=NULL;
+#endif
+              break;
+            case 1: // SHM Memory access
+              printf("RECV: GET_DATA: set up shm memory space\n");
+              sprintf(shm_device,"/receiver_main_%d_%d_%d",r,c,b);
+	      printf("device: %s\n", shm_device);
+              printf("opening device\n");
+              shm_fd=shm_open(shm_device,O_RDONLY,S_IRUSR | S_IWUSR);
+	      int errorint;
+              if (shm_fd == -1) {errorint = errno; fprintf(stderr,"shm_open error\n");}
+              ftruncate(shm_fd,arg->data->samples * sizeof(uint32_t));
+              arg->main=mmap(0,sizeof(uint32_t)*arg->data->samples,PROT_READ,MAP_SHARED,shm_fd,0);
+              close(shm_fd);
+              sprintf(shm_device,"/receiver_back_%d_%d_%d",r,c,b);
+	      printf("device: %s\n", shm_device);
+              shm_fd=shm_open(shm_device,O_RDONLY,S_IRUSR | S_IWUSR);
+              ftruncate(shm_fd,arg->data->samples * sizeof(uint32_t));
+              arg->back=mmap(0,sizeof(uint32_t)*arg->data->samples,PROT_READ,MAP_SHARED,shm_fd,0);
+              close(shm_fd);
+              break;
+            case 2: // Send Samples over socket to SHM Memory location
+              if(arg->main!=NULL) munmap(arg->main,arg->mmap_length);
+              if(arg->back!=NULL) munmap(arg->back,arg->mmap_length);
+              arg->main=NULL;
+              arg->back=NULL;
+              arg->mmap_length=sizeof(uint32_t)*arg->data->samples;
+              arg->main=mmap(0,arg->mmap_length,PROT_READ|PROT_WRITE,MAP_ANONYMOUS,-1,0);
+              arg->back=mmap(0,arg->mmap_length,PROT_READ|PROT_WRITE,MAP_ANONYMOUS,-1,0);
+              recv_data(recvsock,&arg->main,sizeof(int32_t)*arg->data->samples);
+              recv_data(recvsock,&arg->back,sizeof(int32_t)*arg->data->samples);
+              break;
+          }
+          pthread_mutex_unlock(&recv_comm_lock);
         }
         if (usrp_settings.use_for_recv && (usrpsock>0) ) {
           pthread_mutex_lock(&usrp_comm_lock);
+
           recv_data(usrpsock,&arg->data->shm_memory,sizeof(arg->data->shm_memory));
           recv_data(usrpsock,&arg->data->frame_header,sizeof(arg->data->frame_header));
           recv_data(usrpsock,&arg->data->bufnum,sizeof(arg->data->bufnum));
           recv_data(usrpsock,&arg->data->samples,sizeof(arg->data->samples));
-          recv_data(usrpsock,&arg->main_address,sizeof(arg->main_address));
-          recv_data(usrpsock,&arg->back_address,sizeof(arg->back_address));
+          b=arg->data->bufnum;
+          /* Note:
+ 	   *   main_address and back address are  uint64_t 
+ 	  */    
+          switch(arg->data->shm_memory) {
+            case 0: // DMA Memory access
+              recv_data(usrpsock,&arg->main_address,sizeof(arg->main_address));
+              recv_data(usrpsock,&arg->back_address,sizeof(arg->back_address));
+#ifdef __QNX__
+              //fprintf(stdout,"RECV: GET_DATA: set up DMA memory space\n");
+              arg->main =mmap( 0, sizeof(uint32_t)*arg->data->samples, 
+                        PROT_READ|PROT_NOCACHE, MAP_PHYS, NOFD, 
+                            arg->main_address+sizeof(uint32_t)*arg->data->frame_header);
+              arg->back =mmap( 0, sizeof(unint32_t)*arg->data->samples, 
+                        PROT_READ|PROT_NOCACHE, MAP_PHYS, NOFD, 
+                        arg->back_address+sizeof(uint32_t)*arg->data->frame_header);
+#else
+              fprintf(stderr,"RECV: GET_DATA: Direct DMA not supported on this OS\n");
+              arg->main=NULL;
+              arg->back=NULL;
+#endif
+              break;
+            case 1: // SHM Memory access
+              printf("RECV: GET_DATA: set up shm memory space\n");
+              sprintf(shm_device,"/receiver_main_%d_%d_%d",r,c,b);
+	      printf("device: %s\n", shm_device);
+              printf("opening device\n");
+              shm_fd=shm_open(shm_device,O_RDONLY,S_IRUSR | S_IWUSR);
+	      int errorint;
+              if (shm_fd == -1) {errorint = errno; fprintf(stderr,"shm_open error\n");}
+              ftruncate(shm_fd,arg->data->samples * sizeof(uint32_t));
+              arg->main=mmap(0,sizeof(uint32_t)*arg->data->samples,PROT_READ,MAP_SHARED,shm_fd,0);
+              close(shm_fd);
+              sprintf(shm_device,"/receiver_back_%d_%d_%d",r,c,b);
+	      printf("device: %s\n", shm_device);
+              shm_fd=shm_open(shm_device,O_RDONLY,S_IRUSR | S_IWUSR);
+              ftruncate(shm_fd,arg->data->samples * sizeof(uint32_t));
+              arg->back=mmap(0,sizeof(uint32_t)*arg->data->samples,PROT_READ,MAP_SHARED,shm_fd,0);
+              close(shm_fd);
+              break;
+            case 2: // Send Samples over socket to SHM Memory location
+              if(arg->main!=NULL) munmap(arg->main,arg->mmap_length);
+              if(arg->back!=NULL) munmap(arg->back,arg->mmap_length);
+              arg->main=NULL;
+              arg->back=NULL;
+              arg->mmap_length=sizeof(uint32_t)*arg->data->samples;
+              arg->main=mmap(0,arg->mmap_length,PROT_READ|PROT_WRITE,MAP_ANONYMOUS,-1,0);
+              arg->back=mmap(0,arg->mmap_length,PROT_READ|PROT_WRITE,MAP_ANONYMOUS,-1,0);
+              recv_data(usrpsock,&arg->main,sizeof(int32_t)*arg->data->samples);
+              recv_data(usrpsock,&arg->back,sizeof(int32_t)*arg->data->samples);
+              break;
+          }
           pthread_mutex_unlock(&usrp_comm_lock);
         }
-        //printf("RECV: GET_DATA: data recv'd\n");
-        r=arg->parameters->radar-1;
-        c=arg->parameters->channel-1;
-        b=arg->data->bufnum;
-
-        //printf("RECV: GET_DATA: samples %d\n",arg->data->samples);
-        //printf("RECV: GET_DATA: frame header %d\n",arg->data->frame_header);
-        //printf("RECV: GET_DATA: shm flag %d\n",arg->data->shm_memory);
-        if(arg->data->shm_memory) {
-          //printf("RECV: GET_DATA: set up shm memory space\n");
-          sprintf(shm_device,"/receiver_main_%d_%d_%d",r,c,b);
-          shm_fd=shm_open(shm_device,O_RDONLY,S_IRUSR | S_IWUSR);
-          if (shm_fd == -1) fprintf(stderr,"shm_open error\n");              
-          arg->main=mmap(0,sizeof(unsigned int)*arg->data->samples,PROT_READ,MAP_SHARED,shm_fd,0);
-          close(shm_fd);
-          sprintf(shm_device,"/receiver_back_%d_%d_%d",r,c,b);
-          shm_fd=shm_open(shm_device,O_RDONLY,S_IRUSR | S_IWUSR);
-          arg->back=mmap(0,sizeof(unsigned int)*arg->data->samples,PROT_READ,MAP_SHARED,shm_fd,0);
-          close(shm_fd);
-          //printf("RECV: GET_DATA: end set up shm memory space\n");
-
-        } else {
-#ifdef __QNX__
-          //printf("RECV: GET_DATA: set up non-shm memory space\n");
-          arg->main =mmap( 0, sizeof(unsigned int)*arg->data->samples, 
-                        PROT_READ|PROT_NOCACHE, MAP_PHYS, NOFD, 
-                            arg->main_address+sizeof(unsigned int)*arg->data->frame_header);
-//                            arg->main_address);
-          arg->back =mmap( 0, sizeof(unsigned int)*arg->data->samples, 
-                        PROT_READ|PROT_NOCACHE, MAP_PHYS, NOFD, 
-                        arg->back_address+sizeof(unsigned int)*arg->data->frame_header);
-//                            arg->back_address);
-#else
-          arg->main=NULL;
-          arg->back=NULL;
-#endif
-          //printf("RECV: GET_DATA: end set up non-shm memory space\n");
-        }
+        //fprintf(stdout,"error_flag: %i\n", error_flag);
 
       } else { //error occurred
         error_count++;
@@ -892,10 +975,13 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
         fflush(stderr);
       }
 
+      //fprintf(stdout,"error_flag: %i\n", error_flag);
+      //fprintf(stdout,"size of struct DriverMsg: %i\n", sizeof(struct DriverMsg));
       if (error_flag==0) {
-        //printf("RECV: GET_DATA: recv RosMsg\n");
         if (recvsock>0) {
-         recv_data(recvsock, &msg, sizeof(struct DriverMsg));
+          pthread_mutex_lock(&recv_comm_lock);
+          recv_data(recvsock, &msg, sizeof(struct DriverMsg));
+          pthread_mutex_unlock(&recv_comm_lock);
         }
         if (usrp_settings.use_for_recv && (usrpsock>0) ) {
           pthread_mutex_lock(&usrp_comm_lock);
@@ -903,8 +989,6 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
           pthread_mutex_unlock(&usrp_comm_lock);
         }
       }
-      //printf("RECV: GET_DATA: unlock comm lock\n");
-      pthread_mutex_unlock(&recv_comm_lock);
     }
   }
   pthread_exit(NULL);
@@ -928,7 +1012,8 @@ void *receiver_clrfreq(struct ControlProgram *arg)
 
 //  fprintf(stdout,"CLRFREQ: %d %d\n",arg->parameters->radar-1,arg->parameters->channel-1);
 //  fprintf(stdout," FFT FREQ: %d %d\n",arg->clrfreqsearch.start,arg->clrfreqsearch.end);
-  pthread_mutex_lock(&recv_comm_lock);
+  //pthread_mutex_lock(&usrp_comm_lock);
+  //pthread_mutex_lock(&recv_comm_lock);
   gettimeofday(&t0,NULL);
 
   /* Check to see if Clr search request falls within full scan parameters */
@@ -948,6 +1033,7 @@ void *receiver_clrfreq(struct ControlProgram *arg)
     //Do not perform Full Search
     clr_needed=1;
   }
+  clr_needed=1;
   switch(clr_needed) {
    case 0:
      break; 
@@ -982,6 +1068,7 @@ void *receiver_clrfreq(struct ControlProgram *arg)
 */
    case 1:
     if (recvsock>0) {
+      pthread_mutex_lock(&recv_comm_lock);
       r=arg->parameters->radar-1;
       msg.type=RECV_CLRFREQ;
       msg.status=1;
@@ -1000,12 +1087,14 @@ void *receiver_clrfreq(struct ControlProgram *arg)
       pwr = (double*) malloc(sizeof(double) * arg->state->N);
       recv_data(recvsock, pwr, sizeof(double)*arg->state->N);
       recv_data(recvsock, &msg, sizeof(struct DriverMsg));
+      pthread_mutex_unlock(&recv_comm_lock);
     }
     if (usrp_settings.use_for_recv && (usrpsock>0) ) {
       pthread_mutex_lock(&usrp_comm_lock);
       r=arg->parameters->radar-1;
       msg.type=RECV_CLRFREQ;
       msg.status=1;
+      printf("Starting recv_clr_freq\n");
       send_data(usrpsock, &msg, sizeof(struct DriverMsg));
       send_data(usrpsock, &arg->clrfreqsearch, sizeof(struct CLRFreqPRM));
       send_data(usrpsock, arg->parameters, sizeof(struct ControlPRM));
@@ -1055,7 +1144,6 @@ void *receiver_clrfreq(struct ControlProgram *arg)
   //printf(" Start Freq: %lf\n",arg->state->fft_array[0].freq);
   if (pwr!=NULL) free(pwr);
   pwr=NULL;
-  pthread_mutex_unlock(&recv_comm_lock);
   pthread_exit(NULL);
 
 }

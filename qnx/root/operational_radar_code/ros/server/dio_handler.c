@@ -63,6 +63,7 @@ struct FreqTable *FreqLoadTable(FILE *fp) {
 void *DIO_ready_controlprogram(struct ControlProgram *arg)
 {
   struct DriverMsg msg;
+  memset(&msg, 0, sizeof(msg));
   pthread_mutex_lock(&dio_comm_lock);
    if (arg!=NULL) {
      if (arg->state->pulseseqs[arg->parameters->current_pulseseq_index]!=NULL) {
@@ -80,6 +81,7 @@ void *DIO_ready_controlprogram(struct ControlProgram *arg)
 void *DIO_pretrigger(void *arg)
 {
   struct DriverMsg msg;
+  memset(&msg, 0, sizeof(msg));
   pthread_mutex_lock(&dio_comm_lock);
 
    msg.type=DIO_PRETRIGGER;
@@ -142,6 +144,7 @@ void *DIO_rxfe_reset(void *arg)
 void *dio_rxfe_settings(void *arg)
 {
   struct DriverMsg msg;
+  memset(&msg, 0, sizeof(msg));
   struct SiteSettings *site_settings;
 
   site_settings=arg;
