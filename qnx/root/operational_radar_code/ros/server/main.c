@@ -51,7 +51,7 @@ pthread_mutex_t controlprogram_list_lock,ros_state_lock,coord_lock,exit_lock;
 pthread_mutex_t dds_comm_lock,timing_comm_lock,gps_comm_lock,recv_comm_lock,dio_comm_lock,usrp_comm_lock;
 pthread_mutex_t thread_list_lock,settings_lock;
 pthread_cond_t ready_flag;
-pthread_t timeout_thread=NULL;
+pthread_t timeout_thread;
 
 /* State Global Variables */
 dictionary *Site_INI;
@@ -122,14 +122,12 @@ void graceful_cleanup(int signum)
     }
   }
   if (verbose>0) fprintf(stderr,"Done with control program threads now lets do worker threads\n");
-  if (timeout_thread!=NULL) {
-    if (verbose>0) fprintf(stderr,"Cancelling Timeout thread\n");
-    pthread_cancel(timeout_thread);
-    if (verbose>0) fprintf(stderr,"  Timeout thread cancelled\n");
-    if (verbose>0) fprintf(stderr,"  joining Timeout thread\n");
-    pthread_join(timeout_thread,NULL);
-    if (verbose>0) fprintf(stderr,"  Back from joining Timeout thread\n");
-  }
+  if (verbose>0) fprintf(stderr,"Cancelling Timeout thread\n");
+  pthread_cancel(timeout_thread);
+  if (verbose>0) fprintf(stderr,"  Timeout thread cancelled\n");
+  if (verbose>0) fprintf(stderr,"  joining Timeout thread\n");
+  pthread_join(timeout_thread,NULL);
+  if (verbose>0) fprintf(stderr,"  Back from joining Timeout thread\n");
   errno=ECANCELED;
   if (verbose>0) fprintf(stderr,"Done with worker threads now lets exit\t");
   perror( "--> Stopping the ROS server process");
@@ -316,7 +314,7 @@ int main()
           end=atoi(field);
           blacklist[blacklist_count].start=start;
           blacklist[blacklist_count].end=end;
-          blacklist[blacklist_count].program=NULL;
+          blacklist[blacklist_count].program=(uint64_t)NULL;
           blacklist_count++;
         } else {
 //        //printf("found something else: %s\n",s);

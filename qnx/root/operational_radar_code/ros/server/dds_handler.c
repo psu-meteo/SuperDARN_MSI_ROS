@@ -1,6 +1,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <sys/time.h>
+#include <string.h>
 #include "control_program.h"
 #include "global_server_variables.h"
 

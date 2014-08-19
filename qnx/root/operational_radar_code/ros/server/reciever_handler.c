@@ -465,12 +465,12 @@ void receiver_assign_frequency(struct ControlProgram *arg){
 							if(minimum_separation > controlprogram->state->rx_sideband ) {
            							blacklist[blacklist_count].start=controlprogram->state->best_assigned_freq-minimum_separation;
            							blacklist[blacklist_count].end=controlprogram->state->best_assigned_freq+minimum_separation;
-           							blacklist[blacklist_count].program=(unsigned int)controlprogram;
+           							blacklist[blacklist_count].program=(uint64_t)controlprogram;
 
 							} else {
            							blacklist[blacklist_count].start=controlprogram->state->best_assigned_freq-controlprogram->state->rx_sideband;
            							blacklist[blacklist_count].end=controlprogram->state->best_assigned_freq+controlprogram->state->rx_sideband;
-           							blacklist[blacklist_count].program=(unsigned int)controlprogram;
+           							blacklist[blacklist_count].program=(uint64_t)controlprogram;
 							}
            						if (verbose>1) fprintf(stderr,"  %d %d :: Adding blacklist :: %d %d :  %d %d\n",
                        						arg->parameters->radar,arg->parameters->channel,

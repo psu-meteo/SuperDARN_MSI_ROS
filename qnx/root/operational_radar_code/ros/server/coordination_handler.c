@@ -158,7 +158,7 @@ void *coordination_handler(struct ControlProgram *control_program)
 	      fflush(stderr);
           }
           gettimeofday(&t3,NULL);
-          rc = pthread_create(&threads[0], NULL, (void *) &timing_trigger, (void *)trigger_type);
+          rc = pthread_create(&threads[0], NULL, (void *) &timing_trigger, (void *)&trigger_type);
           pthread_join(threads[0],NULL);
           if (verbose > 1) { 
             gettimeofday(&t4,NULL);
@@ -188,7 +188,7 @@ void *coordination_handler(struct ControlProgram *control_program)
                 cprog->data->event_capture=cprog->state->gpscapture;
                 if (txread[cprog->parameters->radar-1]){
                   i=0;
-                  rc = pthread_create(&threads[i], NULL, (void *) &DIO_transmitter_status, (void *)cprog->parameters->radar);
+                  rc = pthread_create(&threads[i], NULL, (void *) &DIO_transmitter_status, (void *)&cprog->parameters->radar);
                   pthread_join(threads[i],NULL);
                   txread[cprog->parameters->radar-1]=0;
                 }

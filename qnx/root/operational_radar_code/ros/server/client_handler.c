@@ -247,8 +247,8 @@ struct ControlProgram *control_init() {
        control_program->mmap_length=0;
        control_program->main=NULL;
        control_program->back=NULL;
-       control_program->main_address=NULL;
-       control_program->back_address=NULL;
+       control_program->main_address=(uint64_t)NULL;
+       control_program->back_address=(uint64_t)NULL;
        strcpy(control_program->parameters->name,"Generic Control Program Name - 80");
        strcpy(control_program->parameters->description,"Generic  Control Program  Description - 120");
        control_program->parameters->radar=-1;
@@ -404,8 +404,8 @@ void controlprogram_exit(struct ControlProgram *control_program)
      control_program->mmap_length=0;
      control_program->main=NULL;
      control_program->back=NULL;
-     control_program->main_address=NULL;
-     control_program->back_address=NULL;
+     control_program->main_address=(uint64_t)NULL;
+     control_program->back_address=(uint64_t)NULL;
      if(control_program->data!=NULL) {
        free(control_program->data);
        control_program->data=NULL;
@@ -566,8 +566,7 @@ void *control_handler(struct ControlProgram *control_program)
                 control_program->active=-1;
                 control_program->state->ready=0;
                 pthread_mutex_lock(&coord_lock);
-                rc = pthread_create(&thread, NULL, (void *)&coordination_handler,(void *)
-control_program);
+                rc = pthread_create(&thread, NULL, (void *)&coordination_handler,(void *) control_program);
                 pthread_join(thread,NULL);
                 pthread_mutex_unlock(&coord_lock);
               }
