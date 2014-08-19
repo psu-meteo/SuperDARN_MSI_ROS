@@ -778,6 +778,7 @@ int SiteRosIntegrate(int (*lags)[2]) {
   /* phase code declarations */
   int n,nsamp, *code,   Iout, Qout;
   uint32 uI32,uQ32;
+  uint32 *maddr, *baddr; 
   if (debug) {
     fprintf(stderr,"%s SiteIntegrate: start\n",station);
   }
@@ -1332,13 +1333,15 @@ usleep(usecs);
           fprintf(stderr,"%s seq %d :: rdata.main 16bit :\n",station,nave);
           fprintf(stderr," [  n  ] :: [  Im  ] [  Qm  ] :: [ Ii ] [ Qi ]\n");
           nsamp=(int)dprm.samples;
+          maddr = (uint32 *)rdata.main;
+          baddr = (uint32 *)rdata.back;
           for(n=0;n<(nsamp);n++){
-            Q=((rdata.main)[n] & 0xffff0000) >> 16;
-            I=(rdata.main)[n] & 0x0000ffff;
-            fprintf(stderr," %7d :: %7d %7d ",n,(int)I,(int)Q);
+            Q=(maddr[n] & 0xffff0000) >> 16;
+            I=maddr[n] & 0x0000ffff;
+            fprintf(stderr," %7d :: 0x%x : %7d %7d " ,n,(uint32)maddr[n],(int)I,(int)Q);
             Q=((rdata.back)[n] & 0xffff0000) >> 16;
-            I=(rdata.back)[n] & 0x0000ffff;
-            fprintf(stderr,":: %7d %7d\n",(int)I,(int)Q);
+            I=((uint32)((rdata.back)[n])) & 0x0000ffff;
+            fprintf(stderr," :: 0x%x : %7d %7d\n" ,(uint32)baddr[n],(int)I,(int)Q);
           }
           dest = (void *)(samples);
           dest += iqoff;

@@ -815,7 +815,6 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
         r=arg->parameters->radar-1;
         c=arg->parameters->channel-1;
         arg->data->samples=arg->parameters->number_of_samples;
-        printf("munmap on main and back\n");
         if(arg->main!=NULL) munmap(arg->main,sizeof(unsigned int)*arg->data->samples);
         //if(arg->main!=NULL) munmap(arg->main,MAX_SAMPLES*4);
         if(arg->back!=NULL) munmap(arg->back,sizeof(unsigned int)*arg->data->samples);
@@ -834,13 +833,13 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
           send_data(usrpsock, &msg, sizeof(struct DriverMsg));
           send_data(usrpsock, arg->parameters, sizeof(struct ControlPRM));
           recv_data(usrpsock,&arg->data->status,sizeof(arg->data->status));
-          printf("GET_DATA status: %i\n", arg->data->status);
+          //printf("GET_DATA status: %i\n", arg->data->status);
         }
       } else {
         arg->data->status=error_flag;
         arg->data->samples=0;
       }      
-      printf("arg->data->status: %i\n", arg->data->status);
+      //printf("arg->data->status: %i\n", arg->data->status);
       if (arg->data->status==0 ) {
         if (verbose > 0 ) fprintf(stdout,"RECV: GET_DATA: status good\n");
         if (recvsock>0) {
@@ -918,6 +917,11 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
               }
               recv_data(recvsock,arg->main,sizeof(int32_t)*arg->data->samples);
               recv_data(recvsock,arg->back,sizeof(int32_t)*arg->data->samples);
+              //for (i=0; i<arg->data->samples;i++) {
+              //  fprintf(stdout,"i: %d main: 0x%x back: 0x%x\n",
+              //    i,(unsigned int) ((uint32_t *)arg->main)[i],((uint32_t *)arg->back)[i]);
+	      //
+              //}
               if (verbose > 0 ) 
                 fprintf(stdout,"RECV: GET_DATA: data transfered\n");
               break;

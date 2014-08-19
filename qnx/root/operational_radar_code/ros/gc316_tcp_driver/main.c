@@ -57,7 +57,7 @@ FILE 		 *gc314fs[MAX_CARDS];
 
 void *virtual_addresses[MAX_CARDS][MAX_INPUTS][MAX_CHANNELS][BUFS];
 void *physical_addresses[MAX_CARDS][MAX_INPUTS][MAX_CHANNELS][BUFS];
-int32_t *main_test_data[MAX_RADARS][MAX_CHANNELS][BUFS],*back_test_data[MAX_RADARS][MAX_CHANNELS][BUFS],*aux_test_data[MAX_RADARS][MAX_CHANNELS][BUFS]; 
+uint32_t *main_test_data[MAX_RADARS][MAX_CHANNELS][BUFS],*back_test_data[MAX_RADARS][MAX_CHANNELS][BUFS],*aux_test_data[MAX_RADARS][MAX_CHANNELS][BUFS]; 
 
 int32_t     *summed_main_addresses[MAX_RADARS][MAX_CHANNELS][BUFS];
 int32_t     *summed_back_addresses[MAX_RADARS][MAX_CHANNELS][BUFS]; 
@@ -594,7 +594,7 @@ int main(int argc, char **argv){
                     main_test_data[r][c][0][i]= IQ+32 ;	
 		    back_test_data[r][c][0][i]= IQ+64;	
 		    aux_test_data[r][c][0][i]=  IQ+128;	
-                    //fprintf(stdout,"i: %u  I: %x Q: %x IQ: %x\n",i,(unsigned int)( (uint32_t) I & 0xFFFF)+128,(unsigned int)( (uint32_t) Q << 16),(unsigned int)IQ+128);
+                    //fprintf(stdout,"i: %u  I: %x Q: %x IQ: %x\n",i,(unsigned int)( (uint32_t) I & 0xFFFF)+128,(unsigned int)( (uint32_t) Q << 16),(unsigned int) main_test_data[r][c][0][i]);
                   } 
               }
             }
@@ -971,6 +971,10 @@ int main(int argc, char **argv){
                                   //main_address=main_test_data[r][c][0]+sizeof(uint32_t)*RECV_SAMPLE_HEADER;
                                   //back_address=back_test_data[r][c][0]+sizeof(uint32_t)*RECV_SAMPLE_HEADER;
 			          if(verbose > 1 ) fprintf(stdout,"  Main Address: %p  Back Address: %p\n", (void *)main_address,(void *)back_address);	
+                                  //for (i=0;i<samples;i++) {
+                                  //  fprintf(stdout,"i: %d main: 0x%x back: 0x%x\n",
+                                  //    i,(unsigned int) ((uint32_t *)main_address)[i],((uint32_t *)back_address)[i]);
+                                  //}
 			          rval=send_data(msgsock,main_address,sizeof(uint32_t)*samples);
 			          rval=send_data(msgsock,back_address,sizeof(uint32_t)*samples);
                                   break; 
