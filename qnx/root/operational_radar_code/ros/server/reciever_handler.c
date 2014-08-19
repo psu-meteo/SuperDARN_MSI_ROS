@@ -784,8 +784,7 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
   unsigned long wait_elapsed;
   double error_percent=0;
   int error_flag;
-  pthread_mutex_lock(&recv_comm_lock);
-  pthread_mutex_lock(&usrp_comm_lock);
+  int wait_count=0;
 
   error_flag=0;
   if (collection_count==ULONG_MAX) {
@@ -795,7 +794,10 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
   if (arg!=NULL) {
     if (arg->state!=NULL) {
       gettimeofday(&t0,NULL);
+      wait_count=0;
       while(arg->state->ready!=0) {
+        if(wait_count < 2) wait_count++;
+        //if (wait_count==2) fprintf(stdout,"Trapped in Ready Wait r: %d c: %d\n",arg->parameters->radar-1,arg->parameters->channel-1);
         gettimeofday(&t3,NULL);
         wait_elapsed=(t3.tv_sec-t0.tv_sec)*1E6;
         wait_elapsed+=t3.tv_usec-t0.tv_usec;
@@ -806,6 +808,8 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
           usleep(1);
         }
       } 
+      pthread_mutex_lock(&recv_comm_lock);
+      pthread_mutex_lock(&usrp_comm_lock);
       collection_count++;
       if (error_flag==0) {
         r=arg->parameters->radar-1;
@@ -993,6 +997,8 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
         //fprintf(stdout,"error_flag: %i\n", error_flag);
 
       } else { //error occurred
+        if (recvsock>0) recv_data(recvsock, &msg, sizeof(struct DriverMsg));
+        if (usrp_settings.use_for_recv && (usrpsock>0) ) recv_data(usrpsock, &msg, sizeof(struct DriverMsg));
         error_count++;
         error_percent=(double)error_count/(double)collection_count*100.0;
         arg->data->samples=0;
@@ -1006,10 +1012,10 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
 
       //fprintf(stdout,"error_flag: %i\n", error_flag);
       //fprintf(stdout,"size of struct DriverMsg: %i\n", sizeof(struct DriverMsg));
+      pthread_mutex_unlock(&usrp_comm_lock);
+      pthread_mutex_unlock(&recv_comm_lock);
     }
   }
-  pthread_mutex_unlock(&usrp_comm_lock);
-  pthread_mutex_unlock(&recv_comm_lock);
   pthread_exit(NULL);
 };
 

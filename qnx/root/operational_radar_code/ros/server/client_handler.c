@@ -538,7 +538,7 @@ void *control_handler(struct ControlProgram *control_program)
         recv_data(socket, &msg, sizeof(struct ROSMsg));
         gettimeofday(&current_time,NULL);
         if((current_time.tv_sec-last_report.tv_sec)>5) {
-          system("date -t > /tmp/server_cmd_time");
+          //system("date -t > /tmp/server_cmd_time");
           last_report=current_time;
         }
         control_program->state->thread->last_seen=current_time;

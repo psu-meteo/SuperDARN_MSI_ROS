@@ -933,7 +933,7 @@ int main(int argc, char **argv){
                           }    
                         } else {
                           //unconfigured
-                          usleep(100000);
+                          usleep(1000);
                           status=0;
                           rval=send_data(msgsock,&status,sizeof(status));
 			  if(verbose > 1 ) fprintf(stdout,"  SHM Memory: %d\n",shm_memory);	
