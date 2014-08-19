@@ -700,26 +700,26 @@ void receiver_exit(void *arg)
 void *receiver_end_controlprogram(struct ControlProgram *arg)
 {
   struct DriverMsg msg;
+  pthread_mutex_lock(&recv_comm_lock);
+  pthread_mutex_lock(&usrp_comm_lock);
   if (arg!=NULL) {
      if (arg->state->pulseseqs[arg->parameters->current_pulseseq_index]!=NULL) {
        if (recvsock>0) {
-         pthread_mutex_lock(&recv_comm_lock);
          msg.type=RECV_CtrlProg_END;
          msg.status=1;
          send_data(recvsock, &msg, sizeof(struct DriverMsg));
          send_data(recvsock, arg->parameters, sizeof(struct ControlPRM));
-         pthread_mutex_unlock(&recv_comm_lock);
        }
        if (usrp_settings.use_for_recv && (usrpsock>0) ) {
-         pthread_mutex_lock(&usrp_comm_lock);
          msg.type=RECV_CtrlProg_END;
          msg.status=1;
          send_data(usrpsock, &msg, sizeof(struct DriverMsg));
          send_data(usrpsock, arg->parameters, sizeof(struct ControlPRM));
-         pthread_mutex_unlock(&usrp_comm_lock);
        }
      }
   }
+  pthread_mutex_unlock(&usrp_comm_lock);
+  pthread_mutex_unlock(&recv_comm_lock);
   pthread_exit(NULL);
 };
 
@@ -784,6 +784,9 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
   unsigned long wait_elapsed;
   double error_percent=0;
   int error_flag;
+  pthread_mutex_lock(&recv_comm_lock);
+  pthread_mutex_lock(&usrp_comm_lock);
+
   error_flag=0;
   if (collection_count==ULONG_MAX) {
     error_count=0;
@@ -815,23 +818,19 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
         //if(arg->back!=NULL) munmap(arg->back,MAX_SAMPLES*4);
 
         if (recvsock>0) {
-          pthread_mutex_lock(&recv_comm_lock);
           msg.type=RECV_GET_DATA;
           msg.status=1;
           send_data(recvsock, &msg, sizeof(struct DriverMsg));
           send_data(recvsock, arg->parameters, sizeof(struct ControlPRM));
           recv_data(recvsock,&arg->data->status,sizeof(arg->data->status));
-          pthread_mutex_unlock(&recv_comm_lock);
         }
         if (usrp_settings.use_for_recv && (usrpsock>0) ) {
-          pthread_mutex_lock(&usrp_comm_lock);
           msg.type=RECV_GET_DATA;
           msg.status=1;
           send_data(usrpsock, &msg, sizeof(struct DriverMsg));
           send_data(usrpsock, arg->parameters, sizeof(struct ControlPRM));
           recv_data(usrpsock,&arg->data->status,sizeof(arg->data->status));
           printf("GET_DATA status: %i\n", arg->data->status);
-          pthread_mutex_unlock(&usrp_comm_lock);
         }
       } else {
         arg->data->status=error_flag;
@@ -839,9 +838,8 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
       }      
       printf("arg->data->status: %i\n", arg->data->status);
       if (arg->data->status==0 ) {
-        //printf("RECV: GET_DATA: status good\n");
+        if (verbose > 0 ) fprintf(stdout,"RECV: GET_DATA: status good\n");
         if (recvsock>0) {
-          pthread_mutex_lock(&recv_comm_lock);
           recv_data(recvsock,&arg->data->shm_memory,sizeof(arg->data->shm_memory));
           recv_data(recvsock,&arg->data->frame_header,sizeof(arg->data->frame_header));
           recv_data(recvsock,&arg->data->bufnum,sizeof(arg->data->bufnum));
@@ -889,21 +887,40 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
               close(shm_fd);
               break;
             case 2: // Send Samples over socket to SHM Memory location
+              if (verbose > 0 ) {
+                fprintf(stdout,"RECV: GET_DATA: set up sample space\n");
+                fprintf(stdout,"  existing arg->main: %p\n",arg->main);
+                fprintf(stdout,"  existing  arg->back: %p\n",arg->back);
+                fprintf(stdout,"  existing arg->mmap_length: %ld\n",(long) arg->mmap_length);
+              }
               if(arg->main!=NULL) munmap(arg->main,arg->mmap_length);
               if(arg->back!=NULL) munmap(arg->back,arg->mmap_length);
               arg->main=NULL;
               arg->back=NULL;
               arg->mmap_length=sizeof(uint32_t)*arg->data->samples;
-              arg->main=mmap(0,arg->mmap_length,PROT_READ|PROT_WRITE,MAP_ANONYMOUS,-1,0);
-              arg->back=mmap(0,arg->mmap_length,PROT_READ|PROT_WRITE,MAP_ANONYMOUS,-1,0);
-              recv_data(recvsock,&arg->main,sizeof(int32_t)*arg->data->samples);
-              recv_data(recvsock,&arg->back,sizeof(int32_t)*arg->data->samples);
+              arg->main=mmap(0,arg->mmap_length,PROT_READ|PROT_WRITE,MAP_PRIVATE|MAP_ANONYMOUS,-1,0);
+              if ((int64_t)arg->main==-1) {
+                perror("main mmap error: ");
+              }
+              arg->back=mmap(0,arg->mmap_length,PROT_READ|PROT_WRITE,MAP_PRIVATE|MAP_ANONYMOUS,-1,0);
+              if ((int64_t)arg->back==-1) {
+                perror("back mmap error: ");
+              }
+              if (verbose > 0 ) {
+                fprintf(stdout,"  new       arg->main: %p\n",arg->main);
+                fprintf(stdout,"  new       arg->back: %p\n",arg->back);
+                fprintf(stdout,"  new       arg->mmap_length: %ld\n",(long) arg->mmap_length);
+                fprintf(stdout,"  transfer bytes: %ld\n",sizeof(int32_t)*arg->data->samples);
+              }
+              recv_data(recvsock,arg->main,sizeof(int32_t)*arg->data->samples);
+              recv_data(recvsock,arg->back,sizeof(int32_t)*arg->data->samples);
+              if (verbose > 0 ) 
+                fprintf(stdout,"RECV: GET_DATA: data transfered\n");
               break;
           }
-          pthread_mutex_unlock(&recv_comm_lock);
+          recv_data(recvsock, &msg, sizeof(struct DriverMsg));
         }
         if (usrp_settings.use_for_recv && (usrpsock>0) ) {
-          pthread_mutex_lock(&usrp_comm_lock);
 
           recv_data(usrpsock,&arg->data->shm_memory,sizeof(arg->data->shm_memory));
           recv_data(usrpsock,&arg->data->frame_header,sizeof(arg->data->frame_header));
@@ -957,14 +974,22 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
               arg->main=NULL;
               arg->back=NULL;
               arg->mmap_length=sizeof(uint32_t)*arg->data->samples;
-              arg->main=mmap(0,arg->mmap_length,PROT_READ|PROT_WRITE,MAP_ANONYMOUS,-1,0);
-              arg->back=mmap(0,arg->mmap_length,PROT_READ|PROT_WRITE,MAP_ANONYMOUS,-1,0);
+              arg->main=mmap(0,arg->mmap_length,PROT_READ|PROT_WRITE,MAP_PRIVATE|MAP_ANONYMOUS,-1,0);
+              if ((int64_t)arg->main==-1) {
+                perror("main mmap error: ");
+              }
+              arg->back=mmap(0,arg->mmap_length,PROT_READ|PROT_WRITE,MAP_PRIVATE|MAP_ANONYMOUS,-1,0);
+              if ((int64_t)arg->back==-1) {
+                perror("back mmap error: ");
+              }
               recv_data(usrpsock,&arg->main,sizeof(int32_t)*arg->data->samples);
               recv_data(usrpsock,&arg->back,sizeof(int32_t)*arg->data->samples);
               break;
           }
-          pthread_mutex_unlock(&usrp_comm_lock);
+          recv_data(usrpsock, &msg, sizeof(struct DriverMsg));
         }
+        if (verbose > 0 ) 
+                fprintf(stdout,"RECV: GET_DATA: end of status good\n");
         //fprintf(stdout,"error_flag: %i\n", error_flag);
 
       } else { //error occurred
@@ -981,20 +1006,10 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
 
       //fprintf(stdout,"error_flag: %i\n", error_flag);
       //fprintf(stdout,"size of struct DriverMsg: %i\n", sizeof(struct DriverMsg));
-      if (error_flag==0) {
-        if (recvsock>0) {
-          pthread_mutex_lock(&recv_comm_lock);
-          recv_data(recvsock, &msg, sizeof(struct DriverMsg));
-          pthread_mutex_unlock(&recv_comm_lock);
-        }
-        if (usrp_settings.use_for_recv && (usrpsock>0) ) {
-          pthread_mutex_lock(&usrp_comm_lock);
-          recv_data(usrpsock, &msg, sizeof(struct DriverMsg));
-          pthread_mutex_unlock(&usrp_comm_lock);
-        }
-      }
     }
   }
+  pthread_mutex_unlock(&usrp_comm_lock);
+  pthread_mutex_unlock(&recv_comm_lock);
   pthread_exit(NULL);
 };
 
@@ -1016,8 +1031,8 @@ void *receiver_clrfreq(struct ControlProgram *arg)
 
 //  fprintf(stdout,"CLRFREQ: %d %d\n",arg->parameters->radar-1,arg->parameters->channel-1);
 //  fprintf(stdout," FFT FREQ: %d %d\n",arg->clrfreqsearch.start,arg->clrfreqsearch.end);
-  //pthread_mutex_lock(&usrp_comm_lock);
-  //pthread_mutex_lock(&recv_comm_lock);
+  pthread_mutex_lock(&recv_comm_lock);
+  pthread_mutex_lock(&usrp_comm_lock);
   gettimeofday(&t0,NULL);
 
   /* Check to see if Clr search request falls within full scan parameters */
@@ -1072,7 +1087,6 @@ void *receiver_clrfreq(struct ControlProgram *arg)
 */
    case 1:
     if (recvsock>0) {
-      pthread_mutex_lock(&recv_comm_lock);
       r=arg->parameters->radar-1;
       msg.type=RECV_CLRFREQ;
       msg.status=1;
@@ -1091,10 +1105,8 @@ void *receiver_clrfreq(struct ControlProgram *arg)
       pwr = (double*) malloc(sizeof(double) * arg->state->N);
       recv_data(recvsock, pwr, sizeof(double)*arg->state->N);
       recv_data(recvsock, &msg, sizeof(struct DriverMsg));
-      pthread_mutex_unlock(&recv_comm_lock);
     }
     if (usrp_settings.use_for_recv && (usrpsock>0) ) {
-      pthread_mutex_lock(&usrp_comm_lock);
       r=arg->parameters->radar-1;
       msg.type=RECV_CLRFREQ;
       msg.status=1;
@@ -1114,7 +1126,6 @@ void *receiver_clrfreq(struct ControlProgram *arg)
       pwr = (double*) malloc(sizeof(double) * arg->state->N);
       recv_data(usrpsock, pwr, sizeof(double)*arg->state->N);
       recv_data(usrpsock, &msg, sizeof(struct DriverMsg));
-      pthread_mutex_unlock(&usrp_comm_lock);
     }
     centre=(arg->clrfreqsearch.end+arg->clrfreqsearch.start)/2;
     bandwidth=arg->state->N;
@@ -1148,6 +1159,8 @@ void *receiver_clrfreq(struct ControlProgram *arg)
   //printf(" Start Freq: %lf\n",arg->state->fft_array[0].freq);
   if (pwr!=NULL) free(pwr);
   pwr=NULL;
+  pthread_mutex_unlock(&usrp_comm_lock);
+  pthread_mutex_unlock(&recv_comm_lock);
   pthread_exit(NULL);
 
 }

@@ -65,7 +65,7 @@ struct USRPSettings usrp_settings;
 struct GPSStatus gpsstatus;
 struct TRTimes bad_transmit_times;
 int32_t gpsrate=GPS_DEFAULT_TRIGRATE;
-int verbose=0;
+int verbose=1;
 
 struct timeval t_pre_start,t_pre_end,t_ready_first,t_ready_final,t_post_start,t_post_end;
 
@@ -412,7 +412,7 @@ int main()
   } else  if (verbose>0) fprintf(stderr,"DDS Socket %d\n",ddssock);
   if (verbose>0) fprintf(stderr,"Opening Recv Socket\n");
   //recvsock=opentcpsock(recvhostip, recvport);
-  recvsock=openunixsock("rosrecv", 0);
+  recvsock=openunixsock("/tmp/rosrecv", 0);
   if (recvsock < 0) {
     if (verbose>0)fprintf(stderr,"RECV Socket failure %d\n",recvsock);
 //    graceful_socket_cleanup(1);

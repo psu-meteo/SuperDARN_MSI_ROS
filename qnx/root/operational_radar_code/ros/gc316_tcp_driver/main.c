@@ -48,7 +48,7 @@
 #define MAX_SAMPLES 262144 
 #define CLR_SAMP_OFFSET 10
 
-int32_t verbose=0;
+int32_t verbose=2;
 int32_t write_clr_file=0; 
 FILE *clr_data;
 
@@ -430,7 +430,7 @@ int main(int argc, char **argv){
         struct RXFESettings if_settings;
         uint32_t ifmode=IF_ENABLED;
         struct CLRFreqPRM clrfreq_parameters;
-        uint32_t *mainaddr;
+        uint32_t *addr;
         int32_t  maxclients=MAX_RADARS*MAX_CHANNELS;
         int32_t numclients=0;
         int32_t ready_index[MAX_RADARS][MAX_CHANNELS];
@@ -565,7 +565,8 @@ int main(int argc, char **argv){
         } else {
             if (verbose > 1 ) printf("Setting up for Testing\n");
 	    //printf("Filling Test Data Arrays\n");
-            shm_memory=1; // uses shm device nodes for test data
+            // shm_memory=1; /* uses shm device nodes for test data */
+            shm_memory=2; /* Send data over the socket */
 	    for(r=0;r<MAX_RADARS;r++){
 	      for(c=0;c<MAX_CHANNELS;c++){
                   sprintf(shm_device,"/receiver_main_%d_%d_%d",r,c,0);
@@ -597,7 +598,7 @@ int main(int argc, char **argv){
         printf("Entering Main loop\n");
     // OPEN TCP SOCKET AND START ACCEPTING CONNECTIONS 
 	//sock=tcpsocket(RECV_HOST_PORT);
-	sock=server_unixsocket("rosrecv",0);
+	sock=server_unixsocket("/tmp/rosrecv",0);
 	listen(sock, 5);
 	while (1) {
                 fflush(stdout);
@@ -845,13 +846,13 @@ int main(int argc, char **argv){
 //JDS : Pick up here
 		      case RECV_GET_DATA:
                         gettimeofday(&t0,NULL);
-			if(verbose > 1 ) printf("Receiver get data %d\n",configured);	
+			if(verbose > 1 ) fprintf(stdout,"Receiver get data configured: %d\n",configured);	
 		        rval=recv_data(msgsock,&client,sizeof(struct ControlPRM));
                         r=client.radar-1; 
                         c=client.channel-1; 
-			if(verbose > 1 ) printf("  radar: %d channel: %d\n",client.radar,client.channel);
+			if(verbose > 1 ) fprintf(stdout,"  radar: %d channel: %d\n",client.radar,client.channel);
                         b=0; 
-			if(verbose > 1 ) printf("r: %d c: %d\n",r,c);	
+			if(verbose > 1 ) fprintf(stdout,"r: %d c: %d\n",r,c);	
                         if (configured) {
                           if (IMAGING==0) {
 			    status=gc314WaitForData(gc314fs[r], c);
@@ -883,7 +884,6 @@ int main(int argc, char **argv){
                             rval=send_data(msgsock,&samples,sizeof(samples));
 			    if(verbose > 1 ) printf("Sent Number of Samples %d\n",samples);	
                             if (IMAGING==0) {
-                              mainaddr=(uint32_t *)virtual_addresses[r][main_input][c][b];
                               main_address=(uint64_t) physical_addresses[r][main_input][c][b];
                               back_address=(uint64_t) physical_addresses[r][back_input][c][b];
 			      if(verbose > 1 ) printf("Send physical addresses%p %p\n",main_address,back_address);	
@@ -896,8 +896,10 @@ int main(int argc, char **argv){
                                 case 1: // SHM - don't send anything 
                                   break; 
                                 case 2: //  - send samples over the wire 
-                                  main_address=main_address+sizeof(uint32_t)*RECV_SAMPLE_HEADER;
-                                  back_address=back_address+sizeof(uint32_t)*RECV_SAMPLE_HEADER;
+                                  addr=(uint32_t *)virtual_addresses[r][main_input][c][b];
+                                  main_address=(uint64_t)addr+sizeof(uint32_t)*RECV_SAMPLE_HEADER;
+                                  addr=(uint32_t *)virtual_addresses[r][back_input][c][b];
+                                  back_address=(uint64_t)addr+sizeof(uint32_t)*RECV_SAMPLE_HEADER;
 			          rval=send_data(msgsock,&main_address,sizeof(uint32_t)*samples);
 			          rval=send_data(msgsock,&back_address,sizeof(uint32_t)*samples);
                                   break; 
@@ -911,8 +913,8 @@ int main(int argc, char **argv){
                               switch(shm_memory) {
                                 case 0: // DMA - send the memory address for ros server to map
 			            fprintf(stderr,"Error:: DMA memory addressing is not valid for IMAGING\n");
-                                    main_address=summed_main_addresses[r][main_input][c][b];
-                                    back_address=summed_back_addresses[r][back_input][c][b];
+                                    main_address=(uint64_t)NULL;
+                                    back_address=(uint64_t)NULL;
                                     rval=send_data(msgsock,&main_address,sizeof(main_address));
                                     rval=send_data(msgsock,&back_address,sizeof(back_address));
                                   break; 
@@ -934,12 +936,12 @@ int main(int argc, char **argv){
                           usleep(100000);
                           status=0;
                           rval=send_data(msgsock,&status,sizeof(status));
-			  if(verbose > 1 ) printf("  SHM Memory: %d\n",shm_memory);	
+			  if(verbose > 1 ) fprintf(stdout,"  SHM Memory: %d\n",shm_memory);	
                           rval=send_data(msgsock,&shm_memory,sizeof(shm_memory));
-			  if(verbose > 1 ) printf("  FRAME Offset: %d\n",RECV_SAMPLE_HEADER);	
+			  if(verbose > 1 ) fprintf(stdout,"  FRAME Offset: %d\n",RECV_SAMPLE_HEADER);	
                           temp=RECV_SAMPLE_HEADER;
                           rval=send_data(msgsock,&temp,sizeof(temp));
-			  if(verbose > 1 ) printf("  DMA Buf: %d\n",b);	
+			  if(verbose > 1 ) fprintf(stdout,"  DMA Buf: %d\n",b);	
                           rval=send_data(msgsock,&b,sizeof(b));
                           samples=client.number_of_samples;
                           rval=send_data(msgsock,&samples,sizeof(samples));
@@ -948,21 +950,24 @@ int main(int argc, char **argv){
                                             main_test_data[r][c][0],back_test_data[r][c][0]);	
                           switch(shm_memory) {
                                 case 0: // DMA - send the memory address for ros server to map
-			            fprintf(stderr,"Error:: DMA memory addressing is not valid for IMAGING\n");
-                                    main_address=main_test_data[r][c][0];
-                                    back_address=back_test_data[r][c][0];
+			            fprintf(stderr,"Error:: DMA memory addressing is not valid for test data\n");
+                                    main_address=(uint64_t)NULL;
+                                    back_address=(uint64_t)NULL;
                                     rval=send_data(msgsock,&main_address,sizeof(main_address));
                                     rval=send_data(msgsock,&back_address,sizeof(back_address));
                                   break; 
                                 case 1: // SHM - don't send anything 
+			          if(verbose > 1 ) fprintf(stdout,"  Using SHM Memory for test data: no addess sent\n");	
                                   break; 
                                 case 2: //  - send samples over the wire 
-                                  main_address=main_test_data[r][c][0];
-                                  back_address=back_test_data[r][c][0];
+			          if(verbose > 1 ) fprintf(stdout,"  Send data for test data over the socket bytes: %ld\n", (long) sizeof(uint32_t)*samples);	
+                                  main_address=(uint64_t)main_test_data[r][c][0];
+                                  back_address=(uint64_t)back_test_data[r][c][0];
                                   //main_address=main_test_data[r][c][0]+sizeof(uint32_t)*RECV_SAMPLE_HEADER;
                                   //back_address=back_test_data[r][c][0]+sizeof(uint32_t)*RECV_SAMPLE_HEADER;
-			          rval=send_data(msgsock,&main_address,sizeof(uint32_t)*samples);
-			          rval=send_data(msgsock,&back_address,sizeof(uint32_t)*samples);
+			          if(verbose > 1 ) fprintf(stdout,"  Main Address: %p  Back Address: %p\n", (void *)main_address,(void *)back_address);	
+			          rval=send_data(msgsock,main_address,sizeof(uint32_t)*samples);
+			          rval=send_data(msgsock,back_address,sizeof(uint32_t)*samples);
                                   break; 
                           }
                         }
@@ -1144,9 +1149,9 @@ int main(int argc, char **argv){
                                }
                                if(IMAGING) {
                                  phasediff=add_phase(centre*1000, client.rbeam, clrfreq_parameters.nave*N+RECV_SAMPLE_HEADER+CLR_SAMP_OFFSET, r, c, b,write_clr_out);
-                                 mainaddr=summed_main_addresses[r][c][b];
+                                 addr=(uint32_t *)summed_main_addresses[r][c][b];
                                } else {
-                                 mainaddr=(unsigned int *)virtual_addresses[card][main_input][c][b];
+                                 addr=(uint32_t *)virtual_addresses[card][main_input][c][b];
                                }
  
                            } else {
@@ -1170,11 +1175,11 @@ int main(int argc, char **argv){
 #ifdef __QNX__
                              if (msg.status) {
                                if(REVERSE_IQ_ORDER) {
-                                  Q=(mainaddr[ii*N+j+RECV_SAMPLE_HEADER+CLR_SAMP_OFFSET] & 0xffff0000) >> 16;
-                                  I= mainaddr[ii*N+j+RECV_SAMPLE_HEADER+CLR_SAMP_OFFSET] & 0x0000ffff;
+                                  Q=(addr[ii*N+j+RECV_SAMPLE_HEADER+CLR_SAMP_OFFSET] & 0xffff0000) >> 16;
+                                  I= addr[ii*N+j+RECV_SAMPLE_HEADER+CLR_SAMP_OFFSET] & 0x0000ffff;
                                } else {
-                                  I=(main[ddrii*N+j+RECV_SAMPLE_HEADER+CLR_SAMP_OFFSET] & 0xffff0000) >> 16;
-                                  Q= mainaddr[ii*N+j+RECV_SAMPLE_HEADER+CLR_SAMP_OFFSET] & 0x0000ffff;
+                                  I=(addr[ddrii*N+j+RECV_SAMPLE_HEADER+CLR_SAMP_OFFSET] & 0xffff0000) >> 16;
+                                  Q= addr[ii*N+j+RECV_SAMPLE_HEADER+CLR_SAMP_OFFSET] & 0x0000ffff;
                                }
                                in[j][0]=Q;
                                in[j][1]=I;

@@ -114,7 +114,7 @@ void *timing_pretrigger(void *arg)
     pthread_mutex_lock(&timing_comm_lock);
     msg.type=TIMING_PRETRIGGER;
     msg.status=1;
-    printf("TIMING: PRETRIGGER: Entering pretrigger\nSend msg\n");
+    //printf("TIMING: PRETRIGGER: Entering pretrigger\nSend msg\n");
     send_data(timingsock, &msg, sizeof(struct DriverMsg));
     //printf("TIMING: PRETRIGGER: free %p %p\n",bad_transmit_times.start_usec,bad_transmit_times.duration_usec);
     if(bad_transmit_times.start_usec!=NULL) free(bad_transmit_times.start_usec);
@@ -170,7 +170,7 @@ void *timing_pretrigger(void *arg)
     recv_data(usrpsock, &msg, sizeof(struct DriverMsg));
     pthread_mutex_unlock(&usrp_comm_lock);
   }
-  printf("TIMING: PRETRIGGER: exit\n");
+  //printf("TIMING: PRETRIGGER: exit\n");
   pthread_exit(NULL);
 };
 
