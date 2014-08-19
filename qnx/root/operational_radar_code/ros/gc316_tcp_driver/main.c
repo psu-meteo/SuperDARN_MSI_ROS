@@ -47,21 +47,22 @@
 #define BUFS 1
 #define MAX_SAMPLES 262144 
 #define CLR_SAMP_OFFSET 10
-int verbose=0;
-int write_clr_file=0; 
+
+int32_t verbose=0;
+int32_t write_clr_file=0; 
 FILE *clr_data;
 
-int sock,msgsock;
+int32_t sock,msgsock;
 FILE 		 *gc314fs[MAX_CARDS];
 
-unsigned int     virtual_addresses[MAX_CARDS][MAX_INPUTS][MAX_CHANNELS][BUFS];
-unsigned int     physical_addresses[MAX_CARDS][MAX_INPUTS][MAX_CHANNELS][BUFS];
-unsigned int     *main_test_data[MAX_RADARS][MAX_CHANNELS][BUFS],*back_test_data[MAX_RADARS][MAX_CHANNELS][BUFS],*aux_test_data[MAX_RADARS][MAX_CHANNELS][BUFS]; 
+void *virtual_addresses[MAX_CARDS][MAX_INPUTS][MAX_CHANNELS][BUFS];
+void *physical_addresses[MAX_CARDS][MAX_INPUTS][MAX_CHANNELS][BUFS];
+int32_t *main_test_data[MAX_RADARS][MAX_CHANNELS][BUFS],*back_test_data[MAX_RADARS][MAX_CHANNELS][BUFS],*aux_test_data[MAX_RADARS][MAX_CHANNELS][BUFS]; 
 
-unsigned int     *summed_main_addresses[MAX_RADARS][MAX_CHANNELS][BUFS];
-unsigned int     *summed_back_addresses[MAX_RADARS][MAX_CHANNELS][BUFS]; 
+int32_t     *summed_main_addresses[MAX_RADARS][MAX_CHANNELS][BUFS];
+int32_t     *summed_back_addresses[MAX_RADARS][MAX_CHANNELS][BUFS]; 
 
-unsigned int     antennas[20][2] = {
+uint32_t     antennas[20][2] = {
                  /* card, input */
 			/* main array */                 
 			{0,0},
@@ -90,20 +91,20 @@ double          time_delay_correction[20] = {
                   0.0, 0.0, 0.0, 10E-9, 10E-9, 10E-9, 0.0, 0.0, 0.0, 0.0,
                   0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                 };
-int 		use_flag[20] = {
+int32_t 	use_flag[20] = {
      		  1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
                   1, 1, 1, 1, 1, 0, 0, 0, 1, 1,
                 };
 
-int armed=0,post_clr[4]={0,0,0,0};
-int main_input=2;
-int back_input=1;
-int aux_input=0;
-int write_out=1;
-int write_clr_out=0;
+int32_t armed=0,post_clr[4]={0,0,0,0};
+int32_t main_input=2;
+int32_t back_input=1;
+int32_t aux_input=0;
+int32_t write_out=1;
+int32_t write_clr_out=0;
 
 
-void graceful_cleanup(int signum)
+void graceful_cleanup(int32_t signum)
 {
   char path[256];
   sprintf(path,"%s:%d","rosrecv",0);
@@ -115,15 +116,16 @@ void graceful_cleanup(int signum)
 }
 
 
-void write_raw_files (int tfreq, int beam, int sample, int radar,int channel, int buffer) {
+void write_raw_files (int32_t tfreq, int32_t beam, int32_t sample, int32_t radar,int32_t channel, int32_t buffer) {
 
   FILE *ftest;
   char  data_file[255], data_file2[255], data_file3[255], err_file[255], strtemp[255], test_file[255];
   char   chan_str[12];
   struct timespec time_now;
   struct           tm* time_struct;
-  int32 temp ,*tmp_ptr;
-  int fd_1,i;
+  int32_t temp;
+  void *tmp_ptr;
+  int32_t fd_1,i;
   chan_str[0]='\0';
   switch (channel) {
     case 0:
@@ -154,31 +156,31 @@ void write_raw_files (int tfreq, int beam, int sample, int radar,int channel, in
     
     strcat(data_file, "/data/image_samples/");
     // data file year
-    temp=(int)time_struct->tm_year+1900;
+    temp=(int32_t)time_struct->tm_year+1900;
     sprintf(strtemp,"%04d",temp);
     //ltoa(temp, strtemp, 10);
     strcat(data_file, strtemp);
     // data file month
-    temp=(int)time_struct->tm_mon;
+    temp=(int32_t)time_struct->tm_mon;
     sprintf(strtemp,"%02d",temp+1);
     //ltoa(temp+1,strtemp,10);
     //if(temp<10) strcat(data_file, "0");
     strcat(data_file, strtemp);
     // data file day
-    temp=(int)time_struct->tm_mday;
+    temp=(int32_t)time_struct->tm_mday;
     sprintf(strtemp,"%02d",temp);
     //ltoa(temp,strtemp,10);
     //if(temp<10) strcat(data_file, "0");
     strcat(data_file, strtemp);
     // data file hour
-    temp=(int)time_struct->tm_hour;
+    temp=(int32_t)time_struct->tm_hour;
     sprintf(strtemp,"%02d",temp);
     //ltoa(temp,strtemp,10);
     //if(temp<10) strcat(data_file, "0");
     strcat(data_file, strtemp);
     // data file 5 of minutes
-    temp=(int)time_struct->tm_min;
-    temp=((int)(temp/5))*5;
+    temp=(int32_t)time_struct->tm_min;
+    temp=((int32_t)(temp/5))*5;
     sprintf(strtemp,"%02d",temp);
     //ltoa(temp,strtemp,10);
     strcat(data_file, strtemp);
@@ -192,32 +194,32 @@ void write_raw_files (int tfreq, int beam, int sample, int radar,int channel, in
     strcat(data_file, ".iraw");
     strcat(data_file, chan_str);
     fd_1=open(data_file, O_WRONLY|O_CREAT|O_NONBLOCK|O_APPEND, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
-    temp=(int)time_struct->tm_year+1900;
-    write(fd_1, &temp, sizeof(int));
-    temp=(int)time_struct->tm_mon+1;
-    write(fd_1, &temp, sizeof(int));
-    temp=(int)time_struct->tm_mday;
-    write(fd_1, &temp, sizeof(int));
-    temp=(int)time_struct->tm_hour;
-    write(fd_1, &temp, sizeof(int));
-    temp=(int)time_struct->tm_min;
-    write(fd_1, &temp, sizeof(int));
-    temp=(int)time_struct->tm_sec;
-    write(fd_1, &temp, sizeof(int));
-    temp=(int)time_now.tv_nsec;
-    write(fd_1, &temp, sizeof(int));
+    temp=(int32_t)time_struct->tm_year+1900;
+    write(fd_1, &temp, sizeof(int32_t));
+    temp=(int32_t)time_struct->tm_mon+1;
+    write(fd_1, &temp, sizeof(int32_t));
+    temp=(int32_t)time_struct->tm_mday;
+    write(fd_1, &temp, sizeof(int32_t));
+    temp=(int32_t)time_struct->tm_hour;
+    write(fd_1, &temp, sizeof(int32_t));
+    temp=(int32_t)time_struct->tm_min;
+    write(fd_1, &temp, sizeof(int32_t));
+    temp=(int32_t)time_struct->tm_sec;
+    write(fd_1, &temp, sizeof(int32_t));
+    temp=(int32_t)time_now.tv_nsec;
+    write(fd_1, &temp, sizeof(int32_t));
     write(fd_1, &beam, sizeof(beam));
     write(fd_1, &tfreq, sizeof(tfreq));
-    write(fd_1, &post_clr[channel], sizeof(int));
+    write(fd_1, &post_clr[channel], sizeof(int32_t));
     write(fd_1, &sample, sizeof(sample));
     if (IMAGING) {
       for(i=0;i<20;i++){
-        tmp_ptr=(int*)virtual_addresses[antennas[i][0]][antennas[i][1]][channel][buffer];
+        tmp_ptr=virtual_addresses[antennas[i][0]][antennas[i][1]][channel][buffer];
         write(fd_1, tmp_ptr, 4*sample);
       }
     } else {
       for(i=0;i<3;i++) {
-        tmp_ptr=(int*)virtual_addresses[radar][i][channel][buffer];
+        tmp_ptr=virtual_addresses[radar][i][channel][buffer];
         write(fd_1, tmp_ptr, 4*sample);
       }
     }
@@ -226,12 +228,12 @@ void write_raw_files (int tfreq, int beam, int sample, int radar,int channel, in
 };
  
 void   chunk_copy(t_copy_chunk *arg) {
-  int i,j;
+  int32_t i,j;
   double d=ANTENNA_SEPARATION, pi=M_PI, delta, M, phi,phase,phase_correction;
-  short   I, Inew, Iout, Q, Qnew, Qout;
+  int16_t   I, Inew, Iout, Q, Qnew, Qout;
   double  Itemp, Qtemp;
-  unsigned int *tmpptr;
-  unsigned int *main;
+  uint32_t *tmpptr;
+  uint32_t *mainaddr;
 
 
 
@@ -242,9 +244,9 @@ void   chunk_copy(t_copy_chunk *arg) {
     Qtemp=0.0;
     for(j=0;j<16;j++){
       if (use_flag[j]==1) {
-        main=(unsigned int *)virtual_addresses[antennas[j][0]][antennas[j][1]][arg->channel][arg->buffer];
-        I=(short)( main[arg->start+i] & 0x0000ffff );
-        Q=(short)((main[arg->start+i] >> 16) & 0x0000ffff );
+        mainaddr=(uint32_t *)virtual_addresses[antennas[j][0]][antennas[j][1]][arg->channel][arg->buffer];
+        I=(int16_t)( mainaddr[arg->start+i] & 0x0000ffff );
+        Q=(int16_t)((mainaddr[arg->start+i] >> 16) & 0x0000ffff );
         M=sqrt( (double)(I*I+Q*Q) );
         phi=atan2((double)Q, (double)I);
         phase=delta*((double)j-7.5);
@@ -253,17 +255,17 @@ void   chunk_copy(t_copy_chunk *arg) {
         Qtemp+=M * sin( phi + phase + phase_correction);
       }
     }
-    Iout=(short)(Itemp/16);
-    Qout=(short)(Qtemp/16);
+    Iout=(int16_t)(Itemp/16);
+    Qout=(int16_t)(Qtemp/16);
     tmpptr=summed_main_addresses[arg->radar][arg->channel][arg->buffer];
     tmpptr[arg->start+i]= ((short)Iout & 0x0000ffff) + ( ((short)Qout & 0x0000ffff) << 16);
     Itemp=0.0;
     Qtemp=0.0;
     for(j=0;j<4;j++){
       if (use_flag[j+16]==1) {
-        main=(unsigned int *)virtual_addresses[antennas[j+16][0]][antennas[j+16][1]][arg->channel][arg->buffer];
-        I=(short)( main[arg->start+i] & 0x0000ffff );
-        Q=(short)((main[arg->start+i] >> 16) & 0x0000ffff );
+        mainaddr=(uint32_t *)virtual_addresses[antennas[j+16][0]][antennas[j+16][1]][arg->channel][arg->buffer];
+        I=(int16_t)( mainaddr[arg->start+i] & 0x0000ffff );
+        Q=(int16_t)((mainaddr[arg->start+i] >> 16) & 0x0000ffff );
         M=sqrt( (double)I*(double)I + (double)Q*(double)Q );
         phi=atan2((double)Q, (double)I);
         phase=delta*((double)j-1.5);
@@ -272,24 +274,24 @@ void   chunk_copy(t_copy_chunk *arg) {
         Qtemp+=M * sin( phi + phase + phase_correction);
       }
     }
-    Iout=(short)(Itemp/4);
-    Qout=(short)(Qtemp/4);
+    Iout=(int16_t)(Itemp/4);
+    Qout=(int16_t)(Qtemp/4);
     tmpptr=summed_back_addresses[arg->radar][arg->channel][arg->buffer];
     tmpptr[arg->start+i]= ((short)Iout & 0x0000ffff) + ( ((short)Qout & 0x0000ffff) << 16);
   }
   pthread_exit(NULL);
 }  
-int add_phase(int frequency, int beamdir, int length, int radar,int channel, int buffer,int write){
-        int     c,cc,rc,i,j;
-        short I,Q;
+int32_t add_phase(int32_t frequency, int32_t beamdir, int32_t length, int32_t radar,int32_t channel, int32_t buffer,int32_t write){
+        int32_t     c,cc,rc,i,j;
+        int16_t I,Q;
         double M; 
-        unsigned int *main;
+        uint32_t *mainaddr;
         FILE *fp;
         struct timeval t0,t1,t2,t3;
         unsigned long elapsed;
         t_copy_chunk *chunks=NULL;
-        int chunk_start,chunk_length,chunk_left;
-        int num_threads=5;
+        int32_t chunk_start,chunk_length,chunk_left;
+        int32_t num_threads=5;
         pthread_t threads[4];
         char filename[80];
 
@@ -371,9 +373,9 @@ int add_phase(int frequency, int beamdir, int length, int radar,int channel, int
              }
              fprintf(fp,"%8d\t",i);
              for(j=0;j<16;j++){
-               main=(unsigned int *)virtual_addresses[antennas[j][0]][antennas[j][1]][channel][buffer];
-               I=(short)( main[i] & 0x0000ffff );
-               Q=(short)((main[i] >> 16) & 0x0000ffff );
+               mainaddr=(uint32_t *)virtual_addresses[antennas[j][0]][antennas[j][1]][channel][buffer];
+               I=(int16_t)( mainaddr[i] & 0x0000ffff );
+               Q=(int16_t)((mainaddr[i] >> 16) & 0x0000ffff );
                M=sqrt( (double)(I*I+Q*Q) );
                if(use_flag[j]==1) 
                  fprintf(fp,"%8d  %8d  %8.3lf \t",I,Q,M);
@@ -381,23 +383,23 @@ int add_phase(int frequency, int beamdir, int length, int radar,int channel, int
                  fprintf(fp,"%8d* %8d* %8.3lf*\t",I,Q,M);
              }
              for(j=0;j<4;j++){
-               main=(unsigned int *)virtual_addresses[antennas[j+16][0]][antennas[j+16][1]][channel][buffer];
-               I=(short)( main[i] & 0x0000ffff );
-               Q=(short)((main[i] >> 16) & 0x0000ffff );
+               mainaddr=(uint32_t *)virtual_addresses[antennas[j+16][0]][antennas[j+16][1]][channel][buffer];
+               I=(int16_t)( mainaddr[i] & 0x0000ffff );
+               Q=(int16_t)((mainaddr[i] >> 16) & 0x0000ffff );
                M=sqrt( (double)I*(double)I + (double)Q*(double)Q );
                if(use_flag[j+16]==1) 
                  fprintf(fp,"%8d  %8d  %8.3lf \t",I,Q,M);
                else 
                  fprintf(fp,"%8d* %8d* %8.3lf*\t",I,Q,M);
              }
-             main=summed_main_addresses[radar][channel][buffer]; 
-             I=(short)( main[i] & 0x0000ffff );
-             Q=(short)((main[i] >> 16) & 0x0000ffff );
+             mainaddr=summed_main_addresses[radar][channel][buffer]; 
+             I=(int16_t)( mainaddr[i] & 0x0000ffff );
+             Q=(int16_t)((mainaddr[i] >> 16) & 0x0000ffff );
              M=sqrt( (double)I*(double)I + (double)Q*(double)Q );
              fprintf(fp,"%8d  %8d  %8.3lf \t",I,Q,M);
-             main=summed_back_addresses[radar][channel][buffer]; 
-             I=(short)( main[i] & 0x0000ffff );
-             Q=(short)((main[i] >> 16) & 0x0000ffff );
+             mainaddr=summed_back_addresses[radar][channel][buffer]; 
+             I=(int16_t)( mainaddr[i] & 0x0000ffff );
+             Q=(int16_t)((mainaddr[i] >> 16) & 0x0000ffff );
              M=sqrt( (double)I*(double)I + (double)Q*(double)Q );
              fprintf(fp,"%8d  %8d  %8.3lf \n",I,Q,M);
            }
@@ -416,42 +418,42 @@ int main(int argc, char **argv){
         struct  timeval tv;
 	char	datacode;
         double phasediff;
-	int	rval,nave;
+	int32_t	rval,nave;
         fd_set rfds,efds;
-        int wait_status,status,configured=0;
+        int32_t wait_status,status,configured=0;
         short I,Q;
 	// counter and temporary variables
-	int32	temp,buf,r,c,i,ii,j,n,b,N;
-        unsigned int utemp;
+	int32_t	temp,buf,r,c,i,ii,j,n,b,N;
+        uint32_t utemp;
         struct  DriverMsg msg;
         struct RXFESettings rf_settings;
         struct RXFESettings if_settings;
-        uint32 ifmode=IF_ENABLED;
+        uint32_t ifmode=IF_ENABLED;
         struct CLRFreqPRM clrfreq_parameters;
-        unsigned int *main;
-        int  maxclients=MAX_RADARS*MAX_CHANNELS;
-        int numclients=0;
-        int ready_index[MAX_RADARS][MAX_CHANNELS];
+        uint32_t *mainaddr;
+        int32_t  maxclients=MAX_RADARS*MAX_CHANNELS;
+        int32_t numclients=0;
+        int32_t ready_index[MAX_RADARS][MAX_CHANNELS];
         struct  ControlPRM  clients[maxclients],client;
         struct timeval tpre,tpost,t0,t1,t2,t3,t4,t5,t6;
         unsigned long elapsed;
-        int card=0;
+        int32_t card=0;
         char *driver;
         char shm_device[80];
-        int shm_fd;
-        int32 shm_memory=0;
+        int32_t shm_fd;
+        int32_t shm_memory=0;
 	char cardnum[1];
-        int frame_counter=1;
-        unsigned int CLOCK_RES;
-        int pci_handle, pci_handle_dio,IRQ;
-        int32 samples;
+        int32_t frame_counter=1;
+        uint32_t CLOCK_RES;
+        int32_t pci_handle, pci_handle_dio,IRQ;
+        int32_t samples;
         fftw_complex *in=NULL, *out=NULL;
         double *pwr=NULL,*pwr2=NULL;
         fftw_plan plan;
-        int usable_bandwidth;
+        int32_t usable_bandwidth;
         double search_bandwidth,unusable_sideband;
-        int centre,start,end;
-        int max_retries=10,try=0;
+        int32_t centre,start,end;
+        int32_t max_retries=10,try=0;
         uint64_t main_address,back_address;
 #ifdef __QNX__
 	struct	 _clockperiod 	new, old;
@@ -489,7 +491,7 @@ int main(int argc, char **argv){
 		itoa(card,cardnum,10);
 		strcat(driver,cardnum);
 	  	gc314fs[card]=(FILE *)open(driver, O_RDWR);
-		if( (int)(gc314fs[card]) < 0 ){
+		if( (int32_t)(gc314fs[card]) < 0 ){
 			fprintf(stderr, "Unable to open driver %s: %s\n", driver, strerror(errno));
                         configured=0;
 		} else {
@@ -521,8 +523,7 @@ int main(int argc, char **argv){
             for(card=0;card<MAX_CARDS;card++){                                           
               for(c=0;c<MAX_CHANNELS;c++){                                      
                 for (i=0;i<MAX_INPUTS;i++) { 
-  		  virtual_addresses[card][i][c][0]=
-                    gc314GetBufferAddress(&physical_addresses[card][i][c][0],gc314fs[card],i,c);	
+  		  virtual_addresses[card][i][c][0]= gc314GetBufferAddress(&physical_addresses[card][i][c][0],gc314fs[card],i,c);	
 		}
               }
             } 
@@ -556,8 +557,7 @@ int main(int argc, char **argv){
                 card=r;
                 if (verbose > 0 ) printf("Get Buf Address card: %d  r:%d c:%d\n",card,r,c);
                 for (i=0;i<MAX_INPUTS;i++) { 
-  		  virtual_addresses[r][i][c][0]=
-                    gc314GetBufferAddress(&physical_addresses[r][i][c][0],gc314fs[card],i,c);	
+  		  virtual_addresses[r][i][c][0]= gc314GetBufferAddress(&physical_addresses[r][i][c][0],gc314fs[card],i,c);	
                 }
               }
             } 
@@ -627,7 +627,7 @@ int main(int argc, char **argv){
                     break;
                   }
                   if (rval == -1) perror("select()");
-                  rval=recv(msgsock, &buf, sizeof(int), MSG_PEEK); 
+                  rval=recv(msgsock, &buf, sizeof(int32_t), MSG_PEEK); 
                   if (verbose>2) printf("%d PEEK Recv Msg %d\n",msgsock,rval);
 		  if (rval==0) {
                     if (verbose > 1) printf("Remote Msgsock %d client disconnected ...closing\n",msgsock);
@@ -883,21 +883,48 @@ int main(int argc, char **argv){
                             rval=send_data(msgsock,&samples,sizeof(samples));
 			    if(verbose > 1 ) printf("Sent Number of Samples %d\n",samples);	
                             if (IMAGING==0) {
-                              main=(unsigned int *)virtual_addresses[r][main_input][c][b];
-                              main_address=physical_addresses[r][main_input][c][b];
-                              back_address=physical_addresses[r][back_input][c][b];
+                              mainaddr=(uint32_t *)virtual_addresses[r][main_input][c][b];
+                              main_address=(uint64_t) physical_addresses[r][main_input][c][b];
+                              back_address=(uint64_t) physical_addresses[r][back_input][c][b];
 			      if(verbose > 1 ) printf("Send physical addresses%p %p\n",main_address,back_address);	
                               write_raw_files (client.tfreq, client.tbeam, samples+RECV_SAMPLE_HEADER,  r, c,  b);
-			      rval=send_data(msgsock,&main_address,sizeof(main_address));
-			      rval=send_data(msgsock,&back_address,sizeof(back_address));
+                              switch(shm_memory) {
+                                case 0: // DMA - send the memory address for ros server to map
+			          rval=send_data(msgsock,&main_address,sizeof(main_address));
+			          rval=send_data(msgsock,&back_address,sizeof(back_address));
+                                  break; 
+                                case 1: // SHM - don't send anything 
+                                  break; 
+                                case 2: //  - send samples over the wire 
+                                  main_address=main_address+sizeof(uint32_t)*RECV_SAMPLE_HEADER;
+                                  back_address=back_address+sizeof(uint32_t)*RECV_SAMPLE_HEADER;
+			          rval=send_data(msgsock,&main_address,sizeof(uint32_t)*samples);
+			          rval=send_data(msgsock,&back_address,sizeof(uint32_t)*samples);
+                                  break; 
+                               }
                             } else {
 			      if(verbose >1) printf("Send imaging shm addresses %p %p\n",
                                                 summed_main_addresses[r][c][0],summed_back_addresses[r][c][0]);	
                               phasediff=add_phase(client.rfreq*1000, client.rbeam, samples+RECV_SAMPLE_HEADER, r, c, b,write_out);
                               write_raw_files (client.tfreq, client.tbeam, samples+RECV_SAMPLE_HEADER,  r, c,  b);
                               post_clr[c]=0;
-                              rval=send_data(msgsock,&summed_main_addresses[r][c][b],sizeof(unsigned int));
-                              rval=send_data(msgsock,&summed_back_addresses[r][c][b],sizeof(unsigned int));
+                              switch(shm_memory) {
+                                case 0: // DMA - send the memory address for ros server to map
+			            fprintf(stderr,"Error:: DMA memory addressing is not valid for IMAGING\n");
+                                    main_address=summed_main_addresses[r][main_input][c][b];
+                                    back_address=summed_back_addresses[r][back_input][c][b];
+                                    rval=send_data(msgsock,&main_address,sizeof(main_address));
+                                    rval=send_data(msgsock,&back_address,sizeof(back_address));
+                                  break; 
+                                case 1: // SHM - don't send anything 
+                                  break; 
+                                case 2: //  - send samples over the wire 
+                                  main_address=summed_main_addresses[r][main_input][c][b]+sizeof(uint32_t)*RECV_SAMPLE_HEADER;
+                                  back_address=summed_back_addresses[r][main_input][c][b]+sizeof(uint32_t)*RECV_SAMPLE_HEADER;
+			          rval=send_data(msgsock,&main_address,sizeof(uint32_t)*samples);
+			          rval=send_data(msgsock,&back_address,sizeof(uint32_t)*samples);
+                                  break; 
+                               }
                             }
                           } else {
                               //status non-zero
@@ -919,8 +946,25 @@ int main(int argc, char **argv){
 			  if(verbose > 1 ) printf("Sent Number of Samples %d\n",samples);	
 			  if(verbose >1) printf("Send test shm addresses %p %p\n",
                                             main_test_data[r][c][0],back_test_data[r][c][0]);	
-			  rval=send_data(msgsock,&main_test_data[r][c][0],sizeof(unsigned int));
-			  rval=send_data(msgsock,&back_test_data[r][c][0],sizeof(unsigned int));
+                          switch(shm_memory) {
+                                case 0: // DMA - send the memory address for ros server to map
+			            fprintf(stderr,"Error:: DMA memory addressing is not valid for IMAGING\n");
+                                    main_address=main_test_data[r][c][0];
+                                    back_address=back_test_data[r][c][0];
+                                    rval=send_data(msgsock,&main_address,sizeof(main_address));
+                                    rval=send_data(msgsock,&back_address,sizeof(back_address));
+                                  break; 
+                                case 1: // SHM - don't send anything 
+                                  break; 
+                                case 2: //  - send samples over the wire 
+                                  main_address=main_test_data[r][c][0];
+                                  back_address=back_test_data[r][c][0];
+                                  //main_address=main_test_data[r][c][0]+sizeof(uint32_t)*RECV_SAMPLE_HEADER;
+                                  //back_address=back_test_data[r][c][0]+sizeof(uint32_t)*RECV_SAMPLE_HEADER;
+			          rval=send_data(msgsock,&main_address,sizeof(uint32_t)*samples);
+			          rval=send_data(msgsock,&back_address,sizeof(uint32_t)*samples);
+                                  break; 
+                          }
                         }
                         msg.status=status;
                         rval=send_data(msgsock, &msg, sizeof(struct DriverMsg));
@@ -1100,9 +1144,9 @@ int main(int argc, char **argv){
                                }
                                if(IMAGING) {
                                  phasediff=add_phase(centre*1000, client.rbeam, clrfreq_parameters.nave*N+RECV_SAMPLE_HEADER+CLR_SAMP_OFFSET, r, c, b,write_clr_out);
-                                 main=summed_main_addresses[r][c][b];
+                                 mainaddr=summed_main_addresses[r][c][b];
                                } else {
-                                 main=(unsigned int *)virtual_addresses[card][main_input][c][b];
+                                 mainaddr=(unsigned int *)virtual_addresses[card][main_input][c][b];
                                }
  
                            } else {
@@ -1126,11 +1170,11 @@ int main(int argc, char **argv){
 #ifdef __QNX__
                              if (msg.status) {
                                if(REVERSE_IQ_ORDER) {
-                                  Q=(main[ii*N+j+RECV_SAMPLE_HEADER+CLR_SAMP_OFFSET] & 0xffff0000) >> 16;
-                                  I= main[ii*N+j+RECV_SAMPLE_HEADER+CLR_SAMP_OFFSET] & 0x0000ffff;
+                                  Q=(mainaddr[ii*N+j+RECV_SAMPLE_HEADER+CLR_SAMP_OFFSET] & 0xffff0000) >> 16;
+                                  I= mainaddr[ii*N+j+RECV_SAMPLE_HEADER+CLR_SAMP_OFFSET] & 0x0000ffff;
                                } else {
-                                  I=(main[ii*N+j+RECV_SAMPLE_HEADER+CLR_SAMP_OFFSET] & 0xffff0000) >> 16;
-                                  Q= main[ii*N+j+RECV_SAMPLE_HEADER+CLR_SAMP_OFFSET] & 0x0000ffff;
+                                  I=(main[ddrii*N+j+RECV_SAMPLE_HEADER+CLR_SAMP_OFFSET] & 0xffff0000) >> 16;
+                                  Q= mainaddr[ii*N+j+RECV_SAMPLE_HEADER+CLR_SAMP_OFFSET] & 0x0000ffff;
                                }
                                in[j][0]=Q;
                                in[j][1]=I;

@@ -11,12 +11,12 @@
 #endif
 #include "gc314FS.h"
 
-unsigned long gc314GetBufferAddress(unsigned int *physical_addr,int filedes, int chip, int channel){
+void *gc314GetBufferAddress(unsigned int *physical_addr,int filedes, int chip, int channel){
 	
 	int retval;
 	int status=0;
 	struct S_buffer_address to_send;
-	unsigned long	address;
+	void *address=NULL;
 
 	if( (chip<0) || (chip>2) ){
 		fprintf(stderr, "Invalid chip number selected in gc314GetBufferAddress\n");
