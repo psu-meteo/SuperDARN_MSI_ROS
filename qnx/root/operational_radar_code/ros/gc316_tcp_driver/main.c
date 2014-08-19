@@ -48,7 +48,7 @@
 #define MAX_SAMPLES 262144 
 #define CLR_SAMP_OFFSET 10
 
-int32_t verbose=2;
+int32_t verbose=0;
 int32_t write_clr_file=0; 
 FILE *clr_data;
 
@@ -421,7 +421,8 @@ int main(int argc, char **argv){
 	int32_t	rval,nave;
         fd_set rfds,efds;
         int32_t wait_status,status,configured=0;
-        short I,Q;
+        int16_t I,Q;
+        uint32_t IQ;
 	// counter and temporary variables
 	int32_t	temp,buf,r,c,i,ii,j,n,b,N;
         uint32_t utemp;
@@ -587,9 +588,13 @@ int main(int argc, char **argv){
                   aux_test_data[r][c][0]=mmap(0,MAX_SAMPLES*4,PROT_READ|PROT_WRITE,MAP_SHARED,shm_fd,0);
                   close(shm_fd);
                   for (i=0;i<MAX_SAMPLES;i++) {
-                    main_test_data[r][c][0][i]=i;	
-		    back_test_data[r][c][0][i]=i;	
-		    aux_test_data[r][c][0][i]=i;	
+                    I= (uint16_t) i % 16;
+                    Q= (uint16_t) ((16*r) + (c % 16));
+                    IQ = ( I & 0xFFFF)+(((uint32_t) Q) << 16);
+                    main_test_data[r][c][0][i]= IQ+32 ;	
+		    back_test_data[r][c][0][i]= IQ+64;	
+		    aux_test_data[r][c][0][i]=  IQ+128;	
+                    //fprintf(stdout,"i: %u  I: %x Q: %x IQ: %x\n",i,(unsigned int)( (uint32_t) I & 0xFFFF)+128,(unsigned int)( (uint32_t) Q << 16),(unsigned int)IQ+128);
                   } 
               }
             }
