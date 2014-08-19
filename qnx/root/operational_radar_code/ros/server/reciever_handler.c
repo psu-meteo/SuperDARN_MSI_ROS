@@ -856,10 +856,11 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
               recv_data(recvsock,&arg->back_address,sizeof(arg->back_address));
 #ifdef __QNX__
               //fprintf(stdout,"RECV: GET_DATA: set up DMA memory space\n");
-              arg->main =mmap( 0, sizeof(uint32_t)*arg->data->samples, 
+              arg->mmap_length=sizeof(uint32_t)*arg->data->samples;
+              arg->main =mmap( 0, arg->mmap_length, 
                         PROT_READ|PROT_NOCACHE, MAP_PHYS, NOFD, 
                             arg->main_address+sizeof(uint32_t)*arg->data->frame_header);
-              arg->back =mmap( 0, sizeof(unint32_t)*arg->data->samples, 
+              arg->back =mmap( 0, arg->mmap_length, 
                         PROT_READ|PROT_NOCACHE, MAP_PHYS, NOFD, 
                         arg->back_address+sizeof(uint32_t)*arg->data->frame_header);
 #else
@@ -870,6 +871,7 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
               break;
             case 1: // SHM Memory access
               printf("RECV: GET_DATA: set up shm memory space\n");
+              arg->mmap_length=sizeof(uint32_t)*arg->data->samples;
               sprintf(shm_device,"/receiver_main_%d_%d_%d",r,c,b);
 	      printf("device: %s\n", shm_device);
               printf("opening device\n");
@@ -877,13 +879,13 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
 	      int errorint;
               if (shm_fd == -1) {errorint = errno; fprintf(stderr,"shm_open error\n");}
               ftruncate(shm_fd,arg->data->samples * sizeof(uint32_t));
-              arg->main=mmap(0,sizeof(uint32_t)*arg->data->samples,PROT_READ,MAP_SHARED,shm_fd,0);
+              arg->main=mmap(0,arg->mmap_length,PROT_READ,MAP_SHARED,shm_fd,0);
               close(shm_fd);
               sprintf(shm_device,"/receiver_back_%d_%d_%d",r,c,b);
 	      printf("device: %s\n", shm_device);
               shm_fd=shm_open(shm_device,O_RDONLY,S_IRUSR | S_IWUSR);
               ftruncate(shm_fd,arg->data->samples * sizeof(uint32_t));
-              arg->back=mmap(0,sizeof(uint32_t)*arg->data->samples,PROT_READ,MAP_SHARED,shm_fd,0);
+              arg->back=mmap(0,arg->mmap_length,PROT_READ,MAP_SHARED,shm_fd,0);
               close(shm_fd);
               break;
             case 2: // Send Samples over socket to SHM Memory location
@@ -917,10 +919,11 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
               recv_data(usrpsock,&arg->back_address,sizeof(arg->back_address));
 #ifdef __QNX__
               //fprintf(stdout,"RECV: GET_DATA: set up DMA memory space\n");
-              arg->main =mmap( 0, sizeof(uint32_t)*arg->data->samples, 
+              arg->mmap_length=sizeof(uint32_t)*arg->data->samples;
+              arg->main =mmap( 0, arg->mmap_length, 
                         PROT_READ|PROT_NOCACHE, MAP_PHYS, NOFD, 
                             arg->main_address+sizeof(uint32_t)*arg->data->frame_header);
-              arg->back =mmap( 0, sizeof(unint32_t)*arg->data->samples, 
+              arg->back =mmap( 0, arg->mmap_length, 
                         PROT_READ|PROT_NOCACHE, MAP_PHYS, NOFD, 
                         arg->back_address+sizeof(uint32_t)*arg->data->frame_header);
 #else
@@ -931,6 +934,7 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
               break;
             case 1: // SHM Memory access
               printf("RECV: GET_DATA: set up shm memory space\n");
+              arg->mmap_length=sizeof(uint32_t)*arg->data->samples;
               sprintf(shm_device,"/receiver_main_%d_%d_%d",r,c,b);
 	      printf("device: %s\n", shm_device);
               printf("opening device\n");
@@ -938,13 +942,13 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
 	      int errorint;
               if (shm_fd == -1) {errorint = errno; fprintf(stderr,"shm_open error\n");}
               ftruncate(shm_fd,arg->data->samples * sizeof(uint32_t));
-              arg->main=mmap(0,sizeof(uint32_t)*arg->data->samples,PROT_READ,MAP_SHARED,shm_fd,0);
+              arg->main=mmap(0,arg->mmap_length,PROT_READ,MAP_SHARED,shm_fd,0);
               close(shm_fd);
               sprintf(shm_device,"/receiver_back_%d_%d_%d",r,c,b);
 	      printf("device: %s\n", shm_device);
               shm_fd=shm_open(shm_device,O_RDONLY,S_IRUSR | S_IWUSR);
               ftruncate(shm_fd,arg->data->samples * sizeof(uint32_t));
-              arg->back=mmap(0,sizeof(uint32_t)*arg->data->samples,PROT_READ,MAP_SHARED,shm_fd,0);
+              arg->back=mmap(0,arg->mmap_length,PROT_READ,MAP_SHARED,shm_fd,0);
               close(shm_fd);
               break;
             case 2: // Send Samples over socket to SHM Memory location
