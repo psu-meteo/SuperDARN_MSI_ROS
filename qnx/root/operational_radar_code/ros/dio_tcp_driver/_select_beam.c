@@ -21,40 +21,41 @@
 
 extern int verbose;
 extern uint32_t use_beam_table;
-extern int32_t *final_beamcodes[MAX_RADARS][32],*final_attencodes[MAX_RADARS][32];
-extern double *final_freqs[MAX_RADARS][32],*final_angles[MAX_RADARS][32];
-extern double f0[MAX_RADARS],fm[MAX_RADARS],df[MAX_RADARS];
-extern int32_t num_freqs[MAX_RADARS],max_angles[MAX_RADARS],num_angles[MAX_RADARS],num_beamcodes[MAX_RADARS],num_fsteps[MAX_RADARS],fstep[MAX_RADARS],foffset[MAX_RADARS],num_cards[MAX_RADARS];
+extern int32_t *f_bmnum[MAX_RADARS];
+extern double *f_lo[MAX_RADARS],*f_hi[MAX_RADARS],*f_c[MAX_RADARS];
+extern int32_t num_freqs[MAX_RADARS],num_beamcodes[MAX_RADARS],num_fsteps[MAX_RADARS],foffset[MAX_RADARS];
 
-int lookup_beamcode_by_freq(int r, double freq_mhz,double beamnm){
+int lookup_beamcode_by_freq(int r, double freq_hz,int beamnm){
   int beamcode=beamnm;
-  int b,f,a,best_fstep;
-  double freq,tdiff,fdiff,best_freq;
-  if (use_beam_table && final_freqs[r][0]) {
-    if(freq_mhz>0) {
-      a=beamnm;
-      fdiff=fm[r];
-      best_fstep=0;
-      best_freq=0.0;
-      for (f=0;f<=num_fsteps[r];f++) {
-        if(f==0) {
-          b=a;  
-        } else {
-          b=(f-1)*max_angles[r]+a+foffset[r];
+  int foff,bcodes;
+  int b,best_b;
+  double fdiff=1E13;
+  foff=foffset[r];
+  bcodes=num_beamcodes[r];
+  best_b=-1;
+  if (use_beam_table) {
+    if(freq_hz>0) {
+      for(b=foff;b<bcodes;b++) {
+        if(f_bmnum[r][b]==beamnm) {
+          if (fabs(f_c[r][b]-freq_hz) < fdiff) {
+            best_b=b;
+            fdiff=fabs(f_c[r][b]-freq_hz);
+          }
         }
-        freq=final_freqs[r][0][b];
-        tdiff=fabs(freq-(double)freq_mhz);
-        if(tdiff < fdiff) {
-          fdiff=tdiff;
-          best_fstep=f;
-          best_freq=final_freqs[r][0][b];
-          beamcode=b;
-        }    
-      }
+      }  
+    } else {
+      beamcode=beamnm;
+    }
+    if ((best_b >= foff) && (best_b < bcodes)) {
+      beamcode=best_b;
+    } else {
+      beamcode=beamnm;
     }
   } else {
     beamcode=beamnm;
   }
+  if (verbose > -1 ) fprintf(stdout,"Beam: %d MemLoc: %d F_c: %e Fdiff: %e\n",
+                       beamnm, beamcode,f_c[r][beamcode], fdiff);
   return beamcode;
 }
 
@@ -105,8 +106,8 @@ int _select_beam(unsigned int base,struct ControlPRM *client){
         */
         
         int code, beamnm, temp, oldB, oldC,hi,lo;
-        double freq_mhz,angle;
-
+        double freq_hz,angle;
+        
         unsigned int portA,portB,portC,cntl;        
         if (verbose > 1) { 
           printf("DIO: Select beam\n",client->tfreq);	
@@ -133,7 +134,9 @@ int _select_beam(unsigned int base,struct ControlPRM *client){
 		hi=hi >> 2;
         }
 
-        freq_mhz=client->tfreq*1E3;
+        freq_hz=client->tfreq*1E3;
+        if(freq_hz < 0 || freq_hz > 2E7) freq_hz=10E6;
+        fprintf(stdout,"Freq: %f %d\n",freq_hz,client->tfreq);
         /* the beam code is 13 bits, pAD0 thru pAD12.  This code
            uses bits 0-7 of CH0, PortA, and bits 0-4 of CH0, PortB
            to output the beam code. Note: The beam code is an address
@@ -147,7 +150,7 @@ int _select_beam(unsigned int base,struct ControlPRM *client){
          * frequency optimal attenuatin values
          * in different bands.
          */ 
-        code=lookup_beamcode_by_freq(client->radar-1,freq_mhz,beamnm);
+        code=lookup_beamcode_by_freq(client->radar-1,freq_hz,beamnm);
 
         if (verbose > 1) 
           printf("  Selected Beamcode: %d\n",code);	
