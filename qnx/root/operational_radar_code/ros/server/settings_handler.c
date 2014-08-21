@@ -16,16 +16,25 @@ extern int trigger_type;
 extern int32_t gpsrate;
 
 void *settings_parse_ini_usrp(struct USRPSettings *usrp_settings) {
+     char settings_element[128];
+     int r,c;
 
      pthread_mutex_lock(&settings_lock);
 
+     sprintf(usrp_settings->host,iniparser_getstring(Site_INI,"usrp:host",""));
+     usrp_settings->port=iniparser_getint(Site_INI,"usrp:port",0);
      usrp_settings->enabled=iniparser_getboolean(Site_INI,"site_settings:enable_usrp",0);
      usrp_settings->use_for_timing=iniparser_getboolean(Site_INI,"usrp:use_for_timing",0);
      usrp_settings->use_for_dio=iniparser_getboolean(Site_INI,"usrp:use_for_dio",0);
      usrp_settings->use_for_dds=iniparser_getboolean(Site_INI,"usrp:use_for_dds",0);
      usrp_settings->use_for_recv=iniparser_getboolean(Site_INI,"usrp:use_for_recv",0);
-     sprintf(usrp_settings->host,iniparser_getstring(Site_INI,"usrp:host",""));
-     usrp_settings->port=iniparser_getint(Site_INI,"usrp:port",0);
+     for (r=0; r < MAX_RADARS; r++) {
+       for (c=0; c < MAX_CHANNELS; c++) {
+         sprintf(settings_element,"radar_%d_%d:use_usrp",r+1,c+1);
+         usrp_settings->use_for_channel[r][c]=iniparser_getboolean(Site_INI,settings_element,0);
+         fprintf(stdout,"Setting: %s Value: %d\n",settings_element,usrp_settings->use_for_channel[r][c]);
+       }
+     } 
 
      pthread_mutex_unlock(&settings_lock);
      pthread_exit(NULL);

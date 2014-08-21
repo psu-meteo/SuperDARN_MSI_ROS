@@ -3,6 +3,7 @@
 #include <sys/time.h>
 #include "tsg.h"
 #include "rtypes.h"
+#include "site.h"
 
 #ifndef _CONTROL_PROGRAM_H
 #define _CONTROL_PROGRAM_H
@@ -72,6 +73,7 @@ struct USRPSettings {
      char use_for_dio;	
      char host[256];
      uint8_t port;
+     char use_for_channel[MAX_RADARS][MAX_CHANNELS];
 };
 /*
 struct ChannelStatus {

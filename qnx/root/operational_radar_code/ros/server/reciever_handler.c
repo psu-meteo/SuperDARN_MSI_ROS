@@ -820,14 +820,14 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
         if(arg->back!=NULL) munmap(arg->back,sizeof(unsigned int)*arg->data->samples);
         //if(arg->back!=NULL) munmap(arg->back,MAX_SAMPLES*4);
 
-        if (recvsock>0) {
+        if (recvsock>0  && !usrp_settings.use_for_channel[r][c]) {
           msg.type=RECV_GET_DATA;
           msg.status=1;
           send_data(recvsock, &msg, sizeof(struct DriverMsg));
           send_data(recvsock, arg->parameters, sizeof(struct ControlPRM));
           recv_data(recvsock,&arg->data->status,sizeof(arg->data->status));
         }
-        if (usrp_settings.use_for_recv && (usrpsock>0) ) {
+        if (usrp_settings.use_for_recv && usrp_settings.use_for_channel[r][c] && (usrpsock>0) ) {
           msg.type=RECV_GET_DATA;
           msg.status=1;
           send_data(usrpsock, &msg, sizeof(struct DriverMsg));
@@ -842,7 +842,7 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
       //printf("arg->data->status: %i\n", arg->data->status);
       if (arg->data->status==0 ) {
         if (verbose > 0 ) fprintf(stdout,"RECV: GET_DATA: status good\n");
-        if (recvsock>0) {
+        if (recvsock>0  && !usrp_settings.use_for_channel[r][c] ) {
           recv_data(recvsock,&arg->data->shm_memory,sizeof(arg->data->shm_memory));
           recv_data(recvsock,&arg->data->frame_header,sizeof(arg->data->frame_header));
           recv_data(recvsock,&arg->data->bufnum,sizeof(arg->data->bufnum));
@@ -928,7 +928,7 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
           }
           recv_data(recvsock, &msg, sizeof(struct DriverMsg));
         }
-        if (usrp_settings.use_for_recv && (usrpsock>0) ) {
+        if (usrp_settings.use_for_recv && usrp_settings.use_for_channel[r][c] && (usrpsock>0) ) {
 
           recv_data(usrpsock,&arg->data->shm_memory,sizeof(arg->data->shm_memory));
           recv_data(usrpsock,&arg->data->frame_header,sizeof(arg->data->frame_header));
@@ -1001,8 +1001,8 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
         //fprintf(stdout,"error_flag: %i\n", error_flag);
 
       } else { //error occurred
-        if (recvsock>0) recv_data(recvsock, &msg, sizeof(struct DriverMsg));
-        if (usrp_settings.use_for_recv && (usrpsock>0) ) recv_data(usrpsock, &msg, sizeof(struct DriverMsg));
+        if (recvsock>0  && !usrp_settings.use_for_channel[r][c]) recv_data(recvsock, &msg, sizeof(struct DriverMsg));
+        if (usrp_settings.use_for_recv && usrp_settings.use_for_channel[r][c] && (usrpsock>0) ) recv_data(usrpsock, &msg, sizeof(struct DriverMsg));
         error_count++;
         error_percent=(double)error_count/(double)collection_count*100.0;
         arg->data->samples=0;
