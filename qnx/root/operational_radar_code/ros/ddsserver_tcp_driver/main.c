@@ -336,6 +336,11 @@ int main(){
 
 		      case DDS_CtrlProg_END:
                         if (verbose > 1) fprintf(stdout,"DDS driver: Closing a control program\n");
+	                for (r=0;r<MAX_RADARS;r++){
+	                  for (c=0;c<MAX_CHANNELS;c++){
+                            current_pulse_index[r][c]=-10;
+                          }
+                        }
                         break;
 
 		      case DDS_RXFE_SETTINGS:
