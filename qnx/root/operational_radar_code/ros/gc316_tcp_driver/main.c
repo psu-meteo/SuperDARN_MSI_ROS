@@ -907,8 +907,8 @@ int main(int argc, char **argv){
                                   main_address=(uint64_t)addr+sizeof(uint32_t)*RECV_SAMPLE_HEADER;
                                   addr=(uint32_t *)virtual_addresses[r][back_input][c][b];
                                   back_address=(uint64_t)addr+sizeof(uint32_t)*RECV_SAMPLE_HEADER;
-			          rval=send_data(msgsock,&main_address,sizeof(uint32_t)*samples);
-			          rval=send_data(msgsock,&back_address,sizeof(uint32_t)*samples);
+			          rval=send_data(msgsock,main_address,sizeof(uint32_t)*samples);
+			          rval=send_data(msgsock,back_address,sizeof(uint32_t)*samples);
                                   break; 
                                }
                             } else {

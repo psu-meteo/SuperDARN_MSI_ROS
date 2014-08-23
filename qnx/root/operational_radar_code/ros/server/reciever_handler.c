@@ -700,17 +700,20 @@ void receiver_exit(void *arg)
 void *receiver_end_controlprogram(struct ControlProgram *arg)
 {
   struct DriverMsg msg;
+  int r,c;
+  r=arg->parameters->radar-1;
+  c=arg->parameters->channel-1;
   pthread_mutex_lock(&recv_comm_lock);
   pthread_mutex_lock(&usrp_comm_lock);
   if (arg!=NULL) {
      if (arg->state->pulseseqs[arg->parameters->current_pulseseq_index]!=NULL) {
-       if (recvsock>0) {
+       if (recvsock>0  && !usrp_settings.use_for_channel[r][c]) {
          msg.type=RECV_CtrlProg_END;
          msg.status=1;
          send_data(recvsock, &msg, sizeof(struct DriverMsg));
          send_data(recvsock, arg->parameters, sizeof(struct ControlPRM));
        }
-       if (usrp_settings.use_for_recv && (usrpsock>0) ) {
+       if ( usrp_settings.use_for_channel[r][c] && (usrpsock>0) ) {
          msg.type=RECV_CtrlProg_END;
          msg.status=1;
          send_data(usrpsock, &msg, sizeof(struct DriverMsg));
@@ -828,7 +831,7 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
           send_data(recvsock, arg->parameters, sizeof(struct ControlPRM));
           recv_data(recvsock,&arg->data->status,sizeof(arg->data->status));
         }
-        if (usrp_settings.use_for_recv && usrp_settings.use_for_channel[r][c] && (usrpsock>0) ) {
+        if ( usrp_settings.use_for_channel[r][c] && (usrpsock>0) ) {
           fprintf(stdout,"Use usrp for: %d %d :: send msg\n",r,c); 
           msg.type=RECV_GET_DATA;
           msg.status=1;
@@ -931,7 +934,7 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
           }
           recv_data(recvsock, &msg, sizeof(struct DriverMsg));
         }
-        if (usrp_settings.use_for_recv && usrp_settings.use_for_channel[r][c] && (usrpsock>0) ) {
+        if ( usrp_settings.use_for_channel[r][c] && (usrpsock>0) ) {
           fprintf(stdout,"Use usrp for: %d %d :: status good\n",r,c); 
 
           recv_data(usrpsock,&arg->data->shm_memory,sizeof(arg->data->shm_memory));
@@ -985,15 +988,11 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
               close(shm_fd);
               break;
             case 2: // Send Samples over socket to SHM Memory location
-              fprintf(stdout,"Use usrp for: %d %d :: inside switch ::  %d\n",r,c,arg->data->shm_memory); 
-              fprintf(stdout,"Use usrp for: %d %d :: samples: %d\n",r,c,arg->data->samples); 
               if(arg->main!=NULL) munmap(arg->main,arg->mmap_length);
               if(arg->back!=NULL) munmap(arg->back,arg->mmap_length);
               arg->main=NULL;
               arg->back=NULL;
-              fprintf(stdout,"Use usrp for: %d %d :: samples: %d\n",r,c,arg->data->samples); 
               arg->mmap_length=sizeof(uint32_t)*arg->data->samples;
-              fprintf(stdout,"Use usrp for: %d %d :: samples: %d\n",r,c,arg->data->samples); 
 
               arg->main=mmap(0,arg->mmap_length,PROT_READ|PROT_WRITE,MAP_PRIVATE|MAP_ANONYMOUS,-1,0);
               if ((int64_t)arg->main==-1) {
@@ -1003,11 +1002,8 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
               if ((int64_t)arg->back==-1) {
                 perror("back mmap error: ");
               }
-
-              fprintf(stdout,"Use usrp for: %d %d :: samples: %d\n",r,c,arg->data->samples); 
               fprintf(stdout,"Use usrp for: %d %d :: main ::  %p\n",r,c,arg->main); 
               fprintf(stdout,"Use usrp for: %d %d :: back ::  %p\n",r,c,arg->back); 
-              fprintf(stdout,"Use usrp for: %d %d :: samples: %d\n",r,c,arg->data->samples); 
               fprintf(stdout,"Use usrp for: %d %d :: length ::  %d\n",r,c,arg->mmap_length); 
               fprintf(stdout,"Use usrp for: %d %d :: samples: %d\n",r,c,arg->data->samples); 
 
@@ -1026,7 +1022,7 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
         if (recvsock>0  && !usrp_settings.use_for_channel[r][c]){
           recv_data(recvsock, &msg, sizeof(struct DriverMsg));
         }
-        if (usrp_settings.use_for_recv && usrp_settings.use_for_channel[r][c] && (usrpsock>0) ){
+        if (usrp_settings.use_for_channel[r][c] && (usrpsock>0) ){
           fprintf(stdout,"Use usrp for: %d %d :: error occurred\n",r,c); 
           recv_data(usrpsock, &msg, sizeof(struct DriverMsg));
         }
@@ -1056,7 +1052,7 @@ void *receiver_clrfreq(struct ControlProgram *arg)
   struct timeval t0;
   struct CLRFreqPRM clrfreq_parameters;
   unsigned long wait_elapsed;
-  int i,j,r,bandwidth,index,min_index,max_index,radars,length;
+  int i,j,c,r,bandwidth,index,min_index,max_index,radars,length;
   int temp1,temp2;
   int i_min[MAX_CHANNELS*MAX_RADARS];
   double m_min[MAX_CHANNELS*MAX_RADARS];
@@ -1068,6 +1064,8 @@ void *receiver_clrfreq(struct ControlProgram *arg)
 
 //  fprintf(stdout,"CLRFREQ: %d %d\n",arg->parameters->radar-1,arg->parameters->channel-1);
 //  fprintf(stdout," FFT FREQ: %d %d\n",arg->clrfreqsearch.start,arg->clrfreqsearch.end);
+  r=arg->parameters->radar-1;
+  c=arg->parameters->channel-1;
   pthread_mutex_lock(&recv_comm_lock);
   pthread_mutex_lock(&usrp_comm_lock);
   gettimeofday(&t0,NULL);
@@ -1123,8 +1121,7 @@ void *receiver_clrfreq(struct ControlProgram *arg)
     break;   
 */
    case 1:
-    if (recvsock>0) {
-      r=arg->parameters->radar-1;
+    if (recvsock>0  && !usrp_settings.use_for_channel[r][c]) {
       msg.type=RECV_CLRFREQ;
       msg.status=1;
       send_data(recvsock, &msg, sizeof(struct DriverMsg));
@@ -1143,8 +1140,7 @@ void *receiver_clrfreq(struct ControlProgram *arg)
       recv_data(recvsock, pwr, sizeof(double)*arg->state->N);
       recv_data(recvsock, &msg, sizeof(struct DriverMsg));
     }
-    if (usrp_settings.use_for_recv && (usrpsock>0) ) {
-      r=arg->parameters->radar-1;
+    if ( usrp_settings.use_for_channel[r][c] && (usrpsock>0) ) {
       msg.type=RECV_CLRFREQ;
       msg.status=1;
       printf("Starting recv_clr_freq\n");
