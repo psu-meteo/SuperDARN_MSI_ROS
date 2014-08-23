@@ -997,7 +997,7 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
               arg->main=NULL;
               arg->back=NULL;
               arg->mmap_length=0;
-              /*
+              
               arg->mmap_length=sizeof(uint32_t)*arg->data->samples;
               arg->main=mmap(0,arg->mmap_length,PROT_READ|PROT_WRITE,MAP_PRIVATE|MAP_ANONYMOUS,-1,0);
               if ((int64_t)arg->main==-1) {
@@ -1007,6 +1007,7 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
               if ((int64_t)arg->back==-1) {
                 perror("back mmap error: ");
               }
+              /*
               recv_data(usrpsock,arg->main,sizeof(int32_t)*arg->data->samples);
               recv_data(usrpsock,arg->back,sizeof(int32_t)*arg->data->samples);
               */
