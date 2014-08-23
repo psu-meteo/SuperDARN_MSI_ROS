@@ -952,7 +952,8 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
           fprintf(stdout,"Use usrp for: %d %d :: bufnum: %d\n",r,c,arg->data->bufnum); 
           fprintf(stdout,"Use usrp for: %d %d :: samples: %d\n",r,c,arg->data->samples); 
           arg->data->shm_memory=2;
-/* 
+          arg->data->samples=500;
+ 
           switch(arg->data->shm_memory) {
             case 0: // DMA Memory access
               recv_data(usrpsock,&arg->main_address,sizeof(arg->main_address));
@@ -1008,10 +1009,10 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
               if ((int64_t)arg->back==-1) {
                 perror("back mmap error: ");
               }
-              
+/*              
               recv_data(usrpsock,arg->main,sizeof(int32_t)*arg->data->samples);
               recv_data(usrpsock,arg->back,sizeof(int32_t)*arg->data->samples);
-             
+*/             
               fprintf(stdout,"  Use usrp for: %d %d :: main ::  %p\n",r,c,arg->main); 
               fprintf(stdout,"  Use usrp for: %d %d :: back ::  %p\n",r,c,arg->back); 
               fprintf(stdout,"  Use usrp for: %d %d :: length ::  %d\n",r,c,arg->mmap_length); 
@@ -1019,7 +1020,7 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
               fprintf(stdout,"  Use usrp for: %d %d :: end sample transfer\n",r,c); 
               break;
           }
-*/
+
           recv_data(usrpsock, &msg, sizeof(struct DriverMsg));
           fprintf(stdout,"Use usrp for: %d %d :: end sample transfer\n",r,c); 
         }
