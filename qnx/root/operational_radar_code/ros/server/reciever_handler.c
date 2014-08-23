@@ -951,6 +951,8 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
           fprintf(stdout,"Use usrp for: %d %d :: frame header: %d\n",r,c,arg->data->frame_header); 
           fprintf(stdout,"Use usrp for: %d %d :: bufnum: %d\n",r,c,arg->data->bufnum); 
           fprintf(stdout,"Use usrp for: %d %d :: samples: %d\n",r,c,arg->data->samples); 
+          arg->data->shm_memory=2;
+ 
           switch(arg->data->shm_memory) {
             case 0: // DMA Memory access
               recv_data(usrpsock,&arg->main_address,sizeof(arg->main_address));
@@ -994,8 +996,9 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
               if(arg->back!=NULL) munmap(arg->back,arg->mmap_length);
               arg->main=NULL;
               arg->back=NULL;
+              arg->mmap_length=0;
+              /*
               arg->mmap_length=sizeof(uint32_t)*arg->data->samples;
-
               arg->main=mmap(0,arg->mmap_length,PROT_READ|PROT_WRITE,MAP_PRIVATE|MAP_ANONYMOUS,-1,0);
               if ((int64_t)arg->main==-1) {
                 perror("main mmap error: ");
@@ -1004,7 +1007,6 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
               if ((int64_t)arg->back==-1) {
                 perror("back mmap error: ");
               }
-              /*
               recv_data(usrpsock,arg->main,sizeof(int32_t)*arg->data->samples);
               recv_data(usrpsock,arg->back,sizeof(int32_t)*arg->data->samples);
               */
@@ -1044,6 +1046,7 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
         if(arg->back!=NULL) munmap(arg->back,arg->mmap_length);
         arg->main=NULL;
         arg->back=NULL;
+        arg->mmap_length=0;
         gettimeofday(&t1,NULL);
         fprintf(stderr,"RECV::GET_DATA: Bad Status: %d Time: %s",arg->data->status,ctime(&t1.tv_sec));
         fprintf(stderr,"  Collected: %ld  Errors: %ld  Percentage: %lf\n",collection_count,error_count,error_percent);
