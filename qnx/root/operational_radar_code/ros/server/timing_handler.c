@@ -56,11 +56,13 @@ void *timing_end_controlprogram(void *arg)
     msg.status=1;
     send_data(timingsock, &msg, sizeof(struct DriverMsg));
   }
+/*
   if(usrp_settings.use_for_timing && usrpsock > 0){ 
     msg.type=TIMING_CtrlProg_END;
     msg.status=1;
     send_data(usrpsock, &msg, sizeof(struct DriverMsg));
   }
+*/
   pthread_mutex_unlock(&usrp_comm_lock);
   pthread_mutex_unlock(&timing_comm_lock);
   pthread_exit(NULL);

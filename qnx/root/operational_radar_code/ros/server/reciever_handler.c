@@ -713,7 +713,7 @@ void *receiver_end_controlprogram(struct ControlProgram *arg)
          send_data(recvsock, &msg, sizeof(struct DriverMsg));
          send_data(recvsock, arg->parameters, sizeof(struct ControlPRM));
        }
-       if ( usrp_settings.use_for_channel[r][c] && (usrpsock>0) ) {
+       if ( usrpsock>0 ) {
          msg.type=RECV_CtrlProg_END;
          msg.status=1;
          send_data(usrpsock, &msg, sizeof(struct DriverMsg));
