@@ -851,10 +851,10 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
       if (arg->data->status==0 ) {
         if (verbose > 0 ) fprintf(stdout,"RECV: GET_DATA: status good\n");
         if (recvsock>0  && !usrp_settings.use_for_channel[r][c] ) {
-          recv_data(recvsock,&arg->data->shm_memory,sizeof(arg->data->shm_memory));
-          recv_data(recvsock,&arg->data->frame_header,sizeof(arg->data->frame_header));
-          recv_data(recvsock,&arg->data->bufnum,sizeof(arg->data->bufnum));
-          recv_data(recvsock,&arg->data->samples,sizeof(arg->data->samples));
+          recv_data(recvsock,&arg->data->shm_memory,sizeof(int32_t));
+          recv_data(recvsock,&arg->data->frame_header,sizeof(int32_t));
+          recv_data(recvsock,&arg->data->bufnum,sizeof(int32_t));
+          recv_data(recvsock,&arg->data->samples,sizeof(int32_t));
           b=arg->data->bufnum;
           /* Note:
  	   *   main_address and back address are  uint64_t 
@@ -939,10 +939,10 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
         if ( usrp_settings.use_for_channel[r][c] && (usrpsock>0) ) {
           fprintf(stdout,"Use usrp for: %d %d :: status good\n",r,c); 
 
-          recv_data(usrpsock,&arg->data->shm_memory,sizeof(arg->data->shm_memory));
-          recv_data(usrpsock,&arg->data->frame_header,sizeof(arg->data->frame_header));
-          recv_data(usrpsock,&arg->data->bufnum,sizeof(arg->data->bufnum));
-          recv_data(usrpsock,&arg->data->samples,sizeof(arg->data->samples));
+          recv_data(usrpsock,&arg->data->shm_memory,sizeof(int32_t));
+          recv_data(usrpsock,&arg->data->frame_header,sizeof(int32_t));
+          recv_data(usrpsock,&arg->data->bufnum,sizeof(int32_t));
+          recv_data(usrpsock,&arg->data->samples,sizeof(int32_t));
           b=arg->data->bufnum;
           /* Note:
  	   *   main_address and back address are  uint64_t 
