@@ -568,6 +568,11 @@ int main(){
                           if (verbose > 1) fprintf(stdout,"Done setting the beam\n");	
                         } 
                         msg.status=0;
+                        for (r=1;r<=MAX_RADARS;r++){
+                          for (cc=1;cc<=DDS_MAX_CHANNELS;cc++){
+                              active[r][c]=-1;
+                          }
+                        }
                         numclients=0;
                         max_seq_count=0;
                         rval=send_data(msgsock, &msg, sizeof(struct DriverMsg));
