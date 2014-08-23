@@ -250,8 +250,8 @@ void *timing_wait(void *arg)
     send_data(usrpsock, &msg, sizeof(struct DriverMsg));
     recv_data(usrpsock, &msg, sizeof(struct DriverMsg));
   }
-  pthread_mutex_unlock(&timing_comm_lock);
   pthread_mutex_unlock(&usrp_comm_lock);
+  pthread_mutex_unlock(&timing_comm_lock);
   pthread_exit(NULL);
 };
 
