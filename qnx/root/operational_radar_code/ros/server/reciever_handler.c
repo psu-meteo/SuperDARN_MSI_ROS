@@ -1026,6 +1026,14 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
         }
         if (usrp_settings.use_for_channel[r][c] && (usrpsock>0) ){
           fprintf(stdout,"Use usrp for: %d %d :: error occurred\n",r,c); 
+          recv_data(usrpsock,&arg->data->shm_memory,sizeof(int32_t));
+          recv_data(usrpsock,&arg->data->frame_header,sizeof(int32_t));
+          recv_data(usrpsock,&arg->data->bufnum,sizeof(int32_t));
+          recv_data(usrpsock,&arg->data->samples,sizeof(int32_t));
+          fprintf(stdout,"  Use usrp for: %d %d :: shm memory: %d\n",r,c,arg->data->shm_memory); 
+          fprintf(stdout,"  Use usrp for: %d %d :: frame header: %d\n",r,c,arg->data->frame_header); 
+          fprintf(stdout,"  Use usrp for: %d %d :: bufnum: %d\n",r,c,arg->data->bufnum); 
+          fprintf(stdout,"  Use usrp for: %d %d :: samples: %d\n",r,c,arg->data->samples); 
           recv_data(usrpsock, &msg, sizeof(struct DriverMsg));
         }
         error_count++;
