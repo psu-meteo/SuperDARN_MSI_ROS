@@ -1004,14 +1004,15 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
               if ((int64_t)arg->back==-1) {
                 perror("back mmap error: ");
               }
-              fprintf(stdout,"Use usrp for: %d %d :: main ::  %p\n",r,c,arg->main); 
-              fprintf(stdout,"Use usrp for: %d %d :: back ::  %p\n",r,c,arg->back); 
-              fprintf(stdout,"Use usrp for: %d %d :: length ::  %d\n",r,c,arg->mmap_length); 
-              fprintf(stdout,"Use usrp for: %d %d :: samples: %d\n",r,c,arg->data->samples); 
-
+              /*
               recv_data(usrpsock,arg->main,sizeof(int32_t)*arg->data->samples);
               recv_data(usrpsock,arg->back,sizeof(int32_t)*arg->data->samples);
-              fprintf(stdout,"Use usrp for: %d %d :: end sample transfer\n",r,c); 
+              */
+              fprintf(stdout,"  Use usrp for: %d %d :: main ::  %p\n",r,c,arg->main); 
+              fprintf(stdout,"  Use usrp for: %d %d :: back ::  %p\n",r,c,arg->back); 
+              fprintf(stdout,"  Use usrp for: %d %d :: length ::  %d\n",r,c,arg->mmap_length); 
+              fprintf(stdout,"  Use usrp for: %d %d :: samples: %d\n",r,c,arg->data->samples); 
+              fprintf(stdout,"  Use usrp for: %d %d :: end sample transfer\n",r,c); 
               break;
           }
           recv_data(usrpsock, &msg, sizeof(struct DriverMsg));
