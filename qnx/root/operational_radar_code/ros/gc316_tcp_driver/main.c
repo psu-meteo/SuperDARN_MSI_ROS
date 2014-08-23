@@ -469,7 +469,7 @@ int main(int argc, char **argv){
         if (verbose > 1) printf("RECV driver: IF Mode %d \n",ifmode);
 #ifdef __QNX__
    /* SET UP COMMUNICATION TO GC314 DRIVERS */
-        configured=0;
+        configured=1;
         if(IMAGING==1) {
           if ((MAX_CARDS*MAX_INPUTS) < (MAX_TRANSMITTERS+MAX_BACK_ARRAY)) {
 	    fprintf(stderr, "Too few cards configured for imaging radar configuration\n");
@@ -554,7 +554,7 @@ int main(int argc, char **argv){
             }
           } else {
             if (verbose > 1 ) printf("Setting up for Multi-site Radar\n");
-            shm_memory=2;  //uses socket memory pass not shm nor dma
+            shm_memory=0;  //uses socket memory pass not shm nor dma
 	    for(r=0;r<MAX_RADARS;r++){
 	      for(c=0;c<MAX_CHANNELS;c++){
                 card=r;
