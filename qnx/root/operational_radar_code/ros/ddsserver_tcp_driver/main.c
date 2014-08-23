@@ -50,7 +50,7 @@
 
 
 int sock,msgsock;
-int verbose=0;
+int verbose=10;
 uint32_t ifmode=IF_ENABLED;
 struct  RXFESettings rf_settings;
 struct  RXFESettings if_settings;
@@ -339,6 +339,7 @@ int main(){
 	                for (r=0;r<MAX_RADARS;r++){
 	                  for (c=0;c<MAX_CHANNELS;c++){
                             current_pulse_index[r][c]=-10;
+                            active[r][c]=-1;
                           }
                         }
                         break;
