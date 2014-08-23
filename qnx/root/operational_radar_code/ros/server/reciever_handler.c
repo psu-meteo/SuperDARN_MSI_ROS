@@ -997,6 +997,7 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
               arg->main=NULL;
               arg->back=NULL;
               arg->mmap_length=0;
+              arg->data->shm_memory=10;
               
               arg->mmap_length=sizeof(uint32_t)*arg->data->samples;
               arg->main=mmap(0,arg->mmap_length,PROT_READ|PROT_WRITE,MAP_PRIVATE|MAP_ANONYMOUS,-1,0);
