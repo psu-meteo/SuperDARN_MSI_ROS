@@ -1031,6 +1031,8 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
         error_count++;
         error_percent=(double)error_count/(double)collection_count*100.0;
         arg->data->samples=0;
+        if(arg->main!=NULL) munmap(arg->main,arg->mmap_length);
+        if(arg->back!=NULL) munmap(arg->back,arg->mmap_length);
         arg->main=NULL;
         arg->back=NULL;
         gettimeofday(&t1,NULL);
