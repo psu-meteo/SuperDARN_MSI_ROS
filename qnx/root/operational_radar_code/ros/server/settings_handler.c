@@ -22,7 +22,7 @@ void *settings_parse_ini_usrp(struct USRPSettings *usrp_settings) {
      pthread_mutex_lock(&settings_lock);
 
      sprintf(usrp_settings->host,iniparser_getstring(Site_INI,"usrp:host",""));
-     usrp_settings->port=iniparser_getint(Site_INI,"usrp:port",0);
+     usrp_settings->port=iniparser_getint(Site_INI,"usrp:port",45001);
      usrp_settings->enabled=iniparser_getboolean(Site_INI,"site_settings:enable_usrp",0);
      usrp_settings->use_for_timing=iniparser_getboolean(Site_INI,"usrp:use_for_timing",0);
      usrp_settings->use_for_dio=iniparser_getboolean(Site_INI,"usrp:use_for_dio",0);

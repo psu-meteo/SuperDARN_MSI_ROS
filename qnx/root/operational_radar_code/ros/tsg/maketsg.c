@@ -177,8 +177,8 @@ struct TSGcnt {
 void TSGWrBuf(struct TSGbuf *tsg,
 	       int code,int delay,struct TSGcnt *cnt) {
   while (delay > 255) {	
-	(tsg->code)[tsg->len] = (char) code;
-	(tsg->rep)[tsg->len] = (char) 255;
+	(tsg->code)[tsg->len] = (unsigned char) code;
+	(tsg->rep)[tsg->len] = (unsigned char) 255;
 	tsg->len++;
 	delay = delay - 255;
   }

@@ -107,7 +107,7 @@ int32_t write_clr_out=0;
 void graceful_cleanup(int32_t signum)
 {
   char path[256];
-  sprintf(path,"%s:%d","rosrecv",0);
+  sprintf(path,"%s:%d","/tmp/rosrecv",0);
   close(msgsock);
   close(sock);
   fprintf(stdout,"Unlinking Unix Socket: %s\n",path);
@@ -469,12 +469,12 @@ int main(int argc, char **argv){
         if (verbose > 1) printf("RECV driver: IF Mode %d \n",ifmode);
 #ifdef __QNX__
    /* SET UP COMMUNICATION TO GC314 DRIVERS */
-        configured=1;
+        configured=0;
         if(IMAGING==1) {
           if ((MAX_CARDS*MAX_INPUTS) < (MAX_TRANSMITTERS+MAX_BACK_ARRAY)) {
 	    fprintf(stderr, "Too few cards configured for imaging radar configuration\n");
             configured=0;
-          }
+          } 
           if (MAX_RADARS !=1 ) {
 	    fprintf(stderr, "imaging configuration only supports one radar\n");
             configured=0;
@@ -485,8 +485,9 @@ int main(int argc, char **argv){
             configured=0;
           }
         }
-        if (verbose > 0 ) printf("Opening block devices for each GC314 card\n");
-	for(card=0;card<MAX_CARDS;card++){
+        if(configured) {
+          if (verbose > 0 ) printf("Opening block devices for each GC314 card\n");
+	  for(card=0;card<MAX_CARDS;card++){
 		driver=calloc((size_t) 64, 1);
 		strcat(driver,"/dev/gc314fs-");
 		itoa(card,cardnum,10);
@@ -499,7 +500,8 @@ int main(int argc, char **argv){
                   fprintf(stderr,"Opened driver %s: %d %d\n",driver,card,gc314fs[card]);
                 }
 		free(driver);
-	}
+	  }
+        }
 #else
         configured=0;
 #endif
@@ -552,7 +554,7 @@ int main(int argc, char **argv){
             }
           } else {
             if (verbose > 1 ) printf("Setting up for Multi-site Radar\n");
-            shm_memory=0;  //uses dma mapped memory not shm
+            shm_memory=2;  //uses socket memory pass not shm nor dma
 	    for(r=0;r<MAX_RADARS;r++){
 	      for(c=0;c<MAX_CHANNELS;c++){
                 card=r;
@@ -876,15 +878,15 @@ int main(int argc, char **argv){
                           elapsed=(t1.tv_sec-t0.tv_sec)*1E6;
                           elapsed+=(t1.tv_usec-t0.tv_usec);
                           if (verbose > 1) printf("  Receiver Wait For Data Elapsed Microseconds: %ld\n",elapsed);
-                          rval=send_data(msgsock,&status,sizeof(status));
+                          rval=send_data(msgsock,&status,sizeof(int32_t));
 			  if(verbose > 1 ) printf("  SHM Memory: %d\n",shm_memory);	
                           if (status==0) {
-                            rval=send_data(msgsock,&shm_memory,sizeof(shm_memory));
+                            rval=send_data(msgsock,&shm_memory,sizeof(int32_t));
 			    if(verbose > 1 ) printf("  FRAME Offset: %d\n",RECV_SAMPLE_HEADER);	
                             temp=RECV_SAMPLE_HEADER;
-                            rval=send_data(msgsock,&temp,sizeof(temp));
+                            rval=send_data(msgsock,&temp,sizeof(int32_t));
 			    if(verbose > 1 ) printf("  DMA Buf: %d\n",b);	
-                            rval=send_data(msgsock,&b,sizeof(b));
+                            rval=send_data(msgsock,&b,sizeof(int32_t));
                             samples=client.number_of_samples;
                             rval=send_data(msgsock,&samples,sizeof(samples));
 			    if(verbose > 1 ) printf("Sent Number of Samples %d\n",samples);	
@@ -1187,7 +1189,7 @@ int main(int argc, char **argv){
                                   Q=(addr[ii*N+j+RECV_SAMPLE_HEADER+CLR_SAMP_OFFSET] & 0xffff0000) >> 16;
                                   I= addr[ii*N+j+RECV_SAMPLE_HEADER+CLR_SAMP_OFFSET] & 0x0000ffff;
                                } else {
-                                  I=(addr[ddrii*N+j+RECV_SAMPLE_HEADER+CLR_SAMP_OFFSET] & 0xffff0000) >> 16;
+                                  I=(addr[ii*N+j+RECV_SAMPLE_HEADER+CLR_SAMP_OFFSET] & 0xffff0000) >> 16;
                                   Q= addr[ii*N+j+RECV_SAMPLE_HEADER+CLR_SAMP_OFFSET] & 0x0000ffff;
                                }
                                in[j][0]=Q;

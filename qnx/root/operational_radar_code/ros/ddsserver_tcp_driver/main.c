@@ -98,7 +98,7 @@ float  test_phase[16];
 void graceful_cleanup(int signum)
 {
   char path[256];
-  sprintf(path,"%s:%d","rosdds",0);
+  sprintf(path,"%s:%d","/tmp/rosdds",0);
   close(msgsock);
   close(sock);
   fprintf(stdout,"Unlinking Unix Socket: %s\n",path);
@@ -251,7 +251,7 @@ int main(){
 
     // OPEN TCP SOCKET AND START ACCEPTING CONNECTIONS 
 	//sock=tcpsocket(DDS_HOST_PORT);
-	sock=server_unixsocket("rosdds",0);
+	sock=server_unixsocket("/tmp/rosdds",0);
 	listen(sock, 5);
 	while (1) {
                 rval=1;

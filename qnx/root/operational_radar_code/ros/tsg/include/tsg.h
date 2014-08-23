@@ -1,5 +1,6 @@
 #ifndef _TSG_H
 #define _TSG_H
+#include <stdint.h>
 
 #define CLOCK_PERIOD    10              /* clock period in microseconds */
 
@@ -18,9 +19,9 @@
 
 
 struct TSGbuf {
-  int index;
-  int len;
-  int step;  //packed timesequence stepsize in microseconds
+  int32_t index;
+  int32_t len;
+  int32_t step;  //packed timesequence stepsize in microseconds
   unsigned char *code;
   unsigned char *rep;
 };

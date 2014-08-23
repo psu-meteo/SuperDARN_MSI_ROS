@@ -86,9 +86,9 @@ int server_unixsocket(char *hostip,int port){
     sprintf(path,"%s_%d",hostip,port);
 
     strcpy(saun.sun_path, path);
-    fprintf(stdout,"Unix Path: %s\n",path);
+    fprintf(stdout,"Unix Path: %s\n",saun.sun_path);
     unlink(path);
-    len = sizeof(saun.sun_family) + strlen(saun.sun_path);
+    len = sizeof(saun.sun_family) + strlen(saun.sun_path)+1;
 
     if (bind(sock, (struct sockaddr *)&saun, len) < 0) {
         perror("server: bind");
@@ -122,7 +122,8 @@ int openunixsock(char *hostip, int port){
 	sprintf(path,"%s_%d",hostip,port);
         strcpy(saun.sun_path, path);
         //unlink(path);
-        len = sizeof(saun.sun_family) + strlen(saun.sun_path);
+        fprintf(stdout,"Unix Path: %s\n",saun.sun_path);
+        len = sizeof(saun.sun_family) + strlen(saun.sun_path)+1;
         if (connect(sock,(struct sockaddr *) &saun,(socklen_t) len) < 0) {
           perror("client: connect");
           sock=-1;

@@ -36,7 +36,7 @@ void graceful_cleanup(int signum)
   char path[256];
   char *diohostip=DIO_HOST_IP;
   int dioport=DIO_HOST_PORT;
-  sprintf(path,"%s:%d","rosdio",0);
+  sprintf(path,"%s:%d","/tmp/rosdio",0);
   close(msgsock);
   close(sock);
   fprintf(stdout,"Unlinking Unix Socket: %s\n",path);
@@ -202,7 +202,7 @@ int main(){
 #endif
     // OPEN TCP SOCKET AND START ACCEPTING CONNECTIONS 
 //	sock=tcpsocket(DIO_HOST_PORT);
-	sock=server_unixsocket("rosdio",0);
+	sock=server_unixsocket("/tmp/rosdio",0);
 
 	listen(sock, 5);
 

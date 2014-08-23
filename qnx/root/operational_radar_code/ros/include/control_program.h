@@ -72,7 +72,7 @@ struct USRPSettings {
      char use_for_recv;	
      char use_for_dio;	
      char host[256];
-     uint8_t port;
+     uint32_t port;
      char use_for_channel[MAX_RADARS][MAX_CHANNELS];
 };
 /*

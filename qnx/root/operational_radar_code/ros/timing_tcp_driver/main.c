@@ -26,7 +26,7 @@
 
 dictionary *Site_INI;
 int sock,msgsock;
-int verbose=0;
+int verbose=10;
 int configured=1;
 int		writingFIFO=0, dma_count=0, under_flag=0,empty_flag=0,IRQ, intid;
 int		max_seq_count, xfercount, totransfer;
@@ -40,7 +40,7 @@ void graceful_cleanup(int signum)
 {
   int temp;
   char path[256];
-  sprintf(path,"%s:%d","rostiming",0);
+  sprintf(path,"%s_%d","/tmp/rostiming",0);
 #ifdef __QNX__
   // disable interrupts
   temp=in32( mmap_io_ptr_dio+0x0c);
@@ -157,7 +157,8 @@ int main(){
 	int	rval;
         fd_set rfds,efds;
 	// counter and temporary variables
-	int	i,j,k,r,c,buf,index,offset_pad;
+        int32_t index;
+	int	i,j,k,r,c,buf,offset_pad;
 	int	dds_offset,rx_offset,tx_offset;
         int     scope_start,dds_trigger,rx_trigger;
 	int 	temp;
@@ -315,7 +316,7 @@ int main(){
 
     // OPEN TCP SOCKET AND START ACCEPTING CONNECTIONS 
 	//sock=tcpsocket(TIMING_HOST_PORT);
-        sock=server_unixsocket("rostiming",0);
+        sock=server_unixsocket("/tmp/rostiming",0);
 	listen(sock, 5);
 	while (1) {
                 rval=1;
@@ -368,7 +369,7 @@ int main(){
                         c=client.channel-1; 
 			if (verbose > 1) printf("Radar: %d, Channel: %d Beamnum: %d Status %d\n",
 			  client.radar,client.channel,client.tbeam,msg.status);	
-		        rval=recv_data(msgsock,&index,sizeof(index));
+		        rval=recv_data(msgsock,&index,sizeof(int32_t));
 		        if (verbose > 1) printf("Requested index: %d %d %d\n",r,c,index);	
 		        if (verbose > 1) printf("Attempting Free on pulseseq :p\n",pulseseqs[r][c][index]);	
                         if (pulseseqs[r][c][index]!=NULL) {
@@ -379,15 +380,20 @@ int main(){
 		        if (verbose > 1) printf("Done Free - Attempting Malloc\n");	
                         pulseseqs[r][c][index]=malloc(sizeof(struct TSGbuf));
 		        if (verbose > 1) printf("Finished malloc\n");	
-                        rval=recv_data(msgsock,pulseseqs[r][c][index], sizeof(struct TSGbuf)); // requested pulseseq
+                        rval=recv_data(msgsock,&pulseseqs[r][c][index]->index, sizeof(int32_t)); // requested pulseseq
+                        rval=recv_data(msgsock,&pulseseqs[r][c][index]->len, sizeof(int32_t)); // requested pulseseq
+                        rval=recv_data(msgsock,&pulseseqs[r][c][index]->step, sizeof(int32_t)); // requested pulseseq
+		        if (verbose > 1) printf("Finished recv tsgbuf :%d\n",pulseseqs[r][c][index]->len);	
                         pulseseqs[r][c][index]->rep=
                           malloc(sizeof(unsigned char)*pulseseqs[r][c][index]->len);
                         pulseseqs[r][c][index]->code=
                           malloc(sizeof(unsigned char)*pulseseqs[r][c][index]->len);
                         rval=recv_data(msgsock,pulseseqs[r][c][index]->rep, 
                           sizeof(unsigned char)*pulseseqs[r][c][index]->len);
+		        if (verbose > 1) printf("Finished recv rep :%d\n",pulseseqs[r][c][index]->len);	
                         rval=recv_data(msgsock,pulseseqs[r][c][index]->code, 
                           sizeof(unsigned char)*pulseseqs[r][c][index]->len);
+		        if (verbose > 1) printf("Finished  recv code :%d\n",pulseseqs[r][c][index]->len);	
 			if (verbose > 1) printf("Pulseseq length: %d\n",pulseseqs[r][c][index]->len);	
                         old_seq_id=-10;
                         old_pulse_index[r][c]=-1;
@@ -432,7 +438,7 @@ int main(){
                             seq_count[r][c]++;
                           }
 			  for(i=0;i<pulseseqs[r][c][index]->len;i++){
-			    tempcode=_decodestate(r,c,(pulseseqs[r][c][index]->code)[i]);	
+			    tempcode=_decodestate(r,c,((unsigned char *)pulseseqs[r][c][index]->code)[i]);	
 			    for( j=0;j<step*(pulseseqs[r][c][index]->rep)[i];j++){
 			      seq_buf[r][c][seq_count[r][c]]=tempcode;
 			      seq_count[r][c]++;

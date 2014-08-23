@@ -53,7 +53,7 @@ int set_time_compare_register(int mask,struct timespec *nexttime);
 void graceful_cleanup(int signum)
 {
   char path[256];
-  sprintf(path,"%s:%d","rosgps",0);
+  sprintf(path,"%s:%d","/tmp/rosgps",0);
   close(msgsock);
   close(sock);
   unlink(path);
@@ -169,12 +169,18 @@ void graceful_cleanup(int signum)
 	//set terminal for input
 //	halfdelay(1);
 
-
+/* JDS: set ratesynth to a default of 1pps for usrp integration testing */
+        displaystat.ratesynthrate=1;
+        if (verbose > -1) printf("Set Rate: %d\n", displaystat.ratesynthrate);
+        if (configured ) {
+          *((uint32_t*)(BASE1+0x128))=displaystat.ratesynthrate;  //set rate synthesiser rate
+          *((uint32_t*)(BASE1+0x12c))|=0x00000f00;  // load rate synth rate
+        }
 	//for (i=0;i<1000;i++){
 	temp=clock_gettime(CLOCK_REALTIME, &start_p);
 	//open tcp socket	
 	//sock=tcpsocket(GPS_HOST_PORT);
-	sock=server_unixsocket("rosgps",0);
+	sock=server_unixsocket("/tmp/rosgps",0);
 	temp=1;
 	//ioctl(sock,FIONBIO,&temp);
 	//cntl(sock,F_SETFL,O_NONBLOCK);

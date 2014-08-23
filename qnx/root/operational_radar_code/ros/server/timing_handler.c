@@ -34,8 +34,6 @@ void *timing_ready_controlprogram(struct ControlProgram *arg)
       if (arg->state->pulseseqs[arg->parameters->current_pulseseq_index]!=NULL) {
         msg.type=TIMING_CtrlProg_READY;
         msg.status=1;
-        msg.type=TIMING_CtrlProg_READY;
-        msg.status=1;
         send_data(usrpsock, &msg, sizeof(struct DriverMsg));
         send_data(usrpsock, arg->parameters, sizeof(struct ControlPRM));
         recv_data(usrpsock, &msg, sizeof(struct DriverMsg));
@@ -71,7 +69,7 @@ void *timing_end_controlprogram(void *arg)
 void *timing_register_seq(struct ControlProgram *control_program)
 {
   struct DriverMsg msg;
-  int index;
+  int32_t index;
   pthread_mutex_lock(&timing_comm_lock);
   pthread_mutex_lock(&usrp_comm_lock);
   if (timingsock>0){
@@ -81,9 +79,16 @@ void *timing_register_seq(struct ControlProgram *control_program)
     send_data(timingsock, control_program->parameters, sizeof(struct ControlPRM));
     index=control_program->parameters->current_pulseseq_index;
     send_data(timingsock, &index, sizeof(index)); //requested index
-    send_data(timingsock,control_program->state->pulseseqs[index], sizeof(struct TSGbuf)); // requested pulseseq
+
+    send_data(timingsock,&control_program->state->pulseseqs[index]->index, sizeof(int32_t)); // requested pulseseq
+    send_data(timingsock,&control_program->state->pulseseqs[index]->len, sizeof(int32_t)); // requested pulseseq
+    send_data(timingsock,&control_program->state->pulseseqs[index]->step, sizeof(int32_t)); // requested pulseseq
+
     send_data(timingsock,control_program->state->pulseseqs[index]->rep, 
       sizeof(unsigned char)*control_program->state->pulseseqs[index]->len); // requested pulseseq
+    send_data(timingsock,control_program->state->pulseseqs[index]->code, 
+    sizeof(unsigned char)*control_program->state->pulseseqs[index]->len); // requested pulseseq
+
     recv_data(timingsock, &msg, sizeof(struct DriverMsg));
   }
   if(usrp_settings.use_for_timing && usrpsock > 0){ 
@@ -92,12 +97,17 @@ void *timing_register_seq(struct ControlProgram *control_program)
     send_data(usrpsock, &msg, sizeof(struct DriverMsg));
     send_data(usrpsock, control_program->parameters, sizeof(struct ControlPRM));
     index=control_program->parameters->current_pulseseq_index;
-    send_data(usrpsock, &index, sizeof(index)); //requested index
-    send_data(usrpsock,control_program->state->pulseseqs[index], sizeof(struct TSGbuf)); // requested pulseseq
+    send_data(usrpsock, &index, sizeof(int32_t)); //requested index
+
+    send_data(usrpsock,&control_program->state->pulseseqs[index]->index, sizeof(int32_t)); // requested pulseseq
+    send_data(usrpsock,&control_program->state->pulseseqs[index]->len, sizeof(int32_t)); // requested pulseseq
+    send_data(usrpsock,&control_program->state->pulseseqs[index]->step, sizeof(int32_t)); // requested pulseseq
+
     send_data(usrpsock,control_program->state->pulseseqs[index]->rep, 
-    sizeof(unsigned char)*control_program->state->pulseseqs[index]->len); // requested pulseseq
+      sizeof(unsigned char)*control_program->state->pulseseqs[index]->len); // requested pulseseq
     send_data(usrpsock,control_program->state->pulseseqs[index]->code, 
-    sizeof(unsigned char)*control_program->state->pulseseqs[index]->len); // requested pulseseq
+      sizeof(unsigned char)*control_program->state->pulseseqs[index]->len); // requested pulseseq
+
     recv_data(usrpsock, &msg, sizeof(struct DriverMsg));
   }
   pthread_mutex_unlock(&usrp_comm_lock);
