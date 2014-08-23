@@ -701,11 +701,11 @@ void *receiver_end_controlprogram(struct ControlProgram *arg)
 {
   struct DriverMsg msg;
   int r,c;
-  r=arg->parameters->radar-1;
-  c=arg->parameters->channel-1;
   pthread_mutex_lock(&recv_comm_lock);
   pthread_mutex_lock(&usrp_comm_lock);
   if (arg!=NULL) {
+     r=arg->parameters->radar-1;
+     c=arg->parameters->channel-1;
      if (arg->state->pulseseqs[arg->parameters->current_pulseseq_index]!=NULL) {
        if (recvsock>0  && !usrp_settings.use_for_channel[r][c]) {
          msg.type=RECV_CtrlProg_END;
