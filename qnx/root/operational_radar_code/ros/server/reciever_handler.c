@@ -699,7 +699,7 @@ void receiver_exit(void *arg)
 
 void *receiver_end_controlprogram(struct ControlProgram *arg)
 {
-  struct DriverMsg msg;
+  struct DriverMsg msg,rmsg;
   int r,c;
   pthread_mutex_lock(&recv_comm_lock);
   pthread_mutex_lock(&usrp_comm_lock);
@@ -718,6 +718,7 @@ void *receiver_end_controlprogram(struct ControlProgram *arg)
          msg.status=1;
          send_data(usrpsock, &msg, sizeof(struct DriverMsg));
          send_data(usrpsock, arg->parameters, sizeof(struct ControlPRM));
+         recv_data(usrpsock, &rmsg, sizeof(struct DriverMsg));
        }
      }
   }
