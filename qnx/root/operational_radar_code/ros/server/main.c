@@ -220,6 +220,7 @@ int main()
   strcpy(coord_lock_buffer, "");
 
   printf("Size of Struct ROSMsg  %d\n",sizeof(struct ROSMsg));
+  printf("Size of Struct DriverMsg  %d\n",sizeof(struct DriverMsg));
   printf("Size of Struct int32_t  %d\n",sizeof(int32_t));
   printf("Size of Struct float  %d\n",sizeof(float));
   printf("Size of Struct unsigned char  %d\n",sizeof(unsigned char));
