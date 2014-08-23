@@ -816,6 +816,7 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
       pthread_mutex_lock(&usrp_comm_lock);
       collection_count++;
       if (error_flag==0) {
+        arg->data->status=-1;
         r=arg->parameters->radar-1;
         c=arg->parameters->channel-1;
         arg->data->samples=arg->parameters->number_of_samples;
