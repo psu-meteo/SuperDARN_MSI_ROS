@@ -949,7 +949,7 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
  	  */    
           fprintf(stdout,"Use usrp for: %d %d :: shm memory: %d\n",r,c,arg->data->shm_memory); 
           fprintf(stdout,"Use usrp for: %d %d :: frame header: %d\n",r,c,arg->data->frame_header); 
-          fprintf(stdout,"Use usrp for: %d %d :: bufnum: %d\n",r,c,arg->data->bufnum); 
+          fprintf(stdout,"Use usrp for: %d %d :: bufnum: %d %c\n",r,c,arg->data->bufnum,arg->data->bufnum); 
           fprintf(stdout,"Use usrp for: %d %d :: samples: %d\n",r,c,arg->data->samples); 
           arg->data->shm_memory=2;
           arg->data->samples=500;
