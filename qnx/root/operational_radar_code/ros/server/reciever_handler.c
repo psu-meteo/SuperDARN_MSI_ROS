@@ -1026,36 +1026,40 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
                 fprintf(stdout,"RECV: GET_DATA: end of status good\n");
 
       } else { //error occurred
-        if (recvsock>0  && !usrp_settings.use_for_channel[r][c]){
-          recv_data(recvsock, &msg, sizeof(struct DriverMsg));
-        }
-        if (usrp_settings.use_for_channel[r][c] && (usrpsock>0) ){
-          fprintf(stdout,"Use usrp for: %d %d :: error occurred\n",r,c); 
-          recv_data(usrpsock,&arg->data->shm_memory,sizeof(int32_t));
-          recv_data(usrpsock,&arg->data->frame_header,sizeof(int32_t));
-          recv_data(usrpsock,&arg->data->bufnum,sizeof(int32_t));
-          recv_data(usrpsock,&arg->data->samples,sizeof(int32_t));
-          fprintf(stdout,"  Use usrp for: %d %d :: shm memory: %d\n",r,c,arg->data->shm_memory); 
-          fprintf(stdout,"  Use usrp for: %d %d :: frame header: %d\n",r,c,arg->data->frame_header); 
-          fprintf(stdout,"  Use usrp for: %d %d :: bufnum: %d\n",r,c,arg->data->bufnum); 
-          fprintf(stdout,"  Use usrp for: %d %d :: samples: %d\n",r,c,arg->data->samples); 
-          recv_data(usrpsock, &msg, sizeof(struct DriverMsg));
-        }
+        if(error_flag==0) {
+          if (recvsock>0  && !usrp_settings.use_for_channel[r][c]){
+            recv_data(recvsock, &msg, sizeof(struct DriverMsg));
+          }
+          if (usrp_settings.use_for_channel[r][c] && (usrpsock>0) ){
+            fprintf(stdout,"Use usrp for: %d %d :: error occurred\n",r,c); 
+            recv_data(usrpsock,&arg->data->shm_memory,sizeof(int32_t));
+            recv_data(usrpsock,&arg->data->frame_header,sizeof(int32_t));
+            recv_data(usrpsock,&arg->data->bufnum,sizeof(int32_t));
+            recv_data(usrpsock,&arg->data->samples,sizeof(int32_t));
+            fprintf(stdout,"  Use usrp for: %d %d :: shm memory: %d\n",r,c,arg->data->shm_memory); 
+            fprintf(stdout,"  Use usrp for: %d %d :: frame header: %d\n",r,c,arg->data->frame_header); 
+            fprintf(stdout,"  Use usrp for: %d %d :: bufnum: %d\n",r,c,arg->data->bufnum); 
+            fprintf(stdout,"  Use usrp for: %d %d :: samples: %d\n",r,c,arg->data->samples); 
+            recv_data(usrpsock, &msg, sizeof(struct DriverMsg));
+          }
+        } 
         error_count++;
         error_percent=(double)error_count/(double)collection_count*100.0;
         arg->data->samples=0;
+        /*
         if(arg->main!=NULL) munmap(arg->main,arg->mmap_length);
         if(arg->back!=NULL) munmap(arg->back,arg->mmap_length);
         arg->main=NULL;
         arg->back=NULL;
         arg->mmap_length=0;
+        */
         gettimeofday(&t1,NULL);
         fprintf(stderr,"RECV::GET_DATA: Bad Status: %d Time: %s",arg->data->status,ctime(&t1.tv_sec));
         fprintf(stderr,"  Collected: %ld  Errors: %ld  Percentage: %lf\n",collection_count,error_count,error_percent);
         fflush(stderr);
       }
+      fprintf(stdout,"error_flag: %i\n", error_flag);
 
-      //fprintf(stdout,"error_flag: %i\n", error_flag);
       //fprintf(stdout,"size of struct DriverMsg: %i\n", sizeof(struct DriverMsg));
       pthread_mutex_unlock(&usrp_comm_lock);
       pthread_mutex_unlock(&recv_comm_lock);
