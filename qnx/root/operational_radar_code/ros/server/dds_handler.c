@@ -62,6 +62,7 @@ void *dds_rxfe_settings(void *arg)
   }
   pthread_mutex_unlock(&dds_comm_lock);
 }
+
 void *dds_ready_controlprogram(void *arg)
 {
   struct DriverMsg msg;
@@ -81,8 +82,27 @@ void *dds_ready_controlprogram(void *arg)
    }
    pthread_mutex_unlock(&dds_comm_lock);
    pthread_exit(NULL);
+};
 
-
+void *dds_inactive_controlprogram(void *arg)
+{
+  struct DriverMsg msg;
+  memset(&msg,0,sizeof(msg));
+  struct ControlProgram *control_program;
+  struct timeval t0,t1;
+  control_program=arg;
+  pthread_mutex_lock(&dds_comm_lock);
+   if (control_program!=NULL) {
+     if (control_program->state->pulseseqs[control_program->parameters->current_pulseseq_index]!=NULL) {
+       msg.type=DDS_CtrlProg_INACTIVE;
+       msg.status=1;
+       send_data(ddssock, &msg, sizeof(struct DriverMsg));
+       send_data(ddssock, control_program->parameters, sizeof(struct ControlPRM));
+       recv_data(ddssock, &msg, sizeof(struct DriverMsg));
+     } 
+   }
+   pthread_mutex_unlock(&dds_comm_lock);
+   pthread_exit(NULL);
 };
 
 void *dds_end_controlprogram(void *arg)

@@ -343,6 +343,19 @@ int main(){
                           }
                         }
                         break;
+		      case DDS_CtrlProg_INACTIVE:
+		        rval=recv_data(msgsock,&client,sizeof(struct ControlPRM));
+                        r=client.radar-1; 
+                        c=client.channel-1; 
+                        if (verbose > 1) fprintf(stdout,"DDS driver: Setting Inactive\n");
+	                for (r=0;r<MAX_RADARS;r++){
+	                  for (c=0;c<MAX_CHANNELS;c++){
+                             current_pulse_index[r][c]=-10;
+                             active[r][c]=-1;
+                          }
+                        } 
+                        rval=send_data(msgsock, &msg, sizeof(struct DriverMsg));
+                        break;
 
 		      case DDS_RXFE_SETTINGS:
                         if (verbose > -1) fprintf(stdout,"DDS driver: Configuring for IF Mode\n");
@@ -568,13 +581,14 @@ int main(){
                           if (verbose > 1) fprintf(stdout,"Done setting the beam\n");	
                         } 
                         msg.status=0;
-                        /*
-                          for (r=1;r<=MAX_RADARS;r++){
-                            for (cc=1;cc<=DDS_MAX_CHANNELS;cc++){
-                                active[r][c]=-1;
-                            }
+                        
+                        for (r=1;r<=MAX_RADARS;r++){
+                          for (cc=1;cc<=DDS_MAX_CHANNELS;cc++){
+                              current_pulse_index[r][c]=-10;
+                              active[r][c]=-1;
                           }
-                        */
+                        }
+                        
                         numclients=0;
                         max_seq_count=0;
                         rval=send_data(msgsock, &msg, sizeof(struct DriverMsg));

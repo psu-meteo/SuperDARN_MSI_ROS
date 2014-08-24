@@ -142,6 +142,8 @@ struct BlackList {
 #define RECV_CtrlProg_END '@'
 #define TIMING_CtrlProg_END '@'
 
+#define DDS_CtrlProg_INACTIVE 'I'
+
 #define TIMING_WAIT 'W'
 
 #define DIO_PRETRIGGER '3'
