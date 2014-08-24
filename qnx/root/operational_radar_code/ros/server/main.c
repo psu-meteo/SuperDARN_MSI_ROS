@@ -65,7 +65,7 @@ struct USRPSettings usrp_settings;
 struct GPSStatus gpsstatus;
 struct TRTimes bad_transmit_times;
 int32_t gpsrate=GPS_DEFAULT_TRIGRATE;
-int verbose=0;
+int verbose=10;
 
 struct timeval t_pre_start,t_pre_end,t_ready_first,t_ready_final,t_post_start,t_post_end;
 
@@ -429,7 +429,7 @@ int main()
     if (usrpsock < 0) {
       if (verbose>0) fprintf(stderr,"USRP Socket failure %d %s %d\n",usrpsock,usrp_settings.host,usrp_settings.port);
 //      graceful_socket_cleanup(1);
-    } else  if (verbose>0) fprintf(stderr,"USRP Socket %d\n",usrpsock);
+    } else  if (verbose>-1) fprintf(stderr,"USRP Socket %d\n",usrpsock);
   }
   if (verbose>0) fprintf(stderr,"Opening GPS Socket\n");
   //gpssock=opentcpsock(gpshostip, gpsport);
