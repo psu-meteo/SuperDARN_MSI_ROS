@@ -335,7 +335,7 @@ void controlprogram_exit(struct ControlProgram *control_program)
      rc = pthread_create(&thread, NULL, (void *)&coordination_handler,(void *) control_program);
      pthread_join(thread,NULL);
      pthread_mutex_unlock(&coord_lock);
-/*
+
      i=0;
      rc = pthread_create(&threads[i], NULL,(void *) &timing_wait, NULL);
      pthread_join(threads[0],NULL);
@@ -346,11 +346,12 @@ void controlprogram_exit(struct ControlProgram *control_program)
 //   i++;
 //   rc = pthread_create(&threads[i], NULL, (void *) &DIO_end_controlprogram, NULL);
      i++;
-     rc = pthread_create(&threads[i], NULL, (void *) &receiver_end_controlprogram, NULL);
+
+     rc = pthread_create(&threads[i], NULL, (void *) &receiver_end_controlprogram, (void *) control_program);
      for (;i>=0;i--) {
        pthread_join(threads[i],NULL);
      }
-*/
+
      if (verbose > -1 ) fprintf(stderr,"Closing Client Socket: %d\n",control_program->state->socket);
      close(control_program->state->socket);
      unregister_radar_channel(control_program);
