@@ -262,8 +262,7 @@ int main()
   pthread_mutex_init(&gps_comm_lock, NULL);
   pthread_mutex_init(&recv_comm_lock, NULL);
   pthread_cond_init (&ready_flag, NULL);
-  if(usrp_settings.enabled) 
-    pthread_mutex_init(&usrp_comm_lock, NULL);
+  pthread_mutex_init(&usrp_comm_lock, NULL);
 
 /*
  * Init State Variables
