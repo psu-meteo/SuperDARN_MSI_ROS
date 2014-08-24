@@ -29,7 +29,8 @@ void *timing_ready_controlprogram(struct ControlProgram *arg)
       }
     }
   }
-  if(usrp_settings.use_for_timing && usrpsock > 0) {
+  //if(usrp_settings.use_for_timing && (usrpsock > 0)){ 
+  if((usrpsock > 0)){ 
     if (arg!=NULL) {
       if (arg->state->pulseseqs[arg->parameters->current_pulseseq_index]!=NULL) {
         msg.type=TIMING_CtrlProg_READY;
@@ -42,7 +43,7 @@ void *timing_ready_controlprogram(struct ControlProgram *arg)
   }
   pthread_mutex_unlock(&usrp_comm_lock);
   pthread_mutex_unlock(&timing_comm_lock);
-   pthread_exit(NULL);
+  pthread_exit(NULL);
 };
 
 void *timing_end_controlprogram(void *arg)
@@ -57,7 +58,7 @@ void *timing_end_controlprogram(void *arg)
     send_data(timingsock, &msg, sizeof(struct DriverMsg));
   }
 /*
-  if(usrp_settings.use_for_timing && usrpsock > 0){ 
+  if(usrp_settings.use_for_timing && (usrpsock > 0)){ 
     msg.type=TIMING_CtrlProg_END;
     msg.status=1;
     send_data(usrpsock, &msg, sizeof(struct DriverMsg));
@@ -71,7 +72,8 @@ void *timing_end_controlprogram(void *arg)
 void *timing_register_seq(struct ControlProgram *control_program)
 {
   struct DriverMsg msg;
-  int32_t index;
+  int32_t index,bufsize;
+
   pthread_mutex_lock(&timing_comm_lock);
   pthread_mutex_lock(&usrp_comm_lock);
   if (timingsock>0){
@@ -89,11 +91,12 @@ void *timing_register_seq(struct ControlProgram *control_program)
     send_data(timingsock,control_program->state->pulseseqs[index]->rep, 
       sizeof(unsigned char)*control_program->state->pulseseqs[index]->len); // requested pulseseq
     send_data(timingsock,control_program->state->pulseseqs[index]->code, 
-    sizeof(unsigned char)*control_program->state->pulseseqs[index]->len); // requested pulseseq
-
+      sizeof(unsigned char)*control_program->state->pulseseqs[index]->len); // requested pulseseq
     recv_data(timingsock, &msg, sizeof(struct DriverMsg));
   }
-  if(usrp_settings.use_for_timing && usrpsock > 0){ 
+  //if(usrp_settings.use_for_timing && (usrpsock > 0)){ 
+  if((usrpsock > 0)){ 
+
     msg.type=TIMING_REGISTER_SEQ;
     msg.status=1;
     send_data(usrpsock, &msg, sizeof(struct DriverMsg));
@@ -102,13 +105,17 @@ void *timing_register_seq(struct ControlProgram *control_program)
     send_data(usrpsock, &index, sizeof(int32_t)); //requested index
 
     send_data(usrpsock,&control_program->state->pulseseqs[index]->index, sizeof(int32_t)); // requested pulseseq
+    
     send_data(usrpsock,&control_program->state->pulseseqs[index]->len, sizeof(int32_t)); // requested pulseseq
     send_data(usrpsock,&control_program->state->pulseseqs[index]->step, sizeof(int32_t)); // requested pulseseq
+    //bufsize=sizeof(unsigned char)*control_program->state->pulseseqs[index]->len;
 
     send_data(usrpsock,control_program->state->pulseseqs[index]->rep, 
       sizeof(unsigned char)*control_program->state->pulseseqs[index]->len); // requested pulseseq
     send_data(usrpsock,control_program->state->pulseseqs[index]->code, 
       sizeof(unsigned char)*control_program->state->pulseseqs[index]->len); // requested pulseseq
+
+    //send_data(usrpsock,&bufsize, sizeof(int32_t)); // requested pulseseq
 
     recv_data(usrpsock, &msg, sizeof(struct DriverMsg));
   }
@@ -137,7 +144,7 @@ void *timing_pretrigger(void *arg)
     //printf("TIMING: PRETRIGGER: free end\n");
     //printf("TIMING: PRETRIGGER: recv bad_transmit times object\n");
     recv_data(timingsock, &bad_transmit_times.length, sizeof(bad_transmit_times.length));
-    printf("TIMING: PRETRIGGER: length %d %i\n",bad_transmit_times.length, rval);
+    //printf("TIMING: PRETRIGGER: length %d %i\n",bad_transmit_times.length, rval);
     if (bad_transmit_times.length>0) {
       //printf("TIMING: PRETRIGGER: Mallocs start\n");
       bad_transmit_times.start_usec=(uint32_t*) malloc(sizeof(uint32_t)*bad_transmit_times.length);
@@ -157,7 +164,8 @@ void *timing_pretrigger(void *arg)
     recv_data(timingsock, &msg, sizeof(struct DriverMsg));
   }
 
-  if(usrp_settings.use_for_timing && usrpsock > 0){ 
+  //if(usrp_settings.use_for_timing && (usrpsock > 0)){ 
+  if((usrpsock > 0)){ 
     msg.type=TIMING_PRETRIGGER;
     msg.status=1;
     send_data(usrpsock, &msg, sizeof(struct DriverMsg));
@@ -174,9 +182,9 @@ void *timing_pretrigger(void *arg)
       bad_transmit_times.duration_usec=NULL;
     }
     //printf("TIMING: PRETRIGGER: recv start usec object\n");
-    recv_data(usrpsock, bad_transmit_times.start_usec, sizeof(unsigned int)*bad_transmit_times.length);
+    recv_data(usrpsock, bad_transmit_times.start_usec, sizeof(uint32_t)*bad_transmit_times.length);
     //printf("TIMING: PRETRIGGER: recv duration usec object\n");
-    recv_data(usrpsock, bad_transmit_times.duration_usec, sizeof(unsigned int)*bad_transmit_times.length);
+    recv_data(usrpsock, bad_transmit_times.duration_usec, sizeof(uint32_t)*bad_transmit_times.length);
     //printf("TIMING: PRETRIGGER: recv msg\n");
     recv_data(usrpsock, &msg, sizeof(struct DriverMsg));
   }
@@ -210,7 +218,8 @@ void *timing_trigger(int *ttp)
     recv_data(timingsock, &msg, sizeof(struct DriverMsg));
   }
 
-  if(usrp_settings.use_for_timing){ 
+  //if(usrp_settings.use_for_timing && (usrpsock>0)){ 
+  if((usrpsock>0)){ 
     switch(trigger_type) {
       case 0:
         msg.type=TIMING_TRIGGER;
@@ -244,7 +253,8 @@ void *timing_wait(void *arg)
     recv_data(timingsock, &msg, sizeof(struct DriverMsg));
   }
 
-  if(usrp_settings.use_for_timing && usrpsock > 0){ 
+  //if(usrp_settings.use_for_timing && (usrpsock > 0)){ 
+  if((usrpsock > 0)){ 
     msg.type=TIMING_WAIT;
     msg.status=1;
     send_data(usrpsock, &msg, sizeof(struct DriverMsg));
@@ -266,7 +276,8 @@ void *timing_posttrigger(void *arg)
     send_data(timingsock, &msg, sizeof(struct DriverMsg));
     recv_data(timingsock, &msg, sizeof(struct DriverMsg));
   }
-  if(usrp_settings.use_for_timing && usrpsock > 0){ 
+  //if(usrp_settings.use_for_timing && (usrpsock > 0)){ 
+  if((usrpsock > 0)){ 
     msg.type=TIMING_POSTTRIGGER;
     msg.status=1;
     send_data(usrpsock, &msg, sizeof(struct DriverMsg));
