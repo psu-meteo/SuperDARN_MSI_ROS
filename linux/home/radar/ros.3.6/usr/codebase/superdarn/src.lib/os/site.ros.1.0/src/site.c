@@ -1338,10 +1338,10 @@ usleep(usecs);
           for(n=0;n<(nsamp);n++){
             Q=(maddr[n] & 0xffff0000) >> 16;
             I=maddr[n] & 0x0000ffff;
-            fprintf(stderr," %7d :: 0x%x : %7d %7d " ,n,(uint32)maddr[n],(int)I,(int)Q);
+            fprintf(stderr," %7d :: 0x%8x : %7d %7d " ,n,(uint32)maddr[n],(int)I,(int)Q);
             Q=((rdata.back)[n] & 0xffff0000) >> 16;
             I=((uint32)((rdata.back)[n])) & 0x0000ffff;
-            fprintf(stderr," :: 0x%x : %7d %7d\n" ,(uint32)baddr[n],(int)I,(int)Q);
+            fprintf(stderr," :: 0x%8x : %7d %7d\n" ,(uint32)baddr[n],(int)I,(int)Q);
           }
           dest = (void *)(samples);
           dest += iqoff;
