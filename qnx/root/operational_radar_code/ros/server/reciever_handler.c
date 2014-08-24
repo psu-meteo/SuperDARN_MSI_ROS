@@ -839,7 +839,7 @@ void *receiver_controlprogram_get_data(struct ControlProgram *arg)
           msg.status=1;
           send_data(usrpsock, &msg, sizeof(struct DriverMsg));
           send_data(usrpsock, arg->parameters, sizeof(struct ControlPRM));
-          recv_data(usrpsock,&arg->data->status,sizeof(arg->data->status));
+          recv_data(usrpsock,&arg->data->status,sizeof(int32_t));
           fprintf(stdout,"Use usrp for: %d %d :: status: %d \n",r,c,arg->data->status); 
           //printf("GET_DATA status: %i\n", arg->data->status);
         }
