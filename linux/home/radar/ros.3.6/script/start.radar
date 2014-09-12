@@ -68,6 +68,7 @@ rtserver -rp 51104 -ep 51000 -tp 1501 &
 
 sleep 2 
 
-echo "Starting Scheduler"
+#echo "Starting Scheduler"
 schedule  -l /data/ros/scdlogs/ade.a.scdlog -f /data/ros/scd/ade.a.scd -f /data/ros/scd/ade.a-rbsp.scd -f /data/ros/scd/ade.a.special &
+sleep 2
 schedule  -l /data/ros/scdlogs/adw.a.scdlog -f /data/ros/scd/adw.a.scd -f /data/ros/scd/adw.a-rbsp.scd -f /data/ros/scd/adw.a.special  &
