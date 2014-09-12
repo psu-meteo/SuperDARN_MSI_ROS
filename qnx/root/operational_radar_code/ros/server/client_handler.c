@@ -568,6 +568,7 @@ void *control_handler(struct ControlProgram *control_program)
               if(control_program->active!=0) {
                 control_program->active=-1;
                 control_program->state->ready=0;
+                rc = pthread_create(&threads[1], NULL, (void *)&dds_inactive_controlprogram,(void *) control_program);
                 pthread_mutex_lock(&coord_lock);
                 rc = pthread_create(&thread, NULL, (void *)&coordination_handler,(void *) control_program);
                 pthread_join(thread,NULL);
