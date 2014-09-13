@@ -1410,7 +1410,7 @@ usleep(usecs);
     }
 
 
-  }
+  } /* end of while loop */
   if(seqlog!=NULL) fflush(seqlog);
 
   /* Now divide by nave to get the average pwr0 and acfd values for the 
@@ -1457,7 +1457,7 @@ usleep(usecs);
        fprintf(stderr,"Reporting Low DDS PWR for beam: %d\n",bmnum);
        diagnostics.dds_report_fp=fopen(diagnostics.dds_report_file,"w");
        if (diagnostics.dds_report_fp) {
-        fprintf(diagnostics.dds_report_fp,"%d %d %ld",(int)nave,(int)bmnum,(long) time(NULL));
+        fprintf(diagnostics.dds_report_fp,"%d %d %ldi %d %d",(int)nave,(int)bmnum,(long) time(NULL),rprm.tfreq,rprm.rfreq);
         fclose(diagnostics.dds_report_fp);
        }
      }
