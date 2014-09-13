@@ -1457,7 +1457,7 @@ usleep(usecs);
        fprintf(stderr,"Reporting Low DDS PWR for beam: %d\n",bmnum);
        diagnostics.dds_report_fp=fopen(diagnostics.dds_report_file,"w");
        if (diagnostics.dds_report_fp) {
-        fprintf(diagnostics.dds_report_fp,"%d %d %ldi %d %d",(int)nave,(int)bmnum,(long) time(NULL),rprm.tfreq,rprm.rfreq);
+        fprintf(diagnostics.dds_report_fp,"%d %d %ld %d %d %8.3g",(int)nave,(int)bmnum,(long) time(NULL),rprm.tfreq,rprm.rfreq,diagnostics.dds_pwr_threshold);
         fclose(diagnostics.dds_report_fp);
        }
      }
