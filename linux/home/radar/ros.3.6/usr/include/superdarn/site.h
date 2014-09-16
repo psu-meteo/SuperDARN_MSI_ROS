@@ -14,7 +14,7 @@ struct SiteLibrary {
   int (*startintt)(int,int);
   int (*fclr)(int,int);
   int (*tmseq)(int *);
-  int (*integrate)(int (*lags)[2]);
+  int (*integrate)();
   int (*endscan)(int,int);
   void (*exit)(int);
 };
@@ -25,7 +25,7 @@ int SiteStartScan();
 int SiteStartIntt(int intsc,int intus);
 int SiteFCLR(int stfreq,int edfreq);
 int SiteTimeSeq(int *ptab);
-int SiteIntegrate(int (*lags)[2]);
+int SiteIntegrate();
 int SiteEndScan(int bndsc,int bndus);
 void SiteExit(int signo);
 
