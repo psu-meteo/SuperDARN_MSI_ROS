@@ -144,7 +144,7 @@ int main(int argc,char *argv[]) {
   int skip;
   int cnt=0;
 
-  unsigned char fast=0;
+  unsigned char tim=0,fast=0;
   unsigned char discretion=0;
 
   int status=0,n;
@@ -205,6 +205,7 @@ int main(int argc,char *argv[]) {
   OptionAdd(&opt,"lib",'t',&libstr); 
  
   OptionAdd(&opt,"fast",'x',&fast);
+  OptionAdd(&opt,"tim",'x',&tim);
 
   OptionAdd( &opt, "nowait", 'x', &scannowait);
   OptionAdd( &opt, "onesec", 'x', &onesec);
@@ -287,7 +288,14 @@ int main(int argc,char *argv[]) {
     scnsc=120;
     scnus=0;
   }
-
+  if (tim) {
+    cp=151;
+    scnsc=60;
+    scnus=0;
+    intsc=3;
+    intus=0;
+    fast=1;
+  }
   beams=abs(ebm-sbm)+1;
   if (onesec) {
     cp=152;
