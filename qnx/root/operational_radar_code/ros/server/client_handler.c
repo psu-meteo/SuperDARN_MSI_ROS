@@ -762,7 +762,7 @@ control_program);
                 pthread_join(thread,NULL);
                 send_data(socket, control_program->data, sizeof(struct DataPRM));
                 if(control_program->data->status==0) {
-                  printf("GET_DATA: main: %d %d\n",sizeof(uint32_t),sizeof(uint32)*control_program->data->samples);
+                  printf("GET_DATA: main: %d %d\n",sizeof(uint32_t),sizeof(uint32_t)*control_program->data->samples);
                   send_data(socket, control_program->main, sizeof(uint32_t)*control_program->data->samples);
                   send_data(socket, control_program->back, sizeof(uint32_t)*control_program->data->samples);
                   send_data(socket, &bad_transmit_times.length, sizeof(bad_transmit_times.length));
