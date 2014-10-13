@@ -134,15 +134,15 @@ int main(){
 	struct	timespec	start, stop, sleep, now;
 	int	clockresolution;
 
-        int  maxclients=MAX_RADARS*MAX_CHANNELS+1;
+        int  maxclients=MAX_RADARS*DDS_MAX_CHANNELS+1;
         int  max_seq_count;
-        int  seq_count[MAX_RADARS][MAX_CHANNELS];
-        int32_t  current_pulse_index[MAX_RADARS][MAX_CHANNELS];
-        int  ready_index[MAX_RADARS][MAX_CHANNELS];
-        int  *seq_buf[MAX_RADARS][MAX_CHANNELS];
+        int  seq_count[MAX_RADARS][DDS_MAX_CHANNELS];
+        int32_t  current_pulse_index[MAX_RADARS][DDS_MAX_CHANNELS];
+        int  ready_index[MAX_RADARS][DDS_MAX_CHANNELS];
+        int  *seq_buf[MAX_RADARS][DDS_MAX_CHANNELS];
         int  active[MAX_RADARS][DDS_MAX_CHANNELS];
         struct  ControlPRM  clients[maxclients],client;
-        struct  TSGbuf *pulseseqs[MAX_RADARS][MAX_CHANNELS][MAX_SEQS];
+        struct  TSGbuf *pulseseqs[MAX_RADARS][DDS_MAX_CHANNELS][MAX_SEQS];
         int new_seq_flag=0;
         struct timeval t0,t1,t2,t3;
         unsigned long elapsed;
@@ -181,7 +181,7 @@ int main(){
         max_seq_count=0;
 	if (verbose > 1) fprintf(stdout, "Zeroing arrays\n");
 	for (r=0;r<MAX_RADARS;r++){
-	  for (c=0;c<MAX_CHANNELS;c++){
+	  for (c=0;c<DDS_MAX_CHANNELS;c++){
 	    if (verbose > 1) fprintf(stdout,"%d %d\n",r,c);
 	    for (i=0;i<MAX_SEQS;i++) pulseseqs[r][c][i]=NULL;
             current_pulse_index[r][c]=-10;
@@ -301,6 +301,8 @@ int main(){
 		        rval=recv_data(msgsock,&client,sizeof(struct ControlPRM));
                         r=client.radar-1; 
                         c=client.channel-1; 
+                        if(c<0) c=0; 
+                        if(c>=DDS_MAX_CHANNELS) c=DDS_MAX_CHANNELS-1; 
                         ready_index[r][c]=-1;
                         active[r][c]=-1;
                         current_pulse_index[r][c]=-10;
@@ -337,7 +339,7 @@ int main(){
 		      case DDS_CtrlProg_END:
                         if (verbose > 1) fprintf(stdout,"DDS driver: Closing a control program\n");
 	                for (r=0;r<MAX_RADARS;r++){
-	                  for (c=0;c<MAX_CHANNELS;c++){
+	                  for (c=0;c<DDS_MAX_CHANNELS;c++){
                             current_pulse_index[r][c]=-10;
                             active[r][c]=-1;
                           }
@@ -347,11 +349,13 @@ int main(){
 		        rval=recv_data(msgsock,&client,sizeof(struct ControlPRM));
                         r=client.radar-1; 
                         c=client.channel-1; 
+                        if(c<0) c=0; 
+                        if(c>=DDS_MAX_CHANNELS) c=DDS_MAX_CHANNELS-1; 
                         if (verbose > 1) fprintf(stdout,"DDS driver: Setting Inactive\n");
 	                for (r=0;r<MAX_RADARS;r++){
-	                  for (c=0;c<MAX_CHANNELS;c++){
-                             current_pulse_index[r][c]=-10;
-                             active[r][c]=-1;
+	                  for (cc=0;cc<DDS_MAX_CHANNELS;cc++){
+                             current_pulse_index[r][cc]=-10;
+                             active[r][cc]=-1;
                           }
                         } 
                         rval=send_data(msgsock, &msg, sizeof(struct DriverMsg));
@@ -372,6 +376,8 @@ int main(){
 		        rval=recv_data(msgsock,&client,sizeof(struct ControlPRM));
                         r=client.radar-1; 
                         c=client.channel-1; 
+                        if(c<0) c=0; 
+                        if(c>=DDS_MAX_CHANNELS) c=DDS_MAX_CHANNELS-1; 
                         index=client.current_pulseseq_index; 
 
                         clients[numclients]=client;
@@ -436,7 +442,7 @@ int main(){
                           /* SET freq and filter for MSI */
                           new_seq_flag=0;
 	                  for (r=0;r<MAX_RADARS;r++){
-	                    for (c=0;c<MAX_CHANNELS;c++){
+	                    for (c=0;c<DDS_MAX_CHANNELS;c++){
                               if (ready_index[r][c]>0) {
                                   new_seq_flag=new_seq_flag+1;
                                   ready_index[r][c]=-1;
@@ -466,44 +472,41 @@ int main(){
                           gettimeofday(&t2,NULL);
 	                  pci_ind=0;
 
-                          for (r=1;r<=MAX_RADARS;r++){
+                          for (r=0;r<MAX_RADARS;r++){
                             for (cc=1;cc<=DDS_MAX_CHANNELS;cc++){
-                                load_frequency(ics660[pci_ind], r, cc, 0.0);
-                                load_phase(ics660[pci_ind],r,cc,0.0);
+                                load_frequency(ics660[pci_ind], r+1, cc, 0.0);
+                                load_phase(ics660[pci_ind],r+1,cc,0.0);
                             }
                           }
                           if (verbose > 1) fprintf(stdout,"DDS:: %d.%06d :: parameter_load : \n",(int)t2.tv_sec,(int)t2.tv_usec);
 	                  for( i=0; i<numclients; i++) {
 	                      freq_in= (double)clients[i].tfreq * 1000.; // in Hz
                               T_rise=clients[i].trise;
-	                    r= clients[i].radar;
-	                    c= clients[i].channel;
+	                    r= clients[i].radar-1;
+	                    c= clients[i].channel-1;
+                            if(c<0) c=0; 
+                            if(c>=DDS_MAX_CHANNELS) c=DDS_MAX_CHANNELS-1; 
 		            if (verbose > 1) fprintf(stdout,"  Client:: r: %d c: %d\n",r,c);	
 		            if (verbose > 1) fprintf(stdout,"  Client:: freq: %lf\n",freq_in);	
-/*
-                            load_frequency(ics660[pci_ind], r, c, freq_in);
-                            load_phase(ics660[pci_ind],r,c,0.0);
-                            load_filter_taps(ics660[pci_ind],r,c,T_rise,state_time);
-*/
-                            if (verbose>2) fprintf(stdout," Loading %d freq: %lf chip: %d channel: %d\n",i,freq_in,r,c);
-                            if(active[r-1][c-1]==(c-1)) {
+                            if (verbose>2) fprintf(stdout," Loading %d freq: %lf chip: %d channel: %d\n",i,freq_in,r+1,c+1);
+                            if(active[r][c]==c) {
                                 if(verbose > 0 ) fprintf(stdout,"Active channel r: %d c: %d cc: %d active: %d\n",
-                                    r-1,c-1,-1,active[r-1][c-1]);
+                                    r,c,-1,active[r][c]);
                                 gettimeofday(&t3,NULL);
-                                load_frequency(ics660[pci_ind], r, c, freq_in);
-                                load_phase(ics660[pci_ind],r,c,0.0);
-                                load_filter_taps(ics660[pci_ind],r,c,T_rise,state_time);
+                                load_frequency(ics660[pci_ind], r+1, c+1, freq_in);
+                                load_phase(ics660[pci_ind],r+1,c+1,0.0);
+                                load_filter_taps(ics660[pci_ind],r+1,c+1,T_rise,state_time);
                             }
 
                             if((ifmode==1) && (IMAGING==0)) {                   
-                              r=clients[i].radar+2;
+                              r=clients[i].radar+1;
 
                               freq_in= ((double)(IF_FREQ-clients[i].tfreq)) * 1000./2.0; // in Hz
                               //freq_in = 29.5*1E6;
                               if (verbose > 0 ) fprintf(stdout,"IF Out Freq:  %d %lf\n",clients[i].tfreq,freq_in);
-                              load_frequency(ics660[pci_ind], r, c, freq_in);
-                              load_filter_taps(ics660[pci_ind],r,c,T_rise,state_time);
-                              load_phase(ics660[pci_ind],r,c,0.0);
+                              load_frequency(ics660[pci_ind], r+1, c+1, freq_in);
+                              load_filter_taps(ics660[pci_ind],r+1,c+1,T_rise,state_time);
+                              load_phase(ics660[pci_ind],r+1,c+1,0.0);
                             }
 	                  }
 	                  one_shot_b(ics660[pci_master]);
@@ -548,9 +551,11 @@ int main(){
 	                  for( i=0; i<numclients; i++) {
 	                    freq_in= (double)clients[i].tfreq * 1000.; // in Hz
                             T_rise=clients[i].trise;
-	                    r= clients[i].radar;
-	                    c= clients[i].channel;
-                            if (verbose>2) fprintf(stdout," Loading %d freq: %lf chip: %d channel: %d\n",i,freq_in,r,c);
+	                    r= clients[i].radar-1;
+	                    c= clients[i].channel-1;
+                            if (c<0) c=0;
+                            if (c>=DDS_MAX_CHANNELS) c=DDS_MAX_CHANNELS-1;
+                            if (verbose>2) fprintf(stdout," Loading %d freq: %lf chip: %d channel: %d\n",i,freq_in,r+1,c+1);
                             if ((clients[i].tbeam >=0) && (clients[i].tbeam < 16)) { 
                               delta=calculate_delta(freq_in,beamdirs_rad[clients[i].tbeam],d);
                             } else {
@@ -561,7 +566,7 @@ int main(){
                               pci_ind=transmitters[ant][0];
                               chip=transmitters[ant][1];
                               for(cc=1;cc<=DDS_MAX_CHANNELS;cc++) {
-                                if(active[r-1][cc-1]==(c-1)) {
+                                if(active[r][cc-1]==c) {
                                   gettimeofday(&t3,NULL);
                                   load_frequency(ics660[pci_ind], chip, cc, freq_in);
 	                          //one_shot_b(ics660[pci_master]);
@@ -582,8 +587,8 @@ int main(){
                         } 
                         msg.status=0;
                         
-                        for (r=1;r<=MAX_RADARS;r++){
-                          for (cc=1;cc<=DDS_MAX_CHANNELS;cc++){
+                        for (r=0;r<MAX_RADARS;r++){
+                          for (c=0;c<DDS_MAX_CHANNELS;c++){
                               current_pulse_index[r][c]=-10;
                               active[r][c]=-1;
                           }
