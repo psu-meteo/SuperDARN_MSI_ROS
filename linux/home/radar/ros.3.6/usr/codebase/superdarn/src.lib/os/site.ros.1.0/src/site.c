@@ -778,6 +778,7 @@ int SiteRosIntegrate(int (*lags)[2]) {
   /* phase code declarations */
   int n,nsamp, *code,   Iout, Qout;
   uint32 uI32,uQ32;
+  uint32 *maddr, *baddr;
   if (debug) {
     fprintf(stderr,"%s SiteIntegrate: start\n",station);
   }
@@ -1332,13 +1333,12 @@ usleep(usecs);
           fprintf(stderr,"%s seq %d :: rdata.main 16bit :\n",station,nave);
           fprintf(stderr," [  n  ] :: [  Im  ] [  Qm  ] :: [ Ii ] [ Qi ]\n");
           nsamp=(int)dprm.samples;
+          maddr = (uint32 *)rdata.main;
+          baddr = (uint32 *)rdata.back;
           for(n=0;n<(nsamp);n++){
-            Q=((rdata.main)[n] & 0xffff0000) >> 16;
-            I=(rdata.main)[n] & 0x0000ffff;
-            fprintf(stderr," %7d :: %7d %7d ",n,(int)I,(int)Q);
-            Q=((rdata.back)[n] & 0xffff0000) >> 16;
-            I=(rdata.back)[n] & 0x0000ffff;
-            fprintf(stderr,":: %7d %7d\n",(int)I,(int)Q);
+            Q=(maddr[n] & 0xffff0000) >> 16;
+            I=maddr[n] & 0x0000ffff;
+            fprintf(stderr," %7d :: 0x%8x : %7d %7d " ,n,(uint32)maddr[n],(int)I,(int)Q);
           }
           dest = (void *)(samples);
           dest += iqoff;
@@ -1454,7 +1454,7 @@ usleep(usecs);
        fprintf(stderr,"Reporting Low DDS PWR for beam: %d\n",bmnum);
        diagnostics.dds_report_fp=fopen(diagnostics.dds_report_file,"w");
        if (diagnostics.dds_report_fp) {
-        fprintf(diagnostics.dds_report_fp,"%d %d %ld",(int)nave,(int)bmnum,(long) time(NULL));
+        fprintf(diagnostics.dds_report_fp,"%d %d %ld %d %d %8.3g",(int)nave,(int)bmnum,(long) time(NULL),rprm.tfreq,rprm.rfreq,diagnostics.dds_pwr_threshold);
         fclose(diagnostics.dds_report_fp);
        }
      }

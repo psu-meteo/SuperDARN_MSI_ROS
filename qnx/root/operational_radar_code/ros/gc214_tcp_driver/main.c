@@ -88,7 +88,7 @@ int scanstatus=-1;
 void graceful_cleanup(int signum)
 {
   char path[256];
-  sprintf(path,"%s:%d","rosrecv",0);
+  sprintf(path,"%s:%d","/tmp/rosrecv",0);
   close(msgsock);
   close(sock);
   fprintf(stdout,"Unlinking Unix Socket: %s\n",path);
@@ -499,7 +499,7 @@ int main(int argc, char **argv){
 
     // OPEN TCP SOCKET AND START ACCEPTING CONNECTIONS 
         //sock=tcpsocket(RECV_HOST_PORT);
-        sock=server_unixsocket("rosrecv",0);
+        sock=server_unixsocket("/tmp/rosrecv",0);
 
 	listen(sock, 5);
 	while (1) {
