@@ -189,6 +189,7 @@ void graceful_cleanup(int signum)
 	while(1){
                 if(!first_gps_lock && configured) {
                   pthread_mutex_lock(&gps_state_lock);
+                  fprintf(stderr,"GPS: Get State\n");
                   get_state();
                   first_gps_lock|=displaystat.gps_lock;
                   pthread_mutex_unlock(&gps_state_lock);
