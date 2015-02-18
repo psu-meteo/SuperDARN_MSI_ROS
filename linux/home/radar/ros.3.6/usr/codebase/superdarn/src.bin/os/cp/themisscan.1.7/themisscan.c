@@ -184,6 +184,7 @@ int main(int argc,char *argv[]) {
 
   OptionAdd(&opt,"frang",'i',&frang);
   OptionAdd(&opt,"rsep",'i',&rsep);
+  OptionAdd(&opt,"nrang",'i',&nrang);
 
   OptionAdd( &opt, "dt", 'i', &day);
   OptionAdd( &opt, "nt", 'i', &night);
