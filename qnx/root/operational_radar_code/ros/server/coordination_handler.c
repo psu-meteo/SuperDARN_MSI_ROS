@@ -24,7 +24,7 @@ void *coordination_handler(struct ControlProgram *control_program)
    char *timestr;
    pthread_t threads[4];
    struct Thread_List_Item *thread_list;
-   int gpssecond,gpsnsecond;
+   int32_t gpssecond,gpsnsecond,gpscapture;
    struct DriverMsg msg;
    struct ControlProgram *cprog;
    int ready_state,trigger_state;
@@ -170,8 +170,9 @@ void *coordination_handler(struct ControlProgram *control_program)
           msg.type=GPS_GET_EVENT_TIME;
           msg.status=1;
           send_data(gpssock, &msg, sizeof(struct DriverMsg));
-          recv_data(gpssock,&gpssecond, sizeof(int));
-          recv_data(gpssock,&gpsnsecond, sizeof(int));
+          recv_data(gpssock,&gpssecond, sizeof(int32_t));
+          recv_data(gpssock,&gpsnsecond, sizeof(int32_t));
+          recv_data(gpssock,&gpscapture, sizeof(int32_t));
           recv_data(gpssock, &msg, sizeof(struct DriverMsg));
 
           thread_list=controlprogram_threads;
@@ -181,9 +182,10 @@ void *coordination_handler(struct ControlProgram *control_program)
               if (cprog->active==1) {
                 cprog->state->gpssecond=gpssecond;
                 cprog->state->gpsnsecond=gpsnsecond;
+                cprog->state->gpscapture=gpscapture;
                 cprog->data->event_secs=cprog->state->gpssecond;
                 cprog->data->event_nsecs=cprog->state->gpsnsecond;
-
+                cprog->data->event_capture=cprog->state->gpscapture;
                 if (txread[cprog->parameters->radar-1]){
                   i=0;
                   rc = pthread_create(&threads[i], NULL, (void *) &DIO_transmitter_status, (void *)cprog->parameters->radar);

@@ -78,7 +78,7 @@ void graceful_cleanup(int signum)
 	unsigned int	 CLOCK_RES;
 	struct		 timespec now,start_p;
 	struct		 timespec new, old;
-	int		 gpssecond,gpsnsecond;
+	int32_t		 gpssecond,gpsnsecond,gpscapture;
         struct timeval tv;
         struct DriverMsg msg;
 	// socket and message passing variables
@@ -316,7 +316,7 @@ void graceful_cleanup(int signum)
 	temp=clock_gettime(CLOCK_REALTIME, &start_p);
 	//open tcp socket	
 	//sock=tcpsocket(GPS_HOST_PORT);
-	sock=server_unixsocket("rosgps",0);
+	sock=server_unixsocket("/tmp/rosgps",0);
 	listen(sock,5);
 	while(1){
         
@@ -363,17 +363,21 @@ void graceful_cleanup(int signum)
                                         fflush(stderr);
                                         gpssecond=0;
                                         gpsnsecond=0;
+                                        gpscapture=0;
                                         msg.status=get_software_time(&gpssecond,&gpsnsecond,DEVreg,locked);
                                         if(verbose > -1 ) fprintf(stderr,"Software Time: %s\n",ctime(&gpssecond)); 
-					rval=send_data(msgsock,&gpssecond, sizeof(int));
-					rval=send_data(msgsock,&gpsnsecond, sizeof(int));
+					rval=send_data(msgsock,&gpssecond, sizeof(int32_t));
+					rval=send_data(msgsock,&gpsnsecond, sizeof(int32_t));
+                                        rval=send_data(msgsock,&gpscapture, sizeof(int32_t));
                                         rval=send_data(msgsock, &msg, sizeof(struct DriverMsg));
 					break;
 				case GPS_GET_EVENT_TIME:
                                         gpssecond=0;
                                         gpsnsecond=0;
+                                        gpscapture=0;
                                         if (configured && locked ) {
-                                         if(verbose > -1 ) fprintf(stderr," Get GPS  EVENT: Configured: %d Locked: %d\n",configured,locked); 
+                                          gpscapture=1;
+                                          if(verbose > -1 ) fprintf(stderr," Get GPS  EVENT: Configured: %d Locked: %d\n",configured,locked); 
                                           msg.status=get_event_time(&gpssecond,&gpsnsecond,DEVreg,locked);
                                         }
                                         else {
@@ -382,8 +386,9 @@ void graceful_cleanup(int signum)
                                         }
                                         if(verbose > 1 ) fprintf(stderr," %s\n",ctime(&gpssecond)); 
                                         if(verbose > 1) fflush(stderr);
-					rval=send_data(msgsock,&gpssecond, sizeof(int));
-					rval=send_data(msgsock,&gpsnsecond, sizeof(int));
+					rval=send_data(msgsock,&gpssecond, sizeof(int32_t));
+					rval=send_data(msgsock,&gpsnsecond, sizeof(int32_t));
+					rval=send_data(msgsock,&gpscapture, sizeof(int32_t));
                                         rval=send_data(msgsock, &msg, sizeof(struct DriverMsg));
 					break;
 				case GPS_SET_TRIGGER_RATE:

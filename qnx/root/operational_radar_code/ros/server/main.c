@@ -60,7 +60,7 @@ int txread[MAX_RADARS];
 struct SiteSettings site_settings;
 struct GPSStatus gpsstatus;
 struct TRTimes bad_transmit_times;
-int32 gpsrate=GPS_DEFAULT_TRIGRATE;
+int32_t gpsrate=GPS_DEFAULT_TRIGRATE;
 int verbose=0;
 
 struct timeval t_pre_start,t_pre_end,t_ready_first,t_ready_final,t_post_start,t_post_end;
@@ -182,8 +182,9 @@ int main()
 /* end DIO */
   int policy;
   struct sched_param sp;
-
+/*
   fprintf(stdout,"Policy Options F: %d R:%d O:%d S: %d\n",SCHED_FIFO,SCHED_RR,SCHED_OTHER,SCHED_SPORADIC);
+*/
   pthread_getschedparam(pthread_self(),&policy,&sp);
   fprintf(stdout,"Policy %d Prio: %d\n",policy,sp.sched_priority);
   sp.sched_priority = 60;
@@ -372,35 +373,35 @@ int main()
 /******************* TCP Socket Connection ***********/
   if (verbose>0) fprintf(stderr,"Opening DIO Socket %s %d\n",diohostip,dioport);
 //  diosock=opentcpsock(diohostip, dioport);
-  diosock=openunixsock("rosdio", 0);
+  diosock=openunixsock("/tmp/rosdio", 0);
   if (diosock < 0) {
     if (verbose>0) fprintf(stderr,"Dio Socket failure %d\n",diosock);
     //graceful_socket_cleanup(1);
   } else if (verbose>0) fprintf(stderr,"Dio Socket %d\n",diosock);
   if (verbose>0) fprintf(stderr,"Opening DDS Socket\n");
   //ddssock=opentcpsock(ddshostip, ddsport);
-  ddssock=openunixsock("rosdds", 0);
+  ddssock=openunixsock("/tmp/rosdds", 0);
   if (ddssock < 0) {
     if (verbose>0) fprintf(stderr,"DDS Socket failure %d\n",ddssock);
 //    graceful_socket_cleanup(1);
   } else  if (verbose>0) fprintf(stderr,"DDS Socket %d\n",ddssock);
   if (verbose>0) fprintf(stderr,"Opening Recv Socket\n");
   //recvsock=opentcpsock(recvhostip, recvport);
-  recvsock=openunixsock("rosrecv", 0);
+  recvsock=openunixsock("/tmp/rosrecv", 0);
   if (recvsock < 0) {
     if (verbose>0)fprintf(stderr,"RECV Socket failure %d\n",recvsock);
 //    graceful_socket_cleanup(1);
   } else  if (verbose>0) fprintf(stderr,"RECV Socket %d\n",recvsock);
   if (verbose>0) fprintf(stderr,"Opening Timing Socket\n");
   //timingsock=opentcpsock(timinghostip, timingport);
-  timingsock=openunixsock("rostiming", 0);
+  timingsock=openunixsock("/tmp/rostiming", 0);
   if (timingsock < 0) {
     if (verbose>0) fprintf(stderr,"Timing Socket failure %d\n",timingsock);
 //    graceful_socket_cleanup(1);
   } else  if (verbose>0) fprintf(stderr,"Timing Socket %d\n",timingsock);
   if (verbose>0) fprintf(stderr,"Opening GPS Socket\n");
   //gpssock=opentcpsock(gpshostip, gpsport);
-  gpssock=openunixsock("rosgps", 0);
+  gpssock=openunixsock("/tmp/rosgps", 0);
   if (gpssock < 0) {
     if (verbose>0) fprintf(stderr,"GPS Socket failure %d\n",gpssock);
 //    graceful_socket_cleanup(1);

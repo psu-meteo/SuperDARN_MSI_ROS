@@ -71,7 +71,7 @@
 #include "tsg.h"
 
 char *ststr=NULL;
-char *dfststr="tst";
+char *libstr=NULL;
 
 void *tmpbuf;
 size_t tmpsze;
@@ -84,12 +84,6 @@ struct OptionData opt;
 
 char *roshost=NULL;
 char *droshost={"127.0.0.1"};
-
-int baseport=44100;
-
-struct TCPIPMsgHost errlog={"127.0.0.1",44100,-1};
-
-struct TCPIPMsgHost shell={"127.0.0.1",44101,-1};
 
 int tnum=4;      
 struct TCPIPMsgHost task[4]={
@@ -136,9 +130,17 @@ int main(int argc,char *argv[]) {
 
   int exitpoll=0;
   int scannowait=0;
- 
+  int onesec=0; 
   int scnsc=120;
   int scnus=0;
+  int elapsed_secs=0;
+  int default_clrskip_secs=30;
+  int clrskip_secs=-1;
+  int do_clr_scan_start=0;
+  int cpid=0;
+  int startup=1;
+  struct timeval t0,t1;
+
   int skip;
   int cnt=0;
 
@@ -200,48 +202,55 @@ int main(int argc,char *argv[]) {
   OptionAdd(&opt,"ros",'t',&roshost);
 
   OptionAdd(&opt,"stid",'t',&ststr); 
+  OptionAdd(&opt,"lib",'t',&libstr); 
  
   OptionAdd(&opt,"fast",'x',&fast);
 
   OptionAdd( &opt, "nowait", 'x', &scannowait);
+  OptionAdd( &opt, "onesec", 'x', &onesec);
   OptionAdd(&opt,"sb",'i',&sbm);
   OptionAdd(&opt,"eb",'i',&ebm);
   OptionAdd(&opt,"c",'i',&cnum);
+  OptionAdd( &opt, "clrskip", 'i', &clrskip_secs);
+  OptionAdd( &opt, "clrscan", 'x', &do_clr_scan_start);
+  OptionAdd( &opt, "cpid", 'i', &cpid);
 
    
   arg=OptionProcess(1,argc,argv,&opt,NULL);  
  
-  if (ststr==NULL) ststr=dfststr;
+  if (ststr==NULL) ststr= getenv("STSTR");
+  if (libstr ==NULL ) libstr = getenv("LIBSTR");
+  if (libstr == NULL) libstr=ststr;
 
   if (roshost==NULL) roshost=getenv("ROSHOST");
   if (roshost==NULL) roshost=droshost;
 
-  if ((errlog.sock=TCPIPMsgOpen(errlog.host,errlog.port))==-1) {    
-    fprintf(stderr,"Error connecting to error log.\n");
-  }
 
-  if ((shell.sock=TCPIPMsgOpen(shell.host,shell.port))==-1) {    
-    fprintf(stderr,"Error connecting to shell.\n");
-  }
-
-  for (n=0;n<tnum;n++) task[n].port+=baseport;
 
   OpsStart(ststr);
 
-  status=SiteBuild(ststr,NULL); /* second argument is version string */
+  status=SiteBuild(libstr,NULL); /* second argument is version string */
  
   if (status==-1) {
     fprintf(stderr,"Could not identify station.\n");
     exit(1);
   }
 
-  SiteStart(roshost);
+  SiteStart(roshost,ststr);
   arg=OptionProcess(1,argc,argv,&opt,NULL);  
 
   printf("Station ID: %s  %d\n",ststr,stid);
-
+  printf("baseport:%d\n",baseport);
 
   strncpy(combf,progid,80);   
+  for (n=0;n<tnum;n++) task[n].port+=baseport;
+  if ((errlog.sock=TCPIPMsgOpen(errlog.host,errlog.port))==-1) {    
+    fprintf(stderr,"Error connecting to error log.\n Host: %s Port: %d\n",errlog.host,errlog.port);
+  }
+
+  if ((shell.sock=TCPIPMsgOpen(shell.host,shell.port))==-1) {    
+    fprintf(stderr,"Error connecting to shell.\n");
+  }
  
   OpsSetupCommand(argc,argv);
   OpsSetupShell();
@@ -255,6 +264,11 @@ int main(int argc,char *argv[]) {
   
  
   status=SiteSetupRadar();
+  gettimeofday(&t0,NULL);
+  elapsed_secs=clrskip_secs;
+  gettimeofday(&t0,NULL);
+  gettimeofday(&t1,NULL);
+
 
   printf("Initial Setup Complete: Station ID: %s  %d\n",ststr,stid);
   
@@ -267,14 +281,37 @@ int main(int argc,char *argv[]) {
     cp=151;
     scnsc=60;
     scnus=0;
+    intsc=3;
+    intus=500000;
   } else {
     scnsc=120;
     scnus=0;
   }
 
   beams=abs(ebm-sbm)+1;
+  if (onesec) {
+    cp=152;
+    intsc=1;
+    intus=0;
+    scnsc=beams+4;
+    scnus=0;
+    sprintf(progname,"normalscan (onesec)");
+    scannowait=1;
+    if(clrskip_secs < 0) clrskip_secs=default_clrskip_secs;
+  }
+  if(beams==1) {
+    /* Camping Beam */
+    sprintf(progname,"normalscan (camp)");
+    scannowait=1;
+    if(clrskip_secs < 0) clrskip_secs=default_clrskip_secs;
+    cp=153;
+    sprintf(logtxt,"Normalscan configured for camping beam");
+    ErrLog(errlog.sock,progname,logtxt);
+    sprintf(logtxt," fast: %d onesec: %d cp: %d clrskip_secs: %d intsc: %d",fast,onesec,cp,clrskip_secs,intsc);
+    ErrLog(errlog.sock,progname,logtxt);
+  }
   if(beams > 16) {
-    if (scannowait==0) {
+    if (scannowait==0 && onesec==0) {
       total_scan_usecs=(scnsc-3)*1E6+scnus;
       total_integration_usecs=total_scan_usecs/beams;
       intsc=total_integration_usecs/1E6;
@@ -324,7 +361,7 @@ int main(int argc,char *argv[]) {
     scan=1;
     
     ErrLog(errlog.sock,progname,"Starting scan.");
-   
+    if(do_clr_scan_start) startup=1; 
     if (xcnt>0) {
       cnt++;
       if (cnt==xcnt) {
@@ -334,7 +371,7 @@ int main(int argc,char *argv[]) {
     } else xcf=0;
 
     skip=OpsFindSkip(scnsc,scnus);
-    
+
     if (backward) {
       bmnum=sbm-skip;
       if (bmnum<ebm) bmnum=sbm;
@@ -367,16 +404,26 @@ int main(int argc,char *argv[]) {
 
       ErrLog(errlog.sock,progname,"Starting Integration.");
             
-    printf("Entering Site Start Intt Station ID: %s  %d\n",ststr,stid);
+      printf("Entering Site Start Intt Station ID: %s  %d\n",ststr,stid);
       SiteStartIntt(intsc,intus);
+      gettimeofday(&t1,NULL);
+      elapsed_secs=t1.tv_sec-t0.tv_sec;
+      if(elapsed_secs<0) elapsed_secs=0;
+      if((elapsed_secs >= clrskip_secs)||(startup==1)) {
+        startup=0;
+        ErrLog(errlog.sock,progname,"Doing clear frequency search.");
 
-      ErrLog(errlog.sock,progname,"Doing clear frequency search."); 
-   
-      sprintf(logtxt, "FRQ: %d %d", stfrq, frqrng);
-      ErrLog(errlog.sock,progname, logtxt);
+        sprintf(logtxt, "FRQ: %d %d", stfrq, frqrng);
+        ErrLog(errlog.sock,progname, logtxt);
 
-      if(fixfrq<0) {      
-        tfreq=SiteFCLR(stfrq-frqrng/2,stfrq+frqrng/2);
+        if(fixfrq<0) {
+          tfreq=SiteFCLR(stfrq,stfrq+frqrng);
+        }
+        t0.tv_sec=t1.tv_sec;
+        t0.tv_usec=t1.tv_usec;
+      } else {
+        sprintf(logtxt,"Clear Search Skipped, next search in %d secs",(int)(clrskip_secs-elapsed_secs));
+        ErrLog(errlog.sock,progname,logtxt);
       }
       sprintf(logtxt,"Transmitting on: %d (Noise=%g)",tfreq,noise);
       ErrLog(errlog.sock,progname,logtxt);

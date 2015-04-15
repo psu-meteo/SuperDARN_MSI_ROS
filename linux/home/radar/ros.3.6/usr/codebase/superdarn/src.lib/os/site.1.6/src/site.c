@@ -54,7 +54,7 @@ int sock;
 char server[256];
 int port;
 int num_transmitters;
-
+int dmatch=0; /* default value for match filter */
 struct timeval tock;
 struct ControlPRM rprm;
 struct RosData rdata;
@@ -62,18 +62,18 @@ struct DataPRM dprm;
 struct TRTimes badtrdat;
 struct TXStatus txstatus;
 struct SiteLibrary sitelib;
-int *exit_flag=NULL;
+int exit_flag=0;
 int cancel_count=0;
 
 
 
 
-int SiteStart(char *host) {
+int SiteStart(char *host,char *ststr) {
   rdata.main=NULL;
   rdata.back=NULL;
   badtrdat.start_usec=NULL;
   badtrdat.duration_usec=NULL; 
-  return (sitelib.start)(host);
+  return (sitelib.start)(host,ststr);
 }
 
 int SiteSetupRadar() {

@@ -24,8 +24,8 @@ sleep 1
 #sleep 1
 
 # TODO: extend iqwrite for multichannel files
-#iqwrite -lp 44101 -ep 44000 &
-#iqwrite -lp 54101 -ep 54000 &
+#iqwrite -r ade.a -lp 41101 -ep 41000 &
+#iqwrite -r adw.a -lp 51101 -ep 51000 &
 
 echo "Waiting for fitacfwrite to start"
 fitacfwrite -r ade.a -lp 41103 -ep 41000 &

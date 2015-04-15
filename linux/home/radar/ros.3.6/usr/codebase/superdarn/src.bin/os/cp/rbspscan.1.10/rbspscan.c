@@ -61,7 +61,8 @@
 
 
 char *ststr=NULL;
-char *dfststr="tst";
+char *libstr=NULL;
+
 void *tmpbuf;
 size_t tmpsze;
 char progid[80]={"rbspscan"};
@@ -71,11 +72,6 @@ struct OptionData opt;
 
 char *roshost=NULL;
 char *droshost={"127.0.0.1"};
-
-int baseport=44100;
-
-struct TCPIPMsgHost errlog={"127.0.0.1",44100,-1};
-struct TCPIPMsgHost shell={"127.0.0.1",44101,-1};
 
 int tnum=4;      
 struct TCPIPMsgHost task[4]={
@@ -180,6 +176,7 @@ int main(int argc,char *argv[]) {
 	OptionAdd(&opt,"sp",    'i',&shell.port); 
 	OptionAdd(&opt,"bp",    'i',&baseport); 
 	OptionAdd(&opt,"stid",  't',&ststr);
+	OptionAdd(&opt,"lib",  't',&libstr);
 	OptionAdd(&opt,"fixfrq",'i',&fixfrq);		/* fix the transmit frequency */
 	OptionAdd(&opt,"meribm",'i',&meribm);		/* meridional beam */
 	OptionAdd(&opt,"westbm",'i',&westbm);		/* west beam */
@@ -206,43 +203,47 @@ int main(int argc,char *argv[]) {
 	fbms  = (int *)malloc(nintgs*sizeof(int));
 	bbms  = (int *)malloc(nintgs*sizeof(int));
 
-	if (ststr==NULL) ststr=dfststr;
+	if (ststr==NULL) ststr = getenv("STSTR");
+	if (libstr==NULL) libstr = getenv("LIBSTR");
+	if (libstr==NULL) libstr=ststr;
         if (roshost==NULL) roshost=getenv("ROSHOST");
         if (roshost==NULL) roshost=droshost;
 
 	
-	if ((errlog.sock=TCPIPMsgOpen(errlog.host,errlog.port))==-1) {    
-		fprintf(stderr,"Error connecting to error log.\n");
-	}
-	if ((shell.sock=TCPIPMsgOpen(shell.host,shell.port))==-1) {    
-		fprintf(stderr,"Error connecting to shell.\n");
-	}
-
-	for (n=0;n<tnum;n++) task[n].port+=baseport;
 	
 	/* rst/usr/codebase/superdarn/src.lib/os/ops.1.10/src/setup.c */
 	OpsStart(ststr);
 		
-	status=SiteBuild(ststr,NULL);
+	status=SiteBuild(libstr,NULL);
 	
 	if (status==-1) {
 		fprintf(stderr,"Could not identify station.\n");
 		exit(1);
 	}
 	
+
+	/* IMPORTANT: sbm and ebm are reset by this function */
+	SiteStart(roshost,ststr);
+	
+	/* Reprocess the command line to restore desired parameters */
+	arg=OptionProcess(1,argc,argv,&opt,NULL);
+
+	sprintf(progname,"rbspscan");
+	for (n=0;n<tnum;n++) task[n].port+=baseport;
+	if ((errlog.sock=TCPIPMsgOpen(errlog.host,errlog.port))==-1) {    
+		fprintf(stderr,"Error connecting to error log.\n Host: %s Port: %d\n",errlog.host,errlog.port);
+	}
+	if ((shell.sock=TCPIPMsgOpen(shell.host,shell.port))==-1) {    
+		fprintf(stderr,"Error connecting to shell.\n");
+	}
 	/* dump beams to log file */
-	ErrLog(errlog.sock,progname,logtxt);
+        strcpy(logtxt,"");
 	for (i=0; i<nintgs; i++){
 		sprintf(tempLog, "%3d", fbms[i]);
 		strcat(logtxt, tempLog);	
 	}
 	ErrLog(errlog.sock,progname,logtxt);
 
-	/* IMPORTANT: sbm and ebm are reset by this function */
-	SiteStart(roshost);
-	
-	/* Reprocess the command line to restore desired parameters */
-	arg=OptionProcess(1,argc,argv,&opt,NULL);
 
 	/* If backward is set for West radar, start and end beams need to be reversed for the
 	 * beam assigning code that follows until "End of Dartmouth Mods".  Usual SuperDARN
@@ -341,7 +342,6 @@ int main(int argc,char *argv[]) {
 	
 	txpl=(rsep*20)/3;		/* computing TX pulse length */
 	
-	sprintf(progname,"rbspscan");
 
 	OpsLogStart(errlog.sock,progname,argc,argv);  
 	OpsSetupTask(tnum,task,errlog.sock,progname);

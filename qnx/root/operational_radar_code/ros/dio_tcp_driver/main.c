@@ -27,8 +27,8 @@ int sock,msgsock;
 int verbose=0;
 int configured=1;
 uint32_t use_beam_table;
-int32_t num_freqs[MAX_RADARS],max_angles[MAX_RADARS],num_angles[MAX_RADARS],num_beamcodes[MAX_RADARS],num_fsteps[MAX_RADARS],fstep[MAX_RADARS],foffset[MAX_RADARS],num_cards[MAX_RADARS];
-double f0[MAX_RADARS],fm[MAX_RADARS],df[MAX_RADARS];
+int32_t num_freqs[MAX_RADARS],max_angles[MAX_RADARS],num_angles[MAX_RADARS],num_beamcodes[MAX_RADARS],num_fsteps[MAX_RADARS],foffset[MAX_RADARS],num_cards[MAX_RADARS];
+double f0[MAX_RADARS],fm[MAX_RADARS],df[MAX_RADARS],fstep[MAX_RADARS];
 double *freqs[MAX_RADARS],*angles[MAX_RADARS];
 int32_t *final_beamcodes[MAX_RADARS][32],*final_attencodes[MAX_RADARS][32];
 double *final_freqs[MAX_RADARS][32],*final_angles[MAX_RADARS][32];
@@ -38,7 +38,7 @@ void graceful_cleanup(int signum)
   char path[256];
   char *diohostip=DIO_HOST_IP;
   int dioport=DIO_HOST_PORT;
-  sprintf(path,"%s:%d","rosdio",0);
+  sprintf(path,"%s:%d","/tmp/rosdio",0);
   close(msgsock);
   close(sock);
   fprintf(stdout,"Unlinking Unix Socket: %s\n",path);
@@ -213,7 +213,7 @@ int main(){
 #endif
     // OPEN TCP SOCKET AND START ACCEPTING CONNECTIONS 
 //	sock=tcpsocket(DIO_HOST_PORT);
-	sock=server_unixsocket("rosdio",0);
+	sock=server_unixsocket("/tmp/rosdio",0);
 
 	listen(sock, 5);
 
@@ -399,20 +399,21 @@ int main(){
                                                   fprintf(stdout,"DIO driver: Table 1: %s\n",radar_table_1);
                                                   fprintf(stdout,"DIO driver: Table 2: %s\n",radar_table_2);
                                                 }
-						for(r=0;r<MAX_RADARS;r++) {
-                                                  strcpy(filename,"");
-                                                  if(r==0) strcpy(filename,radar_table_1);
-                                                  if(r==1) strcpy(filename,radar_table_2);
-                                                  fprintf(stdout,"Opening: %s\n",filename);
-      						  beamtablefile=fopen(filename,"r");
-      						  if(beamtablefile!=NULL) {
+                                                if(use_beam_table==1) {
+						  for(r=0;r<MAX_RADARS;r++) {
+                                                    strcpy(filename,"");
+                                                    if(r==0) strcpy(filename,radar_table_1);
+                                                    if(r==1) strcpy(filename,radar_table_2);
+                                                    fprintf(stdout,"Opening: %s\n",filename);
+      						    beamtablefile=fopen(filename,"r");
+      						    if(beamtablefile!=NULL) {
                                                         fprintf(stdout,"Opened: %p\n",beamtablefile);
 						        fread(&num_freqs[r],sizeof(int32_t),1,beamtablefile);
 						        fread(&num_angles[r],sizeof(int32_t),1,beamtablefile);
 						        fread(&max_angles[r],sizeof(int32_t),1,beamtablefile);
 						        fread(&num_beamcodes[r],sizeof(int32_t),1,beamtablefile);
 						        fread(&num_fsteps[r],sizeof(int32_t),1,beamtablefile);
-						        fread(&fstep[r],sizeof(int32_t),1,beamtablefile);
+						        fread(&fstep[r],sizeof(double),1,beamtablefile);
 						        fread(&foffset[r],sizeof(int32_t),1,beamtablefile);
 						        fread(&f0[r],sizeof(double),1,beamtablefile);
 						        fread(&fm[r],sizeof(double),1,beamtablefile);
@@ -440,7 +441,7 @@ int main(){
                                                         fprintf(stdout,"Closing: %s\n",filename);
         						fclose(beamtablefile);
         						beamtablefile=NULL;
-      						  } else {
+      						    } else {
                                                         if(freqs[r]!=NULL) free(freqs[r]);
 							freqs[r]=NULL;
                                                         if(angles[r]!=NULL) free(angles[r]);
@@ -456,8 +457,9 @@ int main(){
 								final_angles[r][c]=NULL;
 							}
         						fprintf(stderr,"Error opening beam lookup table file\n");
-						  }
-						}
+						    } // end of failed open
+						  }  // radar loop
+                                                } // test for use table
                                                 break;
 					default:
 						if (verbose > 0) fprintf(stderr,"BAD CODE: %c : %d\n",datacode,datacode);

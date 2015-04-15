@@ -49,7 +49,7 @@
 #include "siteglobal.h"
 
 char *ststr=NULL;
-char *dfststr="tst";
+char *libstr=NULL;
 
 void *tmpbuf;
 size_t tmpsze;
@@ -65,14 +65,9 @@ struct OptionData opt;
 char *roshost=NULL;
 char *droshost={"127.0.0.1"};
 
-int baseport=44100;
-
-struct TCPIPMsgHost errlog={"127.0.0.1",44100,-1};
-
-struct TCPIPMsgHost shell={"127.0.0.1",44101,-1};
-
-int tnum=3;      
-struct TCPIPMsgHost task[3]={
+int tnum=4;      
+struct TCPIPMsgHost task[4]={
+  {"127.0.0.1",1,-1}, /* iqwrite */
   {"127.0.0.1",2,-1}, /* raw acfwrite */
   {"127.0.0.1",3,-1}, /* fit acf write */
   {"127.0.0.1",4,-1} /* rt server */
@@ -179,13 +174,18 @@ int main(int argc,char *argv[]) {
   OptionAdd(&opt,"ros",'t',&roshost);
 
   OptionAdd(&opt,"stid",'t',&ststr); 
+  OptionAdd(&opt,"lib",'t',&libstr); 
  
   OptionAdd(&opt,"fast",'x',&fast);
   OptionAdd(&opt,"nowait",'x',&scannowait);
+  OptionAdd(&opt,"c",'i',&cnum);
+  OptionAdd(&opt,"r",'i',&rnum);
    
   arg=OptionProcess(1,argc,argv,&opt,NULL);  
  
-  if (ststr==NULL) ststr=dfststr;
+  if (ststr==NULL) ststr = getenv("STSTR");
+  if (libstr==NULL) libstr = getenv("LIBSTR");
+  if (libstr==NULL) libstr=ststr;
 
   if (roshost==NULL) roshost=getenv("ROSHOST");
   if (roshost==NULL) roshost=droshost;
@@ -197,6 +197,7 @@ int main(int argc,char *argv[]) {
   if(nbaud==7) bcode=bcode7;
   if(nbaud==11) bcode=bcode11;
   if(nbaud==13) bcode=bcode13;
+  printf("Nbaud: %d\n",nbaud);
   pcode=(int *)malloc((size_t)sizeof(int)*mppul*nbaud);
   for(i=0;i<mppul;i++){
     for(n=0;n<nbaud;n++){
@@ -204,30 +205,31 @@ int main(int argc,char *argv[]) {
     }
   }
   
-  if ((errlog.sock=TCPIPMsgOpen(errlog.host,errlog.port))==-1) {    
-    fprintf(stderr,"Error connecting to error log.\n");
-  }
 
-  if ((shell.sock=TCPIPMsgOpen(shell.host,shell.port))==-1) {    
-    fprintf(stderr,"Error connecting to shell.\n");
-  }
-
-  for (n=0;n<tnum;n++) task[n].port+=baseport;
 
 
   printf("Station String: %s\n",ststr);
   OpsStart(ststr);
 
-  status=SiteBuild(ststr,NULL); /* second argument is version string */
+  status=SiteBuild(libstr,NULL); /* second argument is version string */
 
   if (status==-1) {
     fprintf(stderr,"Could not identify station.\n");
     exit(1);
   }
 
-  SiteStart(roshost);
+  SiteStart(roshost,ststr);
+  arg=OptionProcess(1,argc,argv,&opt,NULL);  
 
   strncpy(combf,progid,80);   
+  for (n=0;n<tnum;n++) task[n].port+=baseport;
+  if ((errlog.sock=TCPIPMsgOpen(errlog.host,errlog.port))==-1) {    
+    fprintf(stderr,"Error connecting to error log.\n Host: %s Port: %d\n",errlog.host,errlog.port);
+  }
+
+  if ((shell.sock=TCPIPMsgOpen(shell.host,shell.port))==-1) {    
+    fprintf(stderr,"Error connecting to shell.\n");
+  }
  
   OpsSetupCommand(argc,argv);
   OpsSetupShell();
@@ -353,7 +355,7 @@ int main(int argc,char *argv[]) {
             
       printf("FRQ: %d %d", stfrq, frqrng);
       if(fixfrq<0) {
-        tfreq=SiteFCLR(stfrq-frqrng/2,stfrq+frqrng/2);
+        tfreq=SiteFCLR(stfrq,stfrq+frqrng);
       } 
       sprintf(logtxt,"Transmitting on: %d (Noise=%g)",tfreq,noise);
       ErrLog(errlog.sock,progname,logtxt);

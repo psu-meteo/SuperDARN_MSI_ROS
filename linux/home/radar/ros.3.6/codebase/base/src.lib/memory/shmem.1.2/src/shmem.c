@@ -1,6 +1,7 @@
 /* shmem.c
    =======
    Author R.J.Barnes
+   J.T.Klein, added shared memory size function to help with IQ buffer (11/2013)
 */
 
 /*
@@ -30,12 +31,15 @@
 
 #include <stdio.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
 #include <sys/mman.h>
+
+int ShMemSizeFd(int fd); /* this should go in a header file.. find out how to use build system to include ../include/shmem.h */
 
 unsigned char *ShMemAlloc(char *memname,int size,int flags,int unlink,
 			  int *fdptr) {
@@ -59,7 +63,7 @@ unsigned char *ShMemAlloc(char *memname,int size,int flags,int unlink,
       close(fd);
       return NULL;
     }
-  }
+  } 
 
   p=mmap(0,size,PROT_READ | PROT_WRITE,MAP_SHARED,fd,0);
   if ((int) p==-1) {
@@ -78,5 +82,29 @@ int ShMemFree(unsigned char *p,char *memname,int size,int unlink,int fd) {
   close(fd);
   if (unlink) s=shm_unlink(memname);
   return s;
+}
+
+/* return size of shared memory in bytes from the name */ 
+int ShMemSizeName(char *memname) {
+  int bufsize, fd;
+  fd=shm_open(memname,O_RDONLY,0777);
+  bufsize = ShMemSizeFd(fd);
+  close(fd);
+  return bufsize;
+}
+
+/* return size of shared memory in bytes from the file descriptor */
+int ShMemSizeFd(int fd) {
+  /* may errors if optimization is not enabled (?!?!?!) */
+  struct stat filestat;
+  int t;
+  int memsize = -1;
+  
+  if(fd > 0) {
+    t = fstat(fd, &filestat);
+    memsize = (int) filestat.st_size;
+  }
+  
+  return memsize; 
 }
 

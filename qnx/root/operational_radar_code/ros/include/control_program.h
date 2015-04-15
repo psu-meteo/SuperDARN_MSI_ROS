@@ -39,6 +39,7 @@ struct SeqPRM {
 struct DataPRM {
   uint32_t event_secs;
   uint32_t event_nsecs;
+  uint32_t event_capture;
   int32_t samples;
   int32_t shm_memory;
   int32_t status;
