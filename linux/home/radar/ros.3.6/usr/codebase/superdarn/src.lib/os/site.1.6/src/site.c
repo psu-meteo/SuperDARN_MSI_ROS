@@ -84,6 +84,10 @@ int SiteStartScan() {
   return (sitelib.startscan)();
 }
 
+int SiteWait(int secs,int usecs) {
+  return (sitelib.wait)();
+}
+
 int SiteStartIntt(int sec,int usec) {
   return (sitelib.startintt)(sec,usec);
 }

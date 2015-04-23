@@ -32,6 +32,7 @@
 #include <sys/time.h>
 #include <argtable2.h>
 #include <zlib.h>
+#include <fcntl.h>
 
 /* Includes provided by the RST */ 
 #include "rtypes.h"
@@ -146,16 +147,16 @@ int main(int argc,char *argv[]) {
 
     {43,43}};           /* alternate lag-0  */
 
-  int *pcode_sound=NULL;
-  int mppul_sound=16;
-  int mplgs_sound=121;
-  int mpinc_sound=100;
-  int rsep_sound=15;
-  int txpl_sound=100;
-  int nbaud_sound=1;
-  int nrang_sound=225;
-  int ptab_sound[16] = {0,4,19,42,78,127,191,270,364,474,600,745,905,1083,1280,1495};
-  int lags_sound[LAG_SIZE][2] = {
+  int *pcode_camp=NULL;
+  int mppul_camp=16;
+  int mplgs_camp=121;
+  int mpinc_camp=100;
+  int rsep_camp=15;
+  int txpl_camp=100;
+  int nbaud_camp=1;
+  int nrang_camp=225;
+  int ptab_camp[16] = {0,4,19,42,78,127,191,270,364,474,600,745,905,1083,1280,1495};
+  int lags_camp[LAG_SIZE][2] = {
   {1495,1495},          /*  0 */
   {0,4},                /*  1 */
   {4,19},               /*  2 */
@@ -311,6 +312,14 @@ int main(int argc,char *argv[]) {
   int beams=0;
   int skip,skip_scan=0;
 
+  /* Variables for coordinating file locks */
+                             /* l_type   l_whence  l_start  l_len  l_pid   */
+    struct flock scan_lock = {F_RDLCK, SEEK_SET,   0,      0,     0 };
+    struct flock camp_lock = {F_RDLCK, SEEK_SET,   0,      0,     0 };
+    struct flock check_lock = {F_WRLCK, SEEK_SET,   0,      0,     0 };
+    int scan_fd, camp_fd,lock_test;
+
+
   /* create commandline argument structs */
   /* First lets define a help argument */
   struct arg_lit  *al_help       = arg_lit0(NULL, "help", "Prints help infomation and then exits");
@@ -359,10 +368,21 @@ int main(int argc,char *argv[]) {
 
   /* create list of all arguement structs */
   void* argtable[] = {al_help,al_debug,al_test,al_discretion, al_fast, al_nowait, al_onesec, \
-                      ai_baud,ai_campsc,ai_campus,ai_campbm, ai_camprep, ai_campfreq, \ 
+                      ai_baud,ai_campsc,ai_campus,ai_campbm, ai_camprep, ai_campfreq, \
                       ai_tau, ai_nrang, ai_frang, ai_rsep, ai_dt, ai_nt, ai_df, ai_nf, ai_fixfrq, ai_xcf, ai_ep, ai_sp, ai_bp, ai_sb, ai_eb, ai_cnum, \
                       as_ros, as_ststr, as_libstr,as_verstr,ai_clrskip,al_clrscan,ai_cpid,ae_argend};
-
+  /* Lets create those file locks now */
+    scan_lock.l_pid = getpid();
+    camp_lock.l_pid = getpid();
+    camp_lock.l_type = F_RDLCK;
+    if ((scan_fd = open("/tmp/scan_lock", O_CREAT|O_RDWR,0644)) == -1) {
+        perror("open scan_lock file");
+        exit(1);
+    }
+    if ((camp_fd = open("/tmp/camp_lock", O_CREAT|O_RDWR),0644) == -1) {
+        perror("open camp_lock file");
+        exit(1);
+    }
 /* END of variable defines */
 
 /* Set default values of globally defined variables here*/
@@ -649,10 +669,10 @@ int main(int argc,char *argv[]) {
       pcode_scan[i*nbaud_scan+n]=bcode[n];
     }
   }
-  pcode_sound=(int *)malloc((size_t)sizeof(int)*mppul_sound*nbaud_sound);
-  for(i=0;i<mppul_sound;i++){
-    for(n=0;n<nbaud_sound;n++){
-      pcode_sound[i*nbaud_sound+n]=bcode[n];
+  pcode_camp=(int *)malloc((size_t)sizeof(int)*mppul_camp*nbaud_camp);
+  for(i=0;i<mppul_camp;i++){
+    for(n=0;n<nbaud_camp;n++){
+      pcode_camp[i*nbaud_camp+n]=bcode[n];
     }
   }
 
@@ -715,7 +735,7 @@ int main(int argc,char *argv[]) {
       fprintf(stdout,"  campsc: %d campus: %d\n",campsc,campus);
       fprintf(stdout,"  camprep: %d\n",camprep);
       fprintf(stdout,"  Camp Freqs::\n");
-      fprintf(stdout,"  txpl: %d mpinc: %d nbaud: %d rsep: %d\n",txpl_sound,mpinc_sound,nbaud_sound,rsep_sound);
+      fprintf(stdout,"  txpl: %d mpinc: %d nbaud: %d rsep: %d\n",txpl_camp,mpinc_camp,nbaud_camp,rsep_camp);
       for(i=0;i<ai_campfreq->count;i++){
         fprintf(stdout,"  %d:: freq: %d\n",i,campfreqs[i]);
       }
@@ -767,23 +787,23 @@ int main(int argc,char *argv[]) {
             fprintf(stdout,"The phase coded timing sequence looks good\n");
         }
 
-        tsgprm.nrang = nrang_sound;
+        tsgprm.nrang = nrang_camp;
         tsgprm.frang = frang;
-        tsgprm.rsep = rsep_sound; 
+        tsgprm.rsep = rsep_camp; 
         tsgprm.smsep = smsep;
-        tsgprm.txpl = txpl_sound;
-        tsgprm.mppul = mppul_sound;
-        tsgprm.mpinc = mpinc_sound;
+        tsgprm.txpl = txpl_camp;
+        tsgprm.mppul = mppul_camp;
+        tsgprm.mpinc = mpinc_camp;
         tsgprm.mlag = 0;
-        tsgprm.nbaud = nbaud_sound;
+        tsgprm.nbaud = nbaud_camp;
         tsgprm.stdelay = 18 + 2;
         tsgprm.gort = 1;
         tsgprm.rtoxmin = 0;
 
-        tsgprm.pat = malloc(sizeof(int)*mppul_sound);
-        tsgprm.code = ptab_sound;
+        tsgprm.pat = malloc(sizeof(int)*mppul_camp);
+        tsgprm.code = ptab_camp;
 
-        for (i=0;i<tsgprm.mppul;i++) tsgprm.pat[i]=ptab_sound[i];
+        for (i=0;i<tsgprm.mppul;i++) tsgprm.pat[i]=ptab_camp[i];
 
         tsgbuf=TSGMake(&tsgprm,&flag);
         fprintf(stdout,"Camp Sequence Parameters::\n");
@@ -826,6 +846,41 @@ int main(int argc,char *argv[]) {
 
   printf("Entering Scan loop Station ID: %s  %d\n",ststr,stid);
   do {
+    /* JDS: TODO Lets set the scan file lock here */
+      scan_lock.l_type = F_RDLCK;
+      if (fcntl(scan_fd, F_SETLK, &scan_lock) == -1) {
+        perror("setlk scan_fd");
+        exit(1);
+      }
+    /* JDS: TODO Lets test to see if the camp file lock is still active and wait for it to clear */
+    lock_test=1;
+    while(lock_test==1) {
+      lock_test=0;
+      check_lock.l_type = F_WRLCK;
+      if (fcntl(scan_fd, F_GETLK, &check_lock) == -1) {
+        perror("fcntl scan_fd");
+        exit(1);
+      }
+      if(check_lock.l_type==F_UNLCK) {
+        fprintf(stdout,"Start of Scan: scan_lock is unlocked\n");
+      } else {
+        fprintf(stdout,"Start of Scan: scan_lock is locked\n");
+      }
+      check_lock.l_type = F_WRLCK;
+      if (fcntl(camp_fd, F_GETLK, &check_lock) == -1) {
+        perror("fcntl camp_fd");
+        exit(1);
+      }
+      if(check_lock.l_type==F_UNLCK) {
+        fprintf(stdout,"Start of Scan: camp_lock is unlocked\n");
+      } else {
+        lock_test|=1;
+        fprintf(stdout,"Start of Scan: camp_lock is locked\n");
+        SiteWait(1,0);
+      }
+    }
+
+    fprintf(stdout,"Site Start Scan\n");
     if (SiteStartScan() !=0) continue;
     if (OpsReOpen(2,0,0) !=0) {
       ErrLog(errlog.sock,progname,"Opening new files.");
@@ -834,6 +889,7 @@ int main(int argc,char *argv[]) {
         RMsgSndOpen(task[n].sock,strlen( (char *) command),command);     
       }
     }
+    fprintf(stdout,"Finished with Site Start Scan\n");
 
     /* Setup things for scan pulse sequence */
     mppul=mppul_scan;
@@ -848,9 +904,12 @@ int main(int argc,char *argv[]) {
     pcode=pcode_scan;
 
     tsgid=SiteTimeSeq(ptab_scan);
+    fprintf(stdout,"Finished with Site TimeSeq\n");
 
     scan=1;
+/*
     ErrLog(errlog.sock,progname,"Starting scan.");
+*/
     if(al_clrscan->count) startup=1;
     if (xcnt>0) {
       cnt++;
@@ -865,6 +924,7 @@ int main(int argc,char *argv[]) {
       printf("Skip: %d :: %d %d :: %d %d :: %d\n",skip,nscnsc,nscnus,intsc,intus,backward);
     }
     else skip=0;
+    fprintf(stdout,"Finished with Find Skip\n");
 
     if (backward) {
       skip_scan=0;
@@ -880,6 +940,16 @@ int main(int argc,char *argv[]) {
      * with beam dwell time intsc/intus packed into scantime of scansc/scanus 
      */
     do {
+      check_lock.l_type = F_WRLCK;
+      if (fcntl(scan_fd, F_GETLK, &check_lock) == -1) {
+        perror("getlk scan_fd");
+        exit(1);
+      }
+      if(check_lock.l_type==F_UNLCK) {
+        fprintf(stdout,"scan_lock is unlocked\n");
+      } else {
+        fprintf(stdout,"scan_lock is locked\n");
+      }
       if(skip_scan) break;
       if (backward) {
         if (bmnum>sbm) bmnum=sbm;
@@ -991,29 +1061,85 @@ int main(int argc,char *argv[]) {
       if (backward) bmnum--;
       else bmnum++;
     } while (1);
+    /* JDS: TODO Lets clear our scan file lock if we hold it */
+    scan_lock.l_type = F_UNLCK;
+    if (fcntl(scan_fd, F_SETLK, &scan_lock) == -1) {
+      perror("setlk scan_fd");
+      exit(1);
+    }
+
     /* 
       This ends the loop of N=beams number of scan beams 
     */
+
+    /* JDS: TODO Lets test to see if the scan file lock is still active in a tight loop with a timeout */
+
     if ((exitpoll==0) && (skip_scan==0) && (ai_campfreq->count)) {
+    
+      /* JDS: TODO Lets set the camp file lock here*/
+      camp_lock.l_type = F_RDLCK;
+      if (fcntl(camp_fd, F_SETLK, &camp_lock) == -1) {
+        perror("setlk camp_fd");
+        exit(1);
+      }
+      /* JDS: TODO Lets test to see if the scan file lock is still active and wait for it to clear */
+      lock_test=1;
+      while(lock_test==1) {
+        lock_test=0;
+        check_lock.l_type = F_WRLCK;
+        if (fcntl(scan_fd, F_GETLK, &check_lock) == -1) {
+          perror("fcntl scan_fd");
+          exit(1);
+        }
+        if(check_lock.l_type==F_UNLCK) {
+          fprintf(stdout,"Start of Camp: scan_lock is unlocked\n");
+        } else {
+          lock_test|=1;
+          fprintf(stdout,"Start of Camp: scan_lock is locked\n");
+          SiteWait(1,0);
+        }
+        check_lock.l_type = F_WRLCK;
+        if (fcntl(camp_fd, F_GETLK, &check_lock) == -1) {
+          perror("fcntl camp_fd");
+          exit(1);
+        }
+        if(check_lock.l_type==F_UNLCK) {
+          fprintf(stdout,"Start of Camp: camp_lock is unlocked\n");
+        } else {
+          fprintf(stdout,"Start of Camp: camp_lock is locked\n");
+        }
+      }
+
       ErrLog(errlog.sock,progname,"Running Multi-frequency Camping Beam");
       /* Setup things for camp pulse sequence */
-      mppul=mppul_sound;
-      mplgs=mplgs_sound;
-      mpinc=mpinc_sound;
-      nrang=nrang_sound;
-      rsep=rsep_sound;
-      txpl=txpl_sound;
-      nbaud=nbaud_sound;
+      mppul=mppul_camp;
+      mplgs=mplgs_camp;
+      mpinc=mpinc_camp;
+      nrang=nrang_camp;
+      rsep=rsep_camp;
+      txpl=txpl_camp;
+      nbaud=nbaud_camp;
       intsc=campsc;
       intus=campus;
-      pcode=pcode_sound;
-      tsgid=SiteTimeSeq(ptab_sound);
+      pcode=pcode_camp;
+      tsgid=SiteTimeSeq(ptab_camp);
       bmnum=campbm;
       for(i=0;i<camprep;i++){
         ErrLog(errlog.sock,progname,"Starting Camp Rep");
         for(j=0;j<ai_campfreq->count;j++){
+          lock_test=0;
+          check_lock.l_type = F_WRLCK;
+          if (fcntl(scan_fd, F_GETLK, &check_lock) == -1) {
+            perror("fcntl scan_fd");
+            exit(1);
+          }
+          if(check_lock.l_type!=F_UNLCK) {
+            lock_test=1;
+            fprintf(stdout,"Camp Check: scan_lock is locked! Aborting Camping run!\n");
+          }
+          if (lock_test==1) break;
           stfrq=campfreqs[j];
-          sprintf(logtxt," Int parameters:: rsep: %d mpinc: %d sbm: %d ebm: %d nrang: %d nbaud: %d scannowait: %d clrskip_secs: %d clrscan: %d cpid: %d",
+          sprintf(logtxt," Camp Int parameters:: rsep: %d mpinc: %d sbm: %d ebm: %d nrang: %d nbaud: %d scannowait: %d clrskip_secs: %d clrscan: %d cpid: %d",
               rsep,mpinc,sbm,ebm,nrang,nbaud,al_nowait->count,ai_clrskip->ival[0],al_clrscan->count,cp);
           ErrLog(errlog.sock,progname,logtxt);
 
@@ -1042,7 +1168,7 @@ int main(int argc,char *argv[]) {
           sprintf(logtxt,"Transmitting on: %d (Noise=%g)",tfreq,noise);
           ErrLog(errlog.sock,progname,logtxt);
 
-          nave=SiteIntegrate(lags_sound);
+          nave=SiteIntegrate(lags_camp);
           if (nave<0) {
             sprintf(logtxt,"Integration error:%d",nave);
             ErrLog(errlog.sock,progname,logtxt);
@@ -1051,7 +1177,7 @@ int main(int argc,char *argv[]) {
           sprintf(logtxt,"Number of sequences: %d",nave);
           ErrLog(errlog.sock,progname,logtxt);
 
-          OpsBuildPrm(prm,ptab_sound,lags_sound);
+          OpsBuildPrm(prm,ptab_camp,lags_camp);
           OpsBuildIQ(iq,&badtr);
           OpsBuildRaw(raw);
 
@@ -1094,6 +1220,13 @@ int main(int argc,char *argv[]) {
           if (exitpoll !=0) break;
 
         }
+        if (lock_test==1) break;
+      }
+      /* JDS: TODO Lets clear the camp file lock here*/
+      camp_lock.l_type = F_UNLCK;
+      if (fcntl(camp_fd, F_SETLK, &camp_lock) == -1) {
+        perror("setlk camp_fd");
+        exit(1);
       }
     }
 

@@ -64,6 +64,7 @@ FILE *f_diagnostic_ascii=NULL,*fp=NULL;
 
 int yday=-1;
 int iqbufsize=0;
+int switch_rx=0;
 
 void SiteRosExit(int signum) {
 
@@ -370,6 +371,20 @@ int SiteRosStart(char *host,char *ststr) {
     invert=ltemp;
     fprintf(stderr,"Site Cfg:: \'invert\' setting in site cfg file using value: %d\n",invert); 
   }
+  if(! config_lookup_int(&cfg, "switch_rx", &ltemp)) {
+/* 
+ *  Switch interf array and main array recv samples while still transmitting 
+ *  on main array. Introduced as a workaround for McM reflector curtain 
+ *  failure on main array. 
+ *  switch_rx=0 standard
+ *  switch_rx=non-zero  switch 
+*/
+    switch_rx=0;
+    fprintf(stderr,"Site Cfg Warning:: \'switch_rx\' setting undefined in site cfg file using default value: %d\n",switch_rx); 
+  } else {
+    switch_rx=(int)ltemp;
+    fprintf(stderr,"Site Cfg:: \'switch_rx\' setting in site cfg file using value: %d\n",switch_rx); 
+  }
   if(! config_lookup_int(&cfg, "rxchn", &ltemp)) {
 /* rxchn number of channels typically 1*/
 /* rngoff argument in ACFCalculate.. is 2*rxchn and is normally set to 2 */
@@ -480,7 +495,7 @@ int SiteRosSetupRadar() {
 
   sprintf(sharedmemory,"IQBuff_ROS_%d_%d",rnum,cnum);
 
-  iqbufsize = 2 * (mppul) * sizeof(int32) * 1e6 * intsc * nbaud / mpinc; /* calculate size of IQ buffer (JTK) */
+  iqbufsize = 2 * (mppul) * sizeof(int32) * 1e6 * (intsc+1) * nbaud / mpinc; /* calculate size of IQ buffer (JTK) */
 
   fprintf(stderr,"intc: %d, nbaud %d, mpinc %d, iq buffer size is %d\n",intsc, nbaud, mpinc, iqbufsize);
   samples = (int16 *)ShMemAlloc(sharedmemory,iqbufsize,O_RDWR | O_CREAT,1,&shmemfd);
@@ -552,6 +567,42 @@ int SiteRosStartScan() {
   return 0;
 }
 
+int SiteRosWait(int sec,int usec) {
+  struct ROSMsg smsg,rmsg;
+
+  struct timeval tick;
+  double tend;
+  double tnow;
+  int count=0;
+
+  SiteRosExit(0);
+  smsg.type=SET_INACTIVE;
+  TCPIPMsgSend(sock, &smsg, sizeof(struct ROSMsg));
+  TCPIPMsgRecv(sock, &rmsg, sizeof(struct ROSMsg));
+
+  if (gettimeofday(&tick,NULL)==-1) return -1;
+  tend=(tick.tv_sec+sec)+(tick.tv_usec/USEC)+(usec)/USEC;
+  while (1) {
+    tnow=(tick.tv_sec)+(tick.tv_usec)/USEC;
+    if (tnow>tend) break;
+    smsg.type=PING;
+    TCPIPMsgSend(sock, &smsg, sizeof(struct ROSMsg));
+    TCPIPMsgRecv(sock, &rmsg, sizeof(struct ROSMsg));
+    if (debug) {
+      fprintf(stderr,"PING:type=%c\n",rmsg.type);
+      fprintf(stderr,"PING:status=%d\n",rmsg.status);
+      fprintf(stderr,"PING:count=%d\n",count);
+      fflush(stderr);
+    }
+    count++;
+    SiteRosExit(0);
+    usleep(50000);
+    SiteRosExit(0);
+    gettimeofday(&tick,NULL);
+  }
+
+  return 0;
+}
 
 
 int SiteRosStartIntt(int sec,int usec) {
@@ -571,6 +622,10 @@ int SiteRosStartIntt(int sec,int usec) {
     fprintf(stderr,"PING:type=%c\n",rmsg.type);
     fprintf(stderr,"PING:status=%d\n",rmsg.status);
   }
+
+  smsg.type=SET_ACTIVE;
+  TCPIPMsgSend(sock, &smsg, sizeof(struct ROSMsg));
+  TCPIPMsgRecv(sock, &rmsg, sizeof(struct ROSMsg));
 
   smsg.type=GET_PARAMETERS;  
   TCPIPMsgSend(sock, &smsg, sizeof(struct ROSMsg));
@@ -999,6 +1054,18 @@ usleep(usecs);
       }
       rdata.main=malloc(sizeof(uint32)*dprm.samples);
       rdata.back=malloc(sizeof(uint32)*dprm.samples);
+      switch(switch_rx) {
+       case 1:
+/* JDS: 20140124: switch main and interf samples if cfg is set to switch_rx=1*/
+          TCPIPMsgRecv(sock, rdata.back, sizeof(uint32)*dprm.samples);
+          TCPIPMsgRecv(sock, rdata.main, sizeof(uint32)*dprm.samples);
+          break;
+        case 0:
+        default:
+          TCPIPMsgRecv(sock, rdata.main, sizeof(uint32)*dprm.samples);
+          TCPIPMsgRecv(sock, rdata.back, sizeof(uint32)*dprm.samples);
+          break;
+      }
       if (debug) {
         fprintf(stderr,"%s GET_DATA: recv main\n",station);
       }
@@ -1463,6 +1530,7 @@ usleep(usecs);
    SiteRosExit(0);
    return nave;
 }
+
 
 int SiteRosEndScan(int bsc,int bus) {
 
