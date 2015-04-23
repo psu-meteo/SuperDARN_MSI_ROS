@@ -221,13 +221,17 @@ int SiteRosStart(char *host,char *ststr) {
   } else {
     dmatch=ltemp;
   }
+<<<<<<< HEAD
 
+=======
+>>>>>>> b70765c... fix thebogus _int64 routine calls for libconfig lookup
   if(! config_lookup_int(&cfg, "backward", &ltemp)) {
     backward=0;
     fprintf(stderr,"Site Cfg Warning:: \'backward\' setting undefined in site cfg file using default value: %d\n",backward); 
   } else {
     backward=ltemp;
   }
+<<<<<<< HEAD
 
   if(! config_lookup_float(&cfg, "diagnostics.dds_pwr_threshold", &dtemp)) {
     if(! config_lookup_int(&cfg, "diagnostics.dds_pwr_threshold", &ltemp)) {
@@ -269,6 +273,8 @@ int SiteRosStart(char *host,char *ststr) {
     fprintf(stderr,"Site Cfg:: \'diagnostics.rfreq_offset\' setting in site cfg file using value: %d\n",diagnostics.rfreq_offset); 
   }
 
+=======
+>>>>>>> b70765c... fix thebogus _int64 routine calls for libconfig lookup
   if(! config_lookup_int(&cfg, "xcf", &ltemp)) {
     /* xcf count value: 1 means every integration period. 2 means every other. N means every Nth.*/
     xcnt=0;
@@ -370,6 +376,23 @@ int SiteRosStart(char *host,char *ststr) {
     invert=ltemp;
     fprintf(stderr,"Site Cfg:: \'invert\' setting in site cfg file using value: %d\n",invert); 
   }
+<<<<<<< HEAD
+=======
+  if(! config_lookup_int(&cfg, "switch_rx", &ltemp)) {
+/* 
+ *  Switch interf array and main array recv samples while still transmitting 
+ *  on main array. Introduced as a workaround for McM reflector curtain 
+ *  failure on main array. 
+ *  switch_rx=0 standard
+ *  switch_rx=non-zero  switch 
+*/
+    switch_rx=0;
+    fprintf(stderr,"Site Cfg Warning:: \'switch_rx\' setting undefined in site cfg file using default value: %d\n",switch_rx); 
+  } else {
+    switch_rx=(int)ltemp;
+    fprintf(stderr,"Site Cfg:: \'switch_rx\' setting in site cfg file using value: %d\n",switch_rx); 
+  }
+>>>>>>> b70765c... fix thebogus _int64 routine calls for libconfig lookup
   if(! config_lookup_int(&cfg, "rxchn", &ltemp)) {
 /* rxchn number of channels typically 1*/
 /* rngoff argument in ACFCalculate.. is 2*rxchn and is normally set to 2 */
