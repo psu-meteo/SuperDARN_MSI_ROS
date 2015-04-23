@@ -137,7 +137,7 @@ void SiteRosExit(int signum) {
 
 int SiteRosStart(char *host,char *ststr) {
   int retval;
-  long long ltemp;
+  long ltemp;
   const char *str;
   char *dfststr="tst";
   char *chanstr=NULL;
@@ -206,19 +206,19 @@ int SiteRosStart(char *host,char *ststr) {
     fprintf(stderr, "Site Cfg Error:: No 'station' setting in configuration file.\nSiteRosStart aborting, controlprogram should end now\n");
     return -1;
   }
-  if(! config_lookup_int64(&cfg, "match_filter", &ltemp)) {
+  if(! config_lookup_int(&cfg, "match_filter", &ltemp)) {
     dmatch=0;
     fprintf(stderr,"Site Cfg Warning:: \'match_filter\' setting undefined in site cfg file using default value: %d\n",dmatch); 
   } else {
     dmatch=ltemp;
   }
-  if(! config_lookup_int64(&cfg, "backward", &ltemp)) {
+  if(! config_lookup_int(&cfg, "backward", &ltemp)) {
     backward=0;
     fprintf(stderr,"Site Cfg Warning:: \'backward\' setting undefined in site cfg file using default value: %d\n",backward); 
   } else {
     backward=ltemp;
   }
-  if(! config_lookup_int64(&cfg, "xcf", &ltemp)) {
+  if(! config_lookup_int(&cfg, "xcf", &ltemp)) {
     /* xcf count value: 1 means every integration period. 2 means every other. N means every Nth.*/
     xcnt=0;
     fprintf(stderr,"Site Cfg Warning:: \'xcf\' setting undefined in site cfg file using default value: %d\n",xcnt); 
@@ -226,28 +226,28 @@ int SiteRosStart(char *host,char *ststr) {
     xcnt=ltemp;
     fprintf(stderr,"Site Cfg:: \'xcf\' setting in site cfg file using value: %d\n",xcnt); 
   }
-  if(! config_lookup_int64(&cfg, "sbm", &ltemp)) {
+  if(! config_lookup_int(&cfg, "sbm", &ltemp)) {
     sbm=0;
     fprintf(stderr,"Site Cfg Warning:: \'sbm\' setting undefined in site cfg file using default value: %d\n",sbm); 
   } else {
     sbm=ltemp;
     fprintf(stderr,"Site Cfg:: \'sbm\' setting in site cfg file using value: %d\n",sbm); 
   }
-  if(! config_lookup_int64(&cfg, "ebm", &ltemp)) {
+  if(! config_lookup_int(&cfg, "ebm", &ltemp)) {
     ebm=16;
     fprintf(stderr,"Site Cfg Warning:: \'ebm\' setting undefined in site cfg file using default value: %d\n",ebm); 
   } else {
     ebm=ltemp;
     fprintf(stderr,"Site Cfg:: \'ebm\' setting in site cfg file using value: %d\n",ebm); 
   }
-  if(! config_lookup_int64(&cfg, "rnum", &ltemp)) {
+  if(! config_lookup_int(&cfg, "rnum", &ltemp)) {
     /* Radar number to register  with ROS server*/
     rnum=1;
     fprintf(stderr,"Site Cfg Warning:: \'rnum\' setting undefined in site cfg file using default value: %d\n",rnum); 
   } else {
     rnum=ltemp;
   }
-  if(! config_lookup_int64(&cfg, "cnum", &ltemp)) {
+  if(! config_lookup_int(&cfg, "cnum", &ltemp)) {
     /* Channum to register  with ROS server*/
     cnum=1;
     fprintf(stderr,"Site Cfg Warning:: \'cnum\' setting undefined in site cfg file using default value: %d\n",cnum); 
@@ -265,14 +265,14 @@ int SiteRosStart(char *host,char *ststr) {
   } else{
     strcpy(server,str);
   }
-  if(! config_lookup_int64(&cfg, "ros.port", &ltemp)) {
+  if(! config_lookup_int(&cfg, "ros.port", &ltemp)) {
     /* ROS server tcp port*/
     port=45000;
     fprintf(stderr,"Site Cfg Warning:: \'ros.port\' setting undefined in site cfg file using default value: %d\n",port); 
   } else {
     port=ltemp;
   }
-  if(! config_lookup_int64(&cfg, "errlog.port", &ltemp)) {
+  if(! config_lookup_int(&cfg, "errlog.port", &ltemp)) {
     /* ROS server tcp port*/
     errlog.port=45000;
     fprintf(stderr,"Site Cfg Warning:: \'errlog.port\' setting undefined in site cfg file using default value: %d\n",errlog.port); 
@@ -286,7 +286,7 @@ int SiteRosStart(char *host,char *ststr) {
   } else{
     strcpy(errlog.host,str);
   }
-  if(! config_lookup_int64(&cfg, "shellserver.port", &ltemp)) {
+  if(! config_lookup_int(&cfg, "shellserver.port", &ltemp)) {
     /* ROS server tcp port*/
     shell.port=45001;
     fprintf(stderr,"Site Cfg Warning:: \'shellserver.port\' setting undefined in site cfg file using default value: %d\n",shell.port); 
@@ -300,14 +300,14 @@ int SiteRosStart(char *host,char *ststr) {
   } else{
     strcpy(shell.host,str);
   }
-  if(! config_lookup_int64(&cfg, "tasks.baseport", &ltemp)) {
+  if(! config_lookup_int(&cfg, "tasks.baseport", &ltemp)) {
     /* ROS server tcp port*/
     baseport=45001;
     fprintf(stderr,"Site Cfg Warning:: \'tasks.baseport\' setting undefined in site cfg file using default value: %d\n",baseport); 
   } else {
     baseport=ltemp;
   }
-  if(! config_lookup_int64(&cfg, "invert", &ltemp)) {
+  if(! config_lookup_int(&cfg, "invert", &ltemp)) {
 /* 
  *  If you need to correct for inverted phase between main and inter rf signal 
  *  invert=0  No inversion necessary 
@@ -318,7 +318,7 @@ int SiteRosStart(char *host,char *ststr) {
   } else {
     invert=ltemp;
   }
-  if(! config_lookup_int64(&cfg, "switch_rx", &ltemp)) {
+  if(! config_lookup_int(&cfg, "switch_rx", &ltemp)) {
 /* 
  *  Switch interf array and main array recv samples while still transmitting 
  *  on main array. Introduced as a workaround for McM reflector curtain 
@@ -332,7 +332,7 @@ int SiteRosStart(char *host,char *ststr) {
     switch_rx=(int)ltemp;
     fprintf(stderr,"Site Cfg:: \'switch_rx\' setting in site cfg file using value: %d\n",switch_rx); 
   }
-  if(! config_lookup_int64(&cfg, "rxchn", &ltemp)) {
+  if(! config_lookup_int(&cfg, "rxchn", &ltemp)) {
 /* rxchn number of channels typically 1*/
 /* rngoff argument in ACFCalculate.. is 2*rxchn and is normally set to 2 */
     rxchn=1;
@@ -340,27 +340,27 @@ int SiteRosStart(char *host,char *ststr) {
   } else {
     rxchn=ltemp;
   }
-  if(! config_lookup_int64(&cfg, "day", &ltemp)) {
+  if(! config_lookup_int(&cfg, "day", &ltemp)) {
     day=18;
     fprintf(stderr,"Site Cfg Warning:: \'day\' setting undefined in site cfg file using default value: %d\n",day); 
   } else {
     day=ltemp;
   }
-  if(! config_lookup_int64(&cfg, "night", &ltemp)) {
+  if(! config_lookup_int(&cfg, "night", &ltemp)) {
     night=10;
     fprintf(stderr,"Site Cfg Warning:: \'night\' setting undefined in site cfg file using default value: %d\n",night); 
   } else {
     night=ltemp;
   }
 
-  if(! config_lookup_int64(&cfg, "dfrq", &ltemp)) {
+  if(! config_lookup_int(&cfg, "dfrq", &ltemp)) {
     dfrq=10400;
     fprintf(stderr,"Site Cfg Warning:: \'dfrq\' setting undefined in site cfg file using default value: %d\n",dfrq); 
   } else {
     dfrq=ltemp;
     fprintf(stderr,"Site Cfg:: \'dfrq\' setting in site cfg file using value: %d\n",dfrq); 
   }
-  if(! config_lookup_int64(&cfg, "nfrq", &ltemp)) {
+  if(! config_lookup_int(&cfg, "nfrq", &ltemp)) {
     nfrq=10400;
     fprintf(stderr,"Site Cfg Warning:: \'nfrq\' setting undefined in site cfg file using default value: %d\n",nfrq); 
   } else {
