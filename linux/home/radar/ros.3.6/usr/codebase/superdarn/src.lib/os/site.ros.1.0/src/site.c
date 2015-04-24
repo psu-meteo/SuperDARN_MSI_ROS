@@ -315,6 +315,7 @@ int SiteRosStart(char *host,char *ststr) {
     fprintf(stderr,"Site Cfg Warning:: \'ros.host\' setting undefined in site cfg file using default value: \'%s\'\n",server); 
   } else{
     strcpy(server,str);
+    fprintf(stderr,"Site Cfg:: \'ros.host\' setting in site cfg file using value: \'%s\'\n",server); 
   }
   if(! config_lookup_int(&cfg, "ros.port", &ltemp)) {
     /* ROS server tcp port*/
@@ -480,7 +481,7 @@ int SiteRosSetupRadar() {
 
   sprintf(sharedmemory,"IQBuff_ROS_%d_%d",rnum,cnum);
 
-  iqbufsize = 2 * (mppul) * sizeof(int32) * 1e6 * intsc * nbaud / mpinc; /* calculate size of IQ buffer (JTK) */
+  iqbufsize = 2 * (mppul) * sizeof(int32) * 1e6 * (intsc+1) * nbaud / mpinc; /* calculate size of IQ buffer (JTK) */
 
   fprintf(stderr,"intc: %d, nbaud %d, mpinc %d, iq buffer size is %d\n",intsc, nbaud, mpinc, iqbufsize);
   samples = (int16 *)ShMemAlloc(sharedmemory,iqbufsize,O_RDWR | O_CREAT,1,&shmemfd);
