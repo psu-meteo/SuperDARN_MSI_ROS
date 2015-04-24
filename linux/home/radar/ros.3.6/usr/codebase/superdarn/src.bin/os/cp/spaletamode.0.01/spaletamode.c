@@ -32,6 +32,7 @@
 #include <sys/time.h>
 #include <argtable2.h>
 #include <zlib.h>
+#include <fcntl.h>
 
 /* Includes provided by the RST */ 
 #include "rtypes.h"
@@ -108,8 +109,54 @@ int main(int argc,char *argv[]) {
   int bcode13[13]={1,1,1,1,1,-1,-1,1,1,-1,1,-1,1};
 
 /* Pulse sequence Table */
-  int ptab[16] = {0,4,19,42,78,127,191,270,364,474,600,745,905,1083,1280,1495};
-  int lags[LAG_SIZE][2] = {
+  int *pcode_scan=NULL;
+  int mppul_scan=8;
+  int mplgs_scan=23;
+  int mpinc_scan=1500;
+  int rsep_scan=45;
+  int nrang_scan=75;
+  int txpl_scan=300;
+  int nbaud_scan=1;
+  int ptab_scan[8] = {0,14,22,24,27,31,42,43}; 
+  int lags_scan[LAG_SIZE][2] = {
+    { 0, 0},            /*  0 */
+    {42,43},            /*  1 */
+    {22,24},            /*  2 */
+    {24,27},            /*  3 */
+    {27,31},            /*  4 */
+    {22,27},            /*  5 */
+
+    {24,31},            /*  7 */
+    {14,22},            /*  8 */
+    {22,31},            /*  9 */
+    {14,24},            /* 10 */
+    {31,42},            /* 11 */
+    {31,43},            /* 12 */
+    {14,27},            /* 13 */
+    { 0,14},            /* 14 */
+    {27,42},            /* 15 */
+    {27,43},            /* 16 */
+    {14,31},            /* 17 */
+    {24,42},            /* 18 */
+    {24,43},            /* 19 */
+    {22,42},            /* 20 */
+    {22,43},            /* 21 */
+    { 0,22},            /* 22 */
+
+    { 0,24},            /* 24 */
+
+    {43,43}};           /* alternate lag-0  */
+
+  int *pcode_camp=NULL;
+  int mppul_camp=16;
+  int mplgs_camp=121;
+  int mpinc_camp=100;
+  int rsep_camp=15;
+  int txpl_camp=100;
+  int nbaud_camp=1;
+  int nrang_camp=225;
+  int ptab_camp[16] = {0,4,19,42,78,127,191,270,364,474,600,745,905,1083,1280,1495};
+  int lags_camp[LAG_SIZE][2] = {
   {1495,1495},          /*  0 */
   {0,4},                /*  1 */
   {4,19},               /*  2 */
@@ -241,6 +288,8 @@ int main(int argc,char *argv[]) {
   int camp_integration_usecs=0;
   int end_of_scan_usecs=3E6;
   int total_integration_usecs=0;
+  int intsc_scan=0;
+  int intus_scan=0;
 /* End of Scan Multi-Frequency Camping Beam*/
   int nscnsc=0;
   int nscnus=0;
@@ -262,6 +311,14 @@ int main(int argc,char *argv[]) {
   /* Variables associated with beam scanning */
   int beams=0;
   int skip,skip_scan=0;
+
+  /* Variables for coordinating file locks */
+                             /* l_type   l_whence  l_start  l_len  l_pid   */
+    struct flock scan_lock = {F_RDLCK, SEEK_SET,   0,      0,     0 };
+    struct flock camp_lock = {F_RDLCK, SEEK_SET,   0,      0,     0 };
+    struct flock check_lock = {F_WRLCK, SEEK_SET,   0,      0,     0 };
+    int scan_fd, camp_fd,lock_test;
+
 
   /* create commandline argument structs */
   /* First lets define a help argument */
@@ -311,24 +368,36 @@ int main(int argc,char *argv[]) {
 
   /* create list of all arguement structs */
   void* argtable[] = {al_help,al_debug,al_test,al_discretion, al_fast, al_nowait, al_onesec, \
-                      ai_baud,ai_campsc,ai_campus,ai_campbm, ai_camprep, ai_campfreq, \ 
+                      ai_baud,ai_campsc,ai_campus,ai_campbm, ai_camprep, ai_campfreq, \
                       ai_tau, ai_nrang, ai_frang, ai_rsep, ai_dt, ai_nt, ai_df, ai_nf, ai_fixfrq, ai_xcf, ai_ep, ai_sp, ai_bp, ai_sb, ai_eb, ai_cnum, \
                       as_ros, as_ststr, as_libstr,as_verstr,ai_clrskip,al_clrscan,ai_cpid,ae_argend};
-
+  /* Lets create those file locks now */
+    scan_lock.l_pid = getpid();
+    camp_lock.l_pid = getpid();
+    camp_lock.l_type = F_RDLCK;
+    if ((scan_fd = open("/tmp/scan_lock", O_CREAT|O_RDWR,0644)) == -1) {
+        perror("open scan_lock file");
+        exit(1);
+    }
+    if ((camp_fd = open("/tmp/camp_lock", O_CREAT|O_RDWR),0644) == -1) {
+        perror("open camp_lock file");
+        exit(1);
+    }
 /* END of variable defines */
 
 /* Set default values of globally defined variables here*/
   cp=9200;
   intsc=7;
   intus=0;
-  mppul=16;
-  mplgs=121;
-  mpinc=100;
-  dmpinc=100;
-  nrang=225;
-  rsep=15;
-  txpl=100;
-  nbaud=1;
+/* Setup things initially for scan pulse sequence */
+  mppul=mppul_scan;
+  mplgs=mplgs_scan;
+  mpinc=mpinc_scan;
+  nrang=nrang_scan;
+  rsep=rsep_scan;
+  txpl=txpl_scan;
+  nbaud=nbaud_scan;
+  pcode=pcode_scan;
 
 /* Set default values for all the cmdline options */
   al_discretion->count = 0;
@@ -339,11 +408,11 @@ int main(int argc,char *argv[]) {
   al_debug->count = 0;
   ai_bp->ival[0] = 44100;
   ai_fixfrq->ival[0] = -1;
-  ai_baud->ival[0] = nbaud;
-  ai_tau->ival[0] = mpinc;
-  ai_nrang->ival[0] = nrang;
+  ai_baud->ival[0] = nbaud_scan;
+  ai_tau->ival[0] = mpinc_scan;
+  ai_nrang->ival[0] = nrang_scan;
+  ai_rsep->ival[0] = rsep_scan;
   ai_frang->ival[0] = frang;
-  ai_rsep->ival[0] = rsep;
   ai_dt->ival[0] = day;
   ai_nt->ival[0] = night;
   ai_df->ival[0] = dfrq;
@@ -440,11 +509,11 @@ int main(int argc,char *argv[]) {
 
 /* load any provided argument values overriding default values provided by SiteStart */ 
   if (ai_xcf->count) xcnt = ai_xcf->ival[0];
-  if (ai_baud->count) nbaud = ai_baud->ival[0];
-  if (ai_tau->count) mpinc = ai_tau->ival[0];
-  if (ai_nrang->count) nrang = ai_nrang->ival[0];
+  if (ai_baud->count)  nbaud_scan = ai_baud->ival[0];
+  if (ai_tau->count)   mpinc_scan = ai_tau->ival[0];
+  if (ai_nrang->count) nrang_scan = ai_nrang->ival[0];
+  if (ai_rsep->count)  rsep_scan = ai_rsep->ival[0];
   if (ai_frang->count) frang = ai_frang->ival[0];
-  if (ai_rsep->count) rsep = ai_rsep->ival[0];
   if (ai_dt->count) day = ai_dt->ival[0];
   if (ai_nt->count) night = ai_nt->ival[0];
   if (ai_df->count) dfrq = ai_df->ival[0];
@@ -563,7 +632,8 @@ int main(int argc,char *argv[]) {
         nscnus=total_scan_usecs -(nscnsc*1E6);
       }
   }
-
+  intsc_scan=intsc;
+  intus_scan=intus;
   /* Configure phasecoded operation if nbaud > 1 */ 
   switch(nbaud) {
     case 1:
@@ -593,10 +663,16 @@ int main(int argc,char *argv[]) {
       ErrLog(errlog.sock,progname,"Error: Unsupported nbaud requested, exiting");
       SiteExit(1);
   }
-  pcode=(int *)malloc((size_t)sizeof(int)*mppul*nbaud);
-  for(i=0;i<mppul;i++){
-    for(n=0;n<nbaud;n++){
-      pcode[i*nbaud+n]=bcode[n];
+  pcode_scan=(int *)malloc((size_t)sizeof(int)*mppul_scan*nbaud_scan);
+  for(i=0;i<mppul_scan;i++){
+    for(n=0;n<nbaud_scan;n++){
+      pcode_scan[i*nbaud_scan+n]=bcode[n];
+    }
+  }
+  pcode_camp=(int *)malloc((size_t)sizeof(int)*mppul_camp*nbaud_camp);
+  for(i=0;i<mppul_camp;i++){
+    for(n=0;n<nbaud_camp;n++){
+      pcode_camp[i*nbaud_camp+n]=bcode[n];
     }
   }
 
@@ -659,6 +735,7 @@ int main(int argc,char *argv[]) {
       fprintf(stdout,"  campsc: %d campus: %d\n",campsc,campus);
       fprintf(stdout,"  camprep: %d\n",camprep);
       fprintf(stdout,"  Camp Freqs::\n");
+      fprintf(stdout,"  txpl: %d mpinc: %d nbaud: %d rsep: %d\n",txpl_camp,mpinc_camp,nbaud_camp,rsep_camp);
       for(i=0;i<ai_campfreq->count;i++){
         fprintf(stdout,"  %d:: freq: %d\n",i,campfreqs[i]);
       }
@@ -692,9 +769,9 @@ int main(int argc,char *argv[]) {
         tsgprm.rtoxmin = 0;
 
         tsgprm.pat = malloc(sizeof(int)*mppul);
-        tsgprm.code = ptab;
+        tsgprm.code = ptab_scan;
 
-        for (i=0;i<tsgprm.mppul;i++) tsgprm.pat[i]=ptab[i];
+        for (i=0;i<tsgprm.mppul;i++) tsgprm.pat[i]=ptab_scan[i];
 
         tsgbuf=TSGMake(&tsgprm,&flag);
         fprintf(stdout,"Sequence Parameters::\n");
@@ -709,6 +786,37 @@ int main(int argc,char *argv[]) {
         else {
             fprintf(stdout,"The phase coded timing sequence looks good\n");
         }
+
+        tsgprm.nrang = nrang_camp;
+        tsgprm.frang = frang;
+        tsgprm.rsep = rsep_camp; 
+        tsgprm.smsep = smsep;
+        tsgprm.txpl = txpl_camp;
+        tsgprm.mppul = mppul_camp;
+        tsgprm.mpinc = mpinc_camp;
+        tsgprm.mlag = 0;
+        tsgprm.nbaud = nbaud_camp;
+        tsgprm.stdelay = 18 + 2;
+        tsgprm.gort = 1;
+        tsgprm.rtoxmin = 0;
+
+        tsgprm.pat = malloc(sizeof(int)*mppul_camp);
+        tsgprm.code = ptab_camp;
+
+        for (i=0;i<tsgprm.mppul;i++) tsgprm.pat[i]=ptab_camp[i];
+
+        tsgbuf=TSGMake(&tsgprm,&flag);
+        fprintf(stdout,"Camp Sequence Parameters::\n");
+        fprintf(stdout,"  lagfr: %d smsep: %d  txpl: %d\n",tsgprm.lagfr,tsgprm.smsep,tsgprm.txpl);
+    
+        if(tsgprm.smsep == 0 || tsgprm.lagfr == 0) {
+            fprintf(stdout," Camp Sequence Parameters::\n");
+            fprintf(stdout,"  lagfr: %d smsep: %d  txpl: %d\n",tsgprm.lagfr,tsgprm.smsep,tsgprm.txpl);
+            fprintf(stdout,"WARNING: lagfr or smsep is zero, invalid timing sequence genrated from given baud/rsep/nrang/mpinc will confuse TSGMake and FitACF into segfaulting");
+        } else {
+            fprintf(stdout,"The phase coded timing sequence looks good\n");
+        }
+
     } else {
         fprintf(stdout,"WARNING: nbaud needs to be  > 0\n");
     }
@@ -734,10 +842,45 @@ int main(int argc,char *argv[]) {
   OpsFitACFStart();
 
   printf("Preparing SiteTimeSeq Station ID: %s  %d\n",ststr,stid);
-  tsgid=SiteTimeSeq(ptab);
+  tsgid=SiteTimeSeq(ptab_scan);
 
   printf("Entering Scan loop Station ID: %s  %d\n",ststr,stid);
   do {
+    /* JDS: TODO Lets set the scan file lock here */
+      scan_lock.l_type = F_RDLCK;
+      if (fcntl(scan_fd, F_SETLK, &scan_lock) == -1) {
+        perror("setlk scan_fd");
+        exit(1);
+      }
+    /* JDS: TODO Lets test to see if the camp file lock is still active and wait for it to clear */
+    lock_test=1;
+    while(lock_test==1) {
+      lock_test=0;
+      check_lock.l_type = F_WRLCK;
+      if (fcntl(scan_fd, F_GETLK, &check_lock) == -1) {
+        perror("fcntl scan_fd");
+        exit(1);
+      }
+      if(check_lock.l_type==F_UNLCK) {
+        fprintf(stdout,"Start of Scan: scan_lock is unlocked\n");
+      } else {
+        fprintf(stdout,"Start of Scan: scan_lock is locked\n");
+      }
+      check_lock.l_type = F_WRLCK;
+      if (fcntl(camp_fd, F_GETLK, &check_lock) == -1) {
+        perror("fcntl camp_fd");
+        exit(1);
+      }
+      if(check_lock.l_type==F_UNLCK) {
+        fprintf(stdout,"Start of Scan: camp_lock is unlocked\n");
+      } else {
+        lock_test|=1;
+        fprintf(stdout,"Start of Scan: camp_lock is locked\n");
+        SiteWait(1,0);
+      }
+    }
+
+    fprintf(stdout,"Site Start Scan\n");
     if (SiteStartScan() !=0) continue;
     if (OpsReOpen(2,0,0) !=0) {
       ErrLog(errlog.sock,progname,"Opening new files.");
@@ -746,9 +889,27 @@ int main(int argc,char *argv[]) {
         RMsgSndOpen(task[n].sock,strlen( (char *) command),command);     
       }
     }
+    fprintf(stdout,"Finished with Site Start Scan\n");
+
+    /* Setup things for scan pulse sequence */
+    mppul=mppul_scan;
+    mplgs=mplgs_scan;
+    mpinc=mpinc_scan;
+    nrang=nrang_scan;
+    rsep=rsep_scan;
+    txpl=txpl_scan;
+    nbaud=nbaud_scan;
+    intsc=intsc_scan;
+    intus=intus_scan;
+    pcode=pcode_scan;
+
+    tsgid=SiteTimeSeq(ptab_scan);
+    fprintf(stdout,"Finished with Site TimeSeq\n");
 
     scan=1;
+/*
     ErrLog(errlog.sock,progname,"Starting scan.");
+*/
     if(al_clrscan->count) startup=1;
     if (xcnt>0) {
       cnt++;
@@ -763,6 +924,7 @@ int main(int argc,char *argv[]) {
       printf("Skip: %d :: %d %d :: %d %d :: %d\n",skip,nscnsc,nscnus,intsc,intus,backward);
     }
     else skip=0;
+    fprintf(stdout,"Finished with Find Skip\n");
 
     if (backward) {
       skip_scan=0;
@@ -774,7 +936,20 @@ int main(int argc,char *argv[]) {
       if (bmnum>ebm) skip_scan=1;
     }
 
+    /* This starts the actual loop of N=beams number of scan beams 
+     * with beam dwell time intsc/intus packed into scantime of scansc/scanus 
+     */
     do {
+      check_lock.l_type = F_WRLCK;
+      if (fcntl(scan_fd, F_GETLK, &check_lock) == -1) {
+        perror("getlk scan_fd");
+        exit(1);
+      }
+      if(check_lock.l_type==F_UNLCK) {
+        fprintf(stdout,"scan_lock is unlocked\n");
+      } else {
+        fprintf(stdout,"scan_lock is locked\n");
+      }
       if(skip_scan) break;
       if (backward) {
         if (bmnum>sbm) bmnum=sbm;
@@ -827,7 +1002,7 @@ int main(int argc,char *argv[]) {
       sprintf(logtxt,"Transmitting on: %d (Noise=%g)",tfreq,noise);
       ErrLog(errlog.sock,progname,logtxt);
     
-      nave=SiteIntegrate(lags);   
+      nave=SiteIntegrate(lags_scan);   
       if (nave<0) {
         sprintf(logtxt,"Integration error:%d",nave);
         ErrLog(errlog.sock,progname,logtxt); 
@@ -836,7 +1011,7 @@ int main(int argc,char *argv[]) {
       sprintf(logtxt,"Number of sequences: %d",nave);
       ErrLog(errlog.sock,progname,logtxt);
 
-      OpsBuildPrm(prm,ptab,lags);
+      OpsBuildPrm(prm,ptab_scan,lags_scan);
       
       OpsBuildIQ(iq,&badtr);
             
@@ -886,24 +1061,94 @@ int main(int argc,char *argv[]) {
       if (backward) bmnum--;
       else bmnum++;
     } while (1);
+    /* JDS: TODO Lets clear our scan file lock if we hold it */
+    scan_lock.l_type = F_UNLCK;
+    if (fcntl(scan_fd, F_SETLK, &scan_lock) == -1) {
+      perror("setlk scan_fd");
+      exit(1);
+    }
+
+    /* 
+      This ends the loop of N=beams number of scan beams 
+    */
+
+    /* JDS: TODO Lets test to see if the scan file lock is still active in a tight loop with a timeout */
 
     if ((exitpoll==0) && (skip_scan==0) && (ai_campfreq->count)) {
+    
+      /* JDS: TODO Lets set the camp file lock here*/
+      camp_lock.l_type = F_RDLCK;
+      if (fcntl(camp_fd, F_SETLK, &camp_lock) == -1) {
+        perror("setlk camp_fd");
+        exit(1);
+      }
+      /* JDS: TODO Lets test to see if the scan file lock is still active and wait for it to clear */
+      lock_test=1;
+      while(lock_test==1) {
+        lock_test=0;
+        check_lock.l_type = F_WRLCK;
+        if (fcntl(scan_fd, F_GETLK, &check_lock) == -1) {
+          perror("fcntl scan_fd");
+          exit(1);
+        }
+        if(check_lock.l_type==F_UNLCK) {
+          fprintf(stdout,"Start of Camp: scan_lock is unlocked\n");
+        } else {
+          lock_test|=1;
+          fprintf(stdout,"Start of Camp: scan_lock is locked\n");
+          SiteWait(1,0);
+        }
+        check_lock.l_type = F_WRLCK;
+        if (fcntl(camp_fd, F_GETLK, &check_lock) == -1) {
+          perror("fcntl camp_fd");
+          exit(1);
+        }
+        if(check_lock.l_type==F_UNLCK) {
+          fprintf(stdout,"Start of Camp: camp_lock is unlocked\n");
+        } else {
+          fprintf(stdout,"Start of Camp: camp_lock is locked\n");
+        }
+      }
+
       ErrLog(errlog.sock,progname,"Running Multi-frequency Camping Beam");
+      /* Setup things for camp pulse sequence */
+      mppul=mppul_camp;
+      mplgs=mplgs_camp;
+      mpinc=mpinc_camp;
+      nrang=nrang_camp;
+      rsep=rsep_camp;
+      txpl=txpl_camp;
+      nbaud=nbaud_camp;
+      intsc=campsc;
+      intus=campus;
+      pcode=pcode_camp;
+      tsgid=SiteTimeSeq(ptab_camp);
       bmnum=campbm;
       for(i=0;i<camprep;i++){
         ErrLog(errlog.sock,progname,"Starting Camp Rep");
         for(j=0;j<ai_campfreq->count;j++){
+          lock_test=0;
+          check_lock.l_type = F_WRLCK;
+          if (fcntl(scan_fd, F_GETLK, &check_lock) == -1) {
+            perror("fcntl scan_fd");
+            exit(1);
+          }
+          if(check_lock.l_type!=F_UNLCK) {
+            lock_test=1;
+            fprintf(stdout,"Camp Check: scan_lock is locked! Aborting Camping run!\n");
+          }
+          if (lock_test==1) break;
           stfrq=campfreqs[j];
-          sprintf(logtxt," Int parameters:: rsep: %d mpinc: %d sbm: %d ebm: %d nrang: %d nbaud: %d scannowait: %d clrskip_secs: %d clrscan: %d cpid: %d",
+          sprintf(logtxt," Camp Int parameters:: rsep: %d mpinc: %d sbm: %d ebm: %d nrang: %d nbaud: %d scannowait: %d clrskip_secs: %d clrscan: %d cpid: %d",
               rsep,mpinc,sbm,ebm,nrang,nbaud,al_nowait->count,ai_clrskip->ival[0],al_clrscan->count,cp);
           ErrLog(errlog.sock,progname,logtxt);
 
           sprintf(logtxt,"Integrating campbeam:%d intt:%ds.%dus (%d:%d:%d:%d)",bmnum,
-                      campsc,campus,hr,mt,sc,us);
+                      intsc,intus,hr,mt,sc,us);
           ErrLog(errlog.sock,progname,logtxt);
 
           printf("Entering Site Start Intt Station ID: %s  %d\n",ststr,stid);
-          SiteStartIntt(campsc,campus);
+          SiteStartIntt(intsc,intus);
           gettimeofday(&t1,NULL);
           elapsed_secs=t1.tv_sec-t0.tv_sec;
           if(elapsed_secs<0) elapsed_secs=0;
@@ -923,7 +1168,7 @@ int main(int argc,char *argv[]) {
           sprintf(logtxt,"Transmitting on: %d (Noise=%g)",tfreq,noise);
           ErrLog(errlog.sock,progname,logtxt);
 
-          nave=SiteIntegrate(lags);
+          nave=SiteIntegrate(lags_camp);
           if (nave<0) {
             sprintf(logtxt,"Integration error:%d",nave);
             ErrLog(errlog.sock,progname,logtxt);
@@ -932,7 +1177,7 @@ int main(int argc,char *argv[]) {
           sprintf(logtxt,"Number of sequences: %d",nave);
           ErrLog(errlog.sock,progname,logtxt);
 
-          OpsBuildPrm(prm,ptab,lags);
+          OpsBuildPrm(prm,ptab_camp,lags_camp);
           OpsBuildIQ(iq,&badtr);
           OpsBuildRaw(raw);
 
@@ -975,6 +1220,13 @@ int main(int argc,char *argv[]) {
           if (exitpoll !=0) break;
 
         }
+        if (lock_test==1) break;
+      }
+      /* JDS: TODO Lets clear the camp file lock here*/
+      camp_lock.l_type = F_UNLCK;
+      if (fcntl(camp_fd, F_SETLK, &camp_lock) == -1) {
+        perror("setlk camp_fd");
+        exit(1);
       }
     }
 
