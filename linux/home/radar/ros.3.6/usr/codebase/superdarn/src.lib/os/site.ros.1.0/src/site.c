@@ -553,6 +553,42 @@ int SiteRosStartScan() {
 }
 
 
+int SiteRosWait(int sec,int usec) {
+  struct ROSMsg smsg,rmsg;
+
+  struct timeval tick;
+  double tend;
+  double tnow;
+  int count=0;
+
+  SiteRosExit(0);
+  smsg.type=SET_INACTIVE;
+  TCPIPMsgSend(sock, &smsg, sizeof(struct ROSMsg));
+  TCPIPMsgRecv(sock, &rmsg, sizeof(struct ROSMsg));
+
+  if (gettimeofday(&tick,NULL)==-1) return -1;
+  tend=(tick.tv_sec+sec)+(tick.tv_usec/USEC)+(usec)/USEC;
+  while (1) {
+    tnow=(tick.tv_sec)+(tick.tv_usec)/USEC;
+    if (tnow>tend) break;
+    smsg.type=PING;
+    TCPIPMsgSend(sock, &smsg, sizeof(struct ROSMsg));
+    TCPIPMsgRecv(sock, &rmsg, sizeof(struct ROSMsg));
+    if (debug) {
+      fprintf(stderr,"PING:type=%c\n",rmsg.type);
+      fprintf(stderr,"PING:status=%d\n",rmsg.status);
+      fprintf(stderr,"PING:count=%d\n",count);
+      fflush(stderr);
+    }
+    count++;
+    SiteRosExit(0);
+    usleep(50000);
+    SiteRosExit(0);
+    gettimeofday(&tick,NULL);
+  }
+
+  return 0;
+}
 
 int SiteRosStartIntt(int sec,int usec) {
 
@@ -571,6 +607,10 @@ int SiteRosStartIntt(int sec,int usec) {
     fprintf(stderr,"PING:type=%c\n",rmsg.type);
     fprintf(stderr,"PING:status=%d\n",rmsg.status);
   }
+
+  smsg.type=SET_ACTIVE;
+  TCPIPMsgSend(sock, &smsg, sizeof(struct ROSMsg));
+  TCPIPMsgRecv(sock, &rmsg, sizeof(struct ROSMsg));
 
   smsg.type=GET_PARAMETERS;  
   TCPIPMsgSend(sock, &smsg, sizeof(struct ROSMsg));
