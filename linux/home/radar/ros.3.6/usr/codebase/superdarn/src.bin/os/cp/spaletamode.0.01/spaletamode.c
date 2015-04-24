@@ -108,54 +108,8 @@ int main(int argc,char *argv[]) {
   int bcode13[13]={1,1,1,1,1,-1,-1,1,1,-1,1,-1,1};
 
 /* Pulse sequence Table */
-  int *pcode_scan=NULL;
-  int mppul_scan=8;
-  int mplgs_scan=23;
-  int mpinc_scan=1500;
-  int rsep_scan=45;
-  int nrang_scan=75;
-  int txpl_scan=300;
-  int nbaud_scan=1;
-  int ptab_scan[8] = {0,14,22,24,27,31,42,43}; 
-  int lags_scan[LAG_SIZE][2] = {
-    { 0, 0},            /*  0 */
-    {42,43},            /*  1 */
-    {22,24},            /*  2 */
-    {24,27},            /*  3 */
-    {27,31},            /*  4 */
-    {22,27},            /*  5 */
-
-    {24,31},            /*  7 */
-    {14,22},            /*  8 */
-    {22,31},            /*  9 */
-    {14,24},            /* 10 */
-    {31,42},            /* 11 */
-    {31,43},            /* 12 */
-    {14,27},            /* 13 */
-    { 0,14},            /* 14 */
-    {27,42},            /* 15 */
-    {27,43},            /* 16 */
-    {14,31},            /* 17 */
-    {24,42},            /* 18 */
-    {24,43},            /* 19 */
-    {22,42},            /* 20 */
-    {22,43},            /* 21 */
-    { 0,22},            /* 22 */
-
-    { 0,24},            /* 24 */
-
-    {43,43}};           /* alternate lag-0  */
-
-  int *pcode_sound=NULL;
-  int mppul_sound=16;
-  int mplgs_sound=121;
-  int mpinc_sound=100;
-  int rsep_sound=15;
-  int txpl_sound=100;
-  int nbaud_sound=1;
-  int nrang_sound=225;
-  int ptab_sound[16] = {0,4,19,42,78,127,191,270,364,474,600,745,905,1083,1280,1495};
-  int lags_sound[LAG_SIZE][2] = {
+  int ptab[16] = {0,4,19,42,78,127,191,270,364,474,600,745,905,1083,1280,1495};
+  int lags[LAG_SIZE][2] = {
   {1495,1495},          /*  0 */
   {0,4},                /*  1 */
   {4,19},               /*  2 */
@@ -287,8 +241,6 @@ int main(int argc,char *argv[]) {
   int camp_integration_usecs=0;
   int end_of_scan_usecs=3E6;
   int total_integration_usecs=0;
-  int intsc_scan=0;
-  int intus_scan=0;
 /* End of Scan Multi-Frequency Camping Beam*/
   int nscnsc=0;
   int nscnus=0;
@@ -369,15 +321,14 @@ int main(int argc,char *argv[]) {
   cp=9200;
   intsc=7;
   intus=0;
-/* Setup things initially for scan pulse sequence */
-  mppul=mppul_scan;
-  mplgs=mplgs_scan;
-  mpinc=mpinc_scan;
-  nrang=nrang_scan;
-  rsep=rsep_scan;
-  txpl=txpl_scan;
-  nbaud=nbaud_scan;
-  pcode=pcode_scan;
+  mppul=16;
+  mplgs=121;
+  mpinc=100;
+  dmpinc=100;
+  nrang=225;
+  rsep=15;
+  txpl=100;
+  nbaud=1;
 
 /* Set default values for all the cmdline options */
   al_discretion->count = 0;
@@ -388,11 +339,11 @@ int main(int argc,char *argv[]) {
   al_debug->count = 0;
   ai_bp->ival[0] = 44100;
   ai_fixfrq->ival[0] = -1;
-  ai_baud->ival[0] = nbaud_scan;
-  ai_tau->ival[0] = mpinc_scan;
-  ai_nrang->ival[0] = nrang_scan;
-  ai_rsep->ival[0] = rsep_scan;
+  ai_baud->ival[0] = nbaud;
+  ai_tau->ival[0] = mpinc;
+  ai_nrang->ival[0] = nrang;
   ai_frang->ival[0] = frang;
+  ai_rsep->ival[0] = rsep;
   ai_dt->ival[0] = day;
   ai_nt->ival[0] = night;
   ai_df->ival[0] = dfrq;
@@ -489,11 +440,11 @@ int main(int argc,char *argv[]) {
 
 /* load any provided argument values overriding default values provided by SiteStart */ 
   if (ai_xcf->count) xcnt = ai_xcf->ival[0];
-  if (ai_baud->count)  nbaud_scan = ai_baud->ival[0];
-  if (ai_tau->count)   mpinc_scan = ai_tau->ival[0];
-  if (ai_nrang->count) nrang_scan = ai_nrang->ival[0];
-  if (ai_rsep->count)  rsep_scan = ai_rsep->ival[0];
+  if (ai_baud->count) nbaud = ai_baud->ival[0];
+  if (ai_tau->count) mpinc = ai_tau->ival[0];
+  if (ai_nrang->count) nrang = ai_nrang->ival[0];
   if (ai_frang->count) frang = ai_frang->ival[0];
+  if (ai_rsep->count) rsep = ai_rsep->ival[0];
   if (ai_dt->count) day = ai_dt->ival[0];
   if (ai_nt->count) night = ai_nt->ival[0];
   if (ai_df->count) dfrq = ai_df->ival[0];
@@ -612,8 +563,7 @@ int main(int argc,char *argv[]) {
         nscnus=total_scan_usecs -(nscnsc*1E6);
       }
   }
-  intsc_scan=intsc;
-  intus_scan=intus;
+
   /* Configure phasecoded operation if nbaud > 1 */ 
   switch(nbaud) {
     case 1:
@@ -643,16 +593,10 @@ int main(int argc,char *argv[]) {
       ErrLog(errlog.sock,progname,"Error: Unsupported nbaud requested, exiting");
       SiteExit(1);
   }
-  pcode_scan=(int *)malloc((size_t)sizeof(int)*mppul_scan*nbaud_scan);
-  for(i=0;i<mppul_scan;i++){
-    for(n=0;n<nbaud_scan;n++){
-      pcode_scan[i*nbaud_scan+n]=bcode[n];
-    }
-  }
-  pcode_sound=(int *)malloc((size_t)sizeof(int)*mppul_sound*nbaud_sound);
-  for(i=0;i<mppul_sound;i++){
-    for(n=0;n<nbaud_sound;n++){
-      pcode_sound[i*nbaud_sound+n]=bcode[n];
+  pcode=(int *)malloc((size_t)sizeof(int)*mppul*nbaud);
+  for(i=0;i<mppul;i++){
+    for(n=0;n<nbaud;n++){
+      pcode[i*nbaud+n]=bcode[n];
     }
   }
 
@@ -715,7 +659,6 @@ int main(int argc,char *argv[]) {
       fprintf(stdout,"  campsc: %d campus: %d\n",campsc,campus);
       fprintf(stdout,"  camprep: %d\n",camprep);
       fprintf(stdout,"  Camp Freqs::\n");
-      fprintf(stdout,"  txpl: %d mpinc: %d nbaud: %d rsep: %d\n",txpl_sound,mpinc_sound,nbaud_sound,rsep_sound);
       for(i=0;i<ai_campfreq->count;i++){
         fprintf(stdout,"  %d:: freq: %d\n",i,campfreqs[i]);
       }
@@ -749,9 +692,9 @@ int main(int argc,char *argv[]) {
         tsgprm.rtoxmin = 0;
 
         tsgprm.pat = malloc(sizeof(int)*mppul);
-        tsgprm.code = ptab_scan;
+        tsgprm.code = ptab;
 
-        for (i=0;i<tsgprm.mppul;i++) tsgprm.pat[i]=ptab_scan[i];
+        for (i=0;i<tsgprm.mppul;i++) tsgprm.pat[i]=ptab[i];
 
         tsgbuf=TSGMake(&tsgprm,&flag);
         fprintf(stdout,"Sequence Parameters::\n");
@@ -766,37 +709,6 @@ int main(int argc,char *argv[]) {
         else {
             fprintf(stdout,"The phase coded timing sequence looks good\n");
         }
-
-        tsgprm.nrang = nrang_sound;
-        tsgprm.frang = frang;
-        tsgprm.rsep = rsep_sound; 
-        tsgprm.smsep = smsep;
-        tsgprm.txpl = txpl_sound;
-        tsgprm.mppul = mppul_sound;
-        tsgprm.mpinc = mpinc_sound;
-        tsgprm.mlag = 0;
-        tsgprm.nbaud = nbaud_sound;
-        tsgprm.stdelay = 18 + 2;
-        tsgprm.gort = 1;
-        tsgprm.rtoxmin = 0;
-
-        tsgprm.pat = malloc(sizeof(int)*mppul_sound);
-        tsgprm.code = ptab_sound;
-
-        for (i=0;i<tsgprm.mppul;i++) tsgprm.pat[i]=ptab_sound[i];
-
-        tsgbuf=TSGMake(&tsgprm,&flag);
-        fprintf(stdout,"Camp Sequence Parameters::\n");
-        fprintf(stdout,"  lagfr: %d smsep: %d  txpl: %d\n",tsgprm.lagfr,tsgprm.smsep,tsgprm.txpl);
-    
-        if(tsgprm.smsep == 0 || tsgprm.lagfr == 0) {
-            fprintf(stdout," Camp Sequence Parameters::\n");
-            fprintf(stdout,"  lagfr: %d smsep: %d  txpl: %d\n",tsgprm.lagfr,tsgprm.smsep,tsgprm.txpl);
-            fprintf(stdout,"WARNING: lagfr or smsep is zero, invalid timing sequence genrated from given baud/rsep/nrang/mpinc will confuse TSGMake and FitACF into segfaulting");
-        } else {
-            fprintf(stdout,"The phase coded timing sequence looks good\n");
-        }
-
     } else {
         fprintf(stdout,"WARNING: nbaud needs to be  > 0\n");
     }
@@ -822,7 +734,7 @@ int main(int argc,char *argv[]) {
   OpsFitACFStart();
 
   printf("Preparing SiteTimeSeq Station ID: %s  %d\n",ststr,stid);
-  tsgid=SiteTimeSeq(ptab_scan);
+  tsgid=SiteTimeSeq(ptab);
 
   printf("Entering Scan loop Station ID: %s  %d\n",ststr,stid);
   do {
@@ -834,20 +746,6 @@ int main(int argc,char *argv[]) {
         RMsgSndOpen(task[n].sock,strlen( (char *) command),command);     
       }
     }
-
-    /* Setup things for scan pulse sequence */
-    mppul=mppul_scan;
-    mplgs=mplgs_scan;
-    mpinc=mpinc_scan;
-    nrang=nrang_scan;
-    rsep=rsep_scan;
-    txpl=txpl_scan;
-    nbaud=nbaud_scan;
-    intsc=intsc_scan;
-    intus=intus_scan;
-    pcode=pcode_scan;
-
-    tsgid=SiteTimeSeq(ptab_scan);
 
     scan=1;
     ErrLog(errlog.sock,progname,"Starting scan.");
@@ -876,9 +774,6 @@ int main(int argc,char *argv[]) {
       if (bmnum>ebm) skip_scan=1;
     }
 
-    /* This starts the actual loop of N=beams number of scan beams 
-     * with beam dwell time intsc/intus packed into scantime of scansc/scanus 
-     */
     do {
       if(skip_scan) break;
       if (backward) {
@@ -932,7 +827,7 @@ int main(int argc,char *argv[]) {
       sprintf(logtxt,"Transmitting on: %d (Noise=%g)",tfreq,noise);
       ErrLog(errlog.sock,progname,logtxt);
     
-      nave=SiteIntegrate(lags_scan);   
+      nave=SiteIntegrate(lags);   
       if (nave<0) {
         sprintf(logtxt,"Integration error:%d",nave);
         ErrLog(errlog.sock,progname,logtxt); 
@@ -941,7 +836,7 @@ int main(int argc,char *argv[]) {
       sprintf(logtxt,"Number of sequences: %d",nave);
       ErrLog(errlog.sock,progname,logtxt);
 
-      OpsBuildPrm(prm,ptab_scan,lags_scan);
+      OpsBuildPrm(prm,ptab,lags);
       
       OpsBuildIQ(iq,&badtr);
             
@@ -991,23 +886,9 @@ int main(int argc,char *argv[]) {
       if (backward) bmnum--;
       else bmnum++;
     } while (1);
-    /* 
-      This ends the loop of N=beams number of scan beams 
-    */
+
     if ((exitpoll==0) && (skip_scan==0) && (ai_campfreq->count)) {
       ErrLog(errlog.sock,progname,"Running Multi-frequency Camping Beam");
-      /* Setup things for camp pulse sequence */
-      mppul=mppul_sound;
-      mplgs=mplgs_sound;
-      mpinc=mpinc_sound;
-      nrang=nrang_sound;
-      rsep=rsep_sound;
-      txpl=txpl_sound;
-      nbaud=nbaud_sound;
-      intsc=campsc;
-      intus=campus;
-      pcode=pcode_sound;
-      tsgid=SiteTimeSeq(ptab_sound);
       bmnum=campbm;
       for(i=0;i<camprep;i++){
         ErrLog(errlog.sock,progname,"Starting Camp Rep");
@@ -1018,11 +899,11 @@ int main(int argc,char *argv[]) {
           ErrLog(errlog.sock,progname,logtxt);
 
           sprintf(logtxt,"Integrating campbeam:%d intt:%ds.%dus (%d:%d:%d:%d)",bmnum,
-                      intsc,intus,hr,mt,sc,us);
+                      campsc,campus,hr,mt,sc,us);
           ErrLog(errlog.sock,progname,logtxt);
 
           printf("Entering Site Start Intt Station ID: %s  %d\n",ststr,stid);
-          SiteStartIntt(intsc,intus);
+          SiteStartIntt(campsc,campus);
           gettimeofday(&t1,NULL);
           elapsed_secs=t1.tv_sec-t0.tv_sec;
           if(elapsed_secs<0) elapsed_secs=0;
@@ -1042,7 +923,7 @@ int main(int argc,char *argv[]) {
           sprintf(logtxt,"Transmitting on: %d (Noise=%g)",tfreq,noise);
           ErrLog(errlog.sock,progname,logtxt);
 
-          nave=SiteIntegrate(lags_sound);
+          nave=SiteIntegrate(lags);
           if (nave<0) {
             sprintf(logtxt,"Integration error:%d",nave);
             ErrLog(errlog.sock,progname,logtxt);
@@ -1051,7 +932,7 @@ int main(int argc,char *argv[]) {
           sprintf(logtxt,"Number of sequences: %d",nave);
           ErrLog(errlog.sock,progname,logtxt);
 
-          OpsBuildPrm(prm,ptab_sound,lags_sound);
+          OpsBuildPrm(prm,ptab,lags);
           OpsBuildIQ(iq,&badtr);
           OpsBuildRaw(raw);
 
