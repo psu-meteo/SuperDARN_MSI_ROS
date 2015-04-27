@@ -19,8 +19,8 @@ sleep 3
 
 #iqwrite -r kod.a -lp 41101 -ep 41000 &
 #iqwrite -r kod.b -lp 42101 -ep 42000 &
-iqwrite -r kod.c -lp 43101 -ep 43000 &
-iqwrite -r kod.d -lp 44101 -ep 44000 &
+#iqwrite -r kod.c -lp 43101 -ep 43000 &
+#iqwrite -r kod.d -lp 44101 -ep 44000 &
 
 rawacfwrite -r kod.a -lp 41102 -ep 41000 &
 rawacfwrite -r kod.b -lp 42102 -ep 42000 &
