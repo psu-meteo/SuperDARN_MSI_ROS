@@ -1138,17 +1138,17 @@ int main(int argc,char *argv[]) {
 
       ErrLog(errlog.sock,progname,"Running Multi-frequency Camping Beam");
       /* Setup things for camp pulse sequence */
-      mppul=mppul_camp;
-      mplgs=mplgs_camp;
-      mpinc=mpinc_camp;
-      nrang=nrang_camp;
-      rsep=rsep_camp;
-      txpl=txpl_camp;
-      nbaud=nbaud_camp;
+      mppul=mppul_scan;
+      mplgs=mplgs_scan;
+      mpinc=mpinc_scan;
+      nrang=nrang_scan;
+      rsep=rsep_scan;
+      txpl=txpl_scan;
+      nbaud=nbaud_scan;
       intsc=campsc;
       intus=campus;
-      pcode=pcode_camp;
-      tsgid=SiteTimeSeq(ptab_camp);
+      pcode=pcode_scan;
+      tsgid=SiteTimeSeq(ptab_scan);
       bmnum=campbm;
       for(i=0;i<camprep;i++){
         ErrLog(errlog.sock,progname,"Starting Camp Rep");
@@ -1194,7 +1194,7 @@ int main(int argc,char *argv[]) {
           sprintf(logtxt,"Transmitting on: %d (Noise=%g)",tfreq,noise);
           ErrLog(errlog.sock,progname,logtxt);
 
-          nave=SiteIntegrate(lags_camp);
+          nave=SiteIntegrate(lags_scan);
           if (nave<0) {
             sprintf(logtxt,"Integration error:%d",nave);
             ErrLog(errlog.sock,progname,logtxt);
@@ -1203,7 +1203,7 @@ int main(int argc,char *argv[]) {
           sprintf(logtxt,"Number of sequences: %d",nave);
           ErrLog(errlog.sock,progname,logtxt);
 
-          OpsBuildPrm(prm,ptab_camp,lags_camp);
+          OpsBuildPrm(prm,ptab_scan,lags_scan);
           OpsBuildIQ(iq,&badtr);
           OpsBuildRaw(raw);
 
