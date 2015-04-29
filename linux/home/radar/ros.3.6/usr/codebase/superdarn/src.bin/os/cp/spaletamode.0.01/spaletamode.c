@@ -285,8 +285,9 @@ int main(int argc,char *argv[]) {
   int scnus=0;
   int total_scan_usecs=0;
   int total_camp_usecs=0;
+  long scan_elapsed_usecs=0;
   int camp_integration_usecs=0;
-  int end_of_scan_usecs=3E6;
+  int end_of_scan_usecs=10E6;
   int total_integration_usecs=0;
   int intsc_scan=0;
   int intus_scan=0;
@@ -301,9 +302,11 @@ int main(int argc,char *argv[]) {
 
   /* Variables for controlling clear frequency search */
   struct timeval t0,t1;
+  /* Variables for controlling scan no wait repetition*/
+  struct timeval s0,s1;
   int elapsed_secs=0;
   int default_clrskip_secs=30;
-  int startup=1;
+  int scansync=0,startup=1;
 
   /* XCF processing variables */
   int cnt=0;
@@ -610,10 +613,11 @@ int main(int argc,char *argv[]) {
     ErrLog(errlog.sock,progname,logtxt);
   }
   camp_integration_usecs=campsc*1E6+campus;
-  total_camp_usecs=(camprep*ai_campfreq->count+1)*(camp_integration_usecs);
+  total_camp_usecs=(camprep*ai_campfreq->count+1)*1.2*(camp_integration_usecs);
   if(total_camp_usecs > end_of_scan_usecs) end_of_scan_usecs=total_camp_usecs;
+  total_camp_usecs=end_of_scan_usecs;
   total_scan_usecs=(scnsc*1E6)+scnus - end_of_scan_usecs;
-  total_integration_usecs=total_scan_usecs/(beams+1);
+  total_integration_usecs=total_scan_usecs/(beams);
   nscnsc=scnsc;
   nscnus=scnus;
   if(beams > 1 || camprep> 0 ) {
@@ -632,6 +636,8 @@ int main(int argc,char *argv[]) {
         nscnus=total_scan_usecs -(nscnsc*1E6);
       }
   }
+  if(camprep > 0) al_nowait->count=0;
+
   intsc_scan=intsc;
   intus_scan=intus;
   /* Configure phasecoded operation if nbaud > 1 */ 
@@ -844,6 +850,7 @@ int main(int argc,char *argv[]) {
   printf("Preparing SiteTimeSeq Station ID: %s  %d\n",ststr,stid);
   tsgid=SiteTimeSeq(ptab_scan);
 
+  scansync=1;
   printf("Entering Scan loop Station ID: %s  %d\n",ststr,stid);
   do {
     /* JDS: TODO Lets set the scan file lock here */
@@ -906,6 +913,7 @@ int main(int argc,char *argv[]) {
     tsgid=SiteTimeSeq(ptab_scan);
     fprintf(stdout,"Finished with Site TimeSeq\n");
 
+    gettimeofday(&s0,NULL);
     scan=1;
 /*
     ErrLog(errlog.sock,progname,"Starting scan.");
@@ -935,11 +943,13 @@ int main(int argc,char *argv[]) {
       bmnum=sbm+skip;
       if (bmnum>ebm) skip_scan=1;
     }
+    if ((beams==1) && (scansync==1)) skip_scan=1; 
 
     /* This starts the actual loop of N=beams number of scan beams 
      * with beam dwell time intsc/intus packed into scantime of scansc/scanus 
      */
     do {
+      scansync=0;
       check_lock.l_type = F_WRLCK;
       if (fcntl(scan_fd, F_GETLK, &check_lock) == -1) {
         perror("getlk scan_fd");
@@ -950,7 +960,10 @@ int main(int argc,char *argv[]) {
       } else {
         fprintf(stdout,"scan_lock is locked\n");
       }
-      if(skip_scan) break;
+      if(skip_scan) {
+        fprintf(stdout,"Skipping Scan\n");
+        break;
+      }
       if (backward) {
         if (bmnum>sbm) bmnum=sbm;
         if (bmnum<ebm) bmnum=ebm;
@@ -1057,9 +1070,22 @@ int main(int argc,char *argv[]) {
       }          
       if (exitpoll !=0) break;
       scan=0;
-      if (bmnum==ebm) break;
-      if (backward) bmnum--;
-      else bmnum++;
+      gettimeofday(&s1,NULL);
+      if (beams > 1) { 
+        if (bmnum==ebm) break;
+        if (backward) bmnum--;
+        else {
+          bmnum++;
+        }
+      } else {
+
+        scan_elapsed_usecs=(s1.tv_sec-s0.tv_sec)*1E6;
+        scan_elapsed_usecs+=(s1.tv_usec-s0.tv_usec);
+        if (scan_elapsed_usecs >=total_scan_usecs || skip_scan) {
+          break;
+        } 
+
+      }
     } while (1);
     /* JDS: TODO Lets clear our scan file lock if we hold it */
     scan_lock.l_type = F_UNLCK;
@@ -1230,7 +1256,7 @@ int main(int argc,char *argv[]) {
       }
     }
 
-    if ((exitpoll==0) && (al_nowait->count==0)) {
+    if ((exitpoll==0) && (al_nowait->count==0 || skip_scan)) {
       ErrLog(errlog.sock,progname,"Waiting for scan boundary.");
       SiteEndScan(scnsc,scnus);
     }
