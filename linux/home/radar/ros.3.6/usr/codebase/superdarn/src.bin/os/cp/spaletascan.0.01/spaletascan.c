@@ -639,11 +639,9 @@ int main(int argc,char *argv[]) {
 
         tsgbuf=TSGMake(&tsgprm,&flag);
         fprintf(stdout,"Sequence Parameters::\n");
-        fprintf(stdout,"  lagfr: %d smsep: %d  txpl: %d\n",tsgprm.lagfr,tsgprm.smsep,tsgprm.txpl);
+        fprintf(stdout,"  lagfr: %d smsep: %d  txpl: %d samples: %d\n",tsgprm.lagfr,tsgprm.smsep,tsgprm.txpl,tsgprm.samples);
     
         if(tsgprm.smsep == 0 || tsgprm.lagfr == 0) {
-            fprintf(stdout,"Sequence Parameters::\n");
-            fprintf(stdout,"  lagfr: %d smsep: %d  txpl: %d\n",tsgprm.lagfr,tsgprm.smsep,tsgprm.txpl);
             fprintf(stdout,"WARNING: lagfr or smsep is zero, invalid timing sequence genrated from given baud/rsep/nrang/mpinc will confuse TSGMake and FitACF into segfaulting");
         }
 
