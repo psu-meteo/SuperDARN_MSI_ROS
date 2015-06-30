@@ -91,12 +91,13 @@ struct TCPIPMsgHost errlog={"127.0.0.1",44100,-1};
 
 struct TCPIPMsgHost shell={"127.0.0.1",44101,-1};
 
-int tnum=4;      
-struct TCPIPMsgHost task[4]={
+int tnum=5;      
+struct TCPIPMsgHost task[5]={
   {"127.0.0.1",1,-1}, /* iqwrite */
   {"127.0.0.1",2,-1}, /* rawacfwrite */
   {"127.0.0.1",3,-1}, /* fitacfwrite */
   {"127.0.0.1",4,-1}  /* rtserver */
+  {"127.0.0.1",5,-1}  /* rtmichelle experimental server */
 };
 
 int main(int argc,char *argv[]) {
