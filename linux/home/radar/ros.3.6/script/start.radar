@@ -47,6 +47,6 @@ echo "Ready for Control Programs"
 # Channel C is nominally for camping beams.
 #
 #schedule -v -l /data/ros/scdlogs/kod.a.scdlog -f /data/ros/scd/kod.a.scd &
-schedule -v -l /data/ros/scdlogs/kod.b.scdlog -f /data/ros/scd/kod.b.scd &
+#schedule -v -l /data/ros/scdlogs/kod.b.scdlog -f /data/ros/scd/kod.b.scd &
 schedule -v -l /data/ros/scdlogs/kod.c.scdlog -f /data/ros/scd/kod.c.scd -f /data/ros/scd/kod.c.campaign.scd &
 schedule -v -l /data/ros/scdlogs/kod.d.scdlog -f /data/ros/scd/kod.d.scd -f /data/ros/scd/kod.d.campaign.scd &
