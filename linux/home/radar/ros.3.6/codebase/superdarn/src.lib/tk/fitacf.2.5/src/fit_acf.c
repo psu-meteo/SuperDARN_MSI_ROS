@@ -410,10 +410,15 @@ int fit_acf (struct complex *acf,int range,
      non-symmetric error bar, but the file format has no provision 
      for that. */
 
+/* FIXME:This should be considered for inclusion as a standard fit_acf library change 
+ * JDS: 20150710: Disabled err adjust logic request by Bristow
+ * this logic doesn't work at all with extended pulse sequence
+  
   if (fabs(omega_high - omega_low) >= 2*ptr->v_err) {
     ptr->v = omega_base;
     ptr->v_err = fabs(omega_high - omega_low);
     }
+*/
   }
   
 
