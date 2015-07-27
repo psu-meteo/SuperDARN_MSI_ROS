@@ -139,19 +139,31 @@ int _select_beam(unsigned int base,struct ControlPRM *client){
                 return -1;
         }
     if (client->radar==1) {
+<<<<<<< .merge_file_xrkJZY
       if (verbose > 1) printf("Selecting Radar 1 client block\n");
+=======
+      if (verbose > 1) printf("Selecting Radar 1 client block");
+>>>>>>> .merge_file_iVKoBW
       portA=PA_GRP_0;
       portB=PB_GRP_0;
       portC=PC_GRP_0;
     }
     if (client->radar==2) {
       if (DEVICE_ID==0x0c78) {
+<<<<<<< .merge_file_xrkJZY
         if (verbose > 1) printf("Selecting Radar 2 port block\n");
+=======
+        if (verbose > 1) printf("Selecting Radar 2 port block");
+>>>>>>> .merge_file_iVKoBW
         portA=PA_GRP_2;
         portB=PB_GRP_2;
         portC=PC_GRP_2;
       } else {
+<<<<<<< .merge_file_xrkJZY
         if (verbose > 1) printf("Radar 2 port block not available..using Radar 1 ports instead\n");
+=======
+        if (verbose > 1) printf("Radar 2 port block not available..using Radar 1 ports instead");
+>>>>>>> .merge_file_iVKoBW
         portA=PA_GRP_0;
         portB=PB_GRP_0;
         portC=PC_GRP_0;

@@ -1,6 +1,6 @@
 /* normalscan.c
    ============
-   Author: R.J.Barnes & J.Spaleta
+   Author: R.J.Barnes & J.Spaleta & J.Klein
 */
 
 /*
@@ -26,17 +26,20 @@
  
   
 */
-
-
-#include <stdio.h>
+/* Includes provided by the OS environment */
 #include <stdlib.h>
-#include <sys/types.h>
 #include <string.h>
+#include <sys/time.h>
+#include <zlib.h>
+#include <argtable2.h>
+/*
+#include <stdio.h>
+#include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
-#include <zlib.h>
+*/
+/* Includes provided by the RST */ 
 #include "rtypes.h"
-#include "option.h"
 #include "rtime.h"
 #include "dmap.h"
 #include "limit.h"
@@ -47,29 +50,26 @@
 #include "fitblk.h"
 #include "fitdata.h"
 #include "fitacf.h"
-
-
 #include "errlog.h"
-#include "freq.h"
 #include "tcpipmsg.h"
-
 #include "rmsg.h"
 #include "rmsgsnd.h"
-
-#include "radarshell.h"
-
 #include "build.h"
 #include "global.h"
 #include "reopen.h"
 #include "setup.h"
 #include "sync.h"
-
 #include "site.h"
 #include "sitebuild.h"
+/*
+#include "radarshell.h"
 #include "siteglobal.h"
 #include "rosmsg.h"
 #include "tsg.h"
+#include "freq.h"
+*/
 
+<<<<<<< .merge_file_gHXrSC
 char *ststr=NULL;
 char *libstr=NULL;
 
@@ -92,11 +92,54 @@ struct TCPIPMsgHost task[4]={
   {"127.0.0.1",3,-1}, /* fitacfwrite */
   {"127.0.0.1",4,-1}  /* rtserver */
 };
+=======
+/* Argtable define for argument error parsing */
+#define ARG_MAXERRORS 30
 
 int main(int argc,char *argv[]) {
+  char progid[80]={"normalscan"};
+  char progname[256];
 
+  char *roshost=NULL;
+  char *droshost={"127.0.0.1"};
+
+  char *ststr=NULL;
+  char *dfststr="tst";
+>>>>>>> .merge_file_cNZicE
+
+  int status=0,n,i;
+  int nerrors=0;
+  int exitpoll=0;
+
+  /* Variables need for interprocess communications */
+  char logtxt[1024];
+  void *tmpbuf;
+  size_t tmpsze;
+  struct TCPIPMsgHost errlog={"127.0.0.1",44100,-1};
+  struct TCPIPMsgHost shell={"127.0.0.1",44101,-1};
+  int tnum=4;      
+  struct TCPIPMsgHost task[4]={
+    {"127.0.0.1",1,-1}, /* iqwrite */
+    {"127.0.0.1",2,-1}, /* rawacfwrite */
+    {"127.0.0.1",3,-1}, /* fitacfwrite */
+    {"127.0.0.1",4,-1}  /* rtserver */
+  };
+
+/* Define the available barker codes for phasecoding*/
+  int *bcode=NULL;
+  int bcode1[1]={1};
+  int bcode2[2]={1,-1};
+  int bcode3[3]={1,1,-1};
+  int bcode4[4]={1,1,-1,1};
+  int bcode5[5]={1,1,1,-1,1};
+  int bcode7[7]={1,1,1,-1,-1,1,-1};
+  int bcode11[11]={1,1,1,-1,-1,-1,1,-1,-1,1,-1};
+  int bcode13[13]={1,1,1,1,1,-1,-1,1,1,-1,1,-1,1};
+
+/* Pulse sequence Table */
   int ptab[8] = {0,14,22,24,27,31,42,43};
 
+/* Lag sequence Table */
   int lags[LAG_SIZE][2] = {
     { 0, 0},		/*  0 */
     {42,43},		/*  1 */
@@ -104,7 +147,7 @@ int main(int argc,char *argv[]) {
     {24,27},		/*  3 */
     {27,31},		/*  4 */
     {22,27},		/*  5 */
-
+    /* Lag 6 gap */
     {24,31},		/*  7 */
     {14,22},		/*  8 */
     {22,31},		/*  9 */
@@ -121,11 +164,11 @@ int main(int argc,char *argv[]) {
     {22,42},		/* 20 */
     {22,43},		/* 21 */
     { 0,22},		/* 22 */
-
+    /* Lag 23 gap */
     { 0,24},		/* 24 */
-
     {43,43}};		/* alternate lag-0  */
 
+<<<<<<< .merge_file_gHXrSC
     char logtxt[1024];
 
   int exitpoll=0;
@@ -143,31 +186,74 @@ int main(int argc,char *argv[]) {
 
   int skip;
   int cnt=0;
-
-  unsigned char fast=0;
-  unsigned char discretion=0;
-
-  int status=0,n;
-
-  int beams=0;
+=======
+/* Integration period variables */
+  int scnsc=120;
+  int scnus=0;
   int total_scan_usecs=0;
   int total_integration_usecs=0;
-  int fixfrq=-1;
+>>>>>>> .merge_file_cNZicE
 
-  printf("Size of int %d\n",(int)sizeof(int));
-  printf("Size of long %d\n",(int)sizeof(long));
-  printf("Size of long long %d\n",(int)sizeof(long long));
-  printf("Size of struct TRTimes %d\n",(int)sizeof(struct TRTimes));
-  printf("Size of struct SeqPRM %d\n",(int)sizeof(struct SeqPRM));
-  printf("Size of struct RosData %d\n",(int)sizeof(struct RosData));
-  printf("Size of struct DataPRM %d\n",(int)sizeof(struct DataPRM));
-  printf("Size of Struct ControlPRM  %d\n",(int)sizeof(struct ControlPRM));
-  printf("Size of Struct RadarPRM  %d\n",(int)sizeof(struct RadarPRM));
-  printf("Size of Struct ROSMsg  %d\n",(int)sizeof(struct ROSMsg));
-  printf("Size of Struct CLRFreq  %d\n",(int)sizeof(struct CLRFreqPRM));
-  printf("Size of Struct TSGprm  %d\n",(int)sizeof(struct TSGprm));
-  printf("Size of Struct SiteSettings  %d\n",(int)sizeof(struct SiteSettings));
+  /* Variables for controlling clear frequency search */
+  struct timeval t0,t1;
+  int elapsed_secs=0;
+  int default_clrskip_secs=30;
+  int startup=1;
 
+  /* XCF processing variables */
+  int cnt=0;
+
+  /* Variables associated with beam scanning */
+  int beams=0;
+  int skip;
+
+  /* create commandline argument structs */
+  /* First lets define a help argument */
+  struct arg_lit  *al_help       = arg_lit0(NULL, "help", "Prints help infomation and then exits");
+  /* Now lets define the keyword arguments */
+  struct arg_lit  *al_debug      = arg_lit0(NULL, "debug","Enable debugging messages");
+  struct arg_lit  *al_test       = arg_lit0(NULL, "test","Test-only, report parameter settings and exit without connecting to ros server");
+  struct arg_lit  *al_discretion = arg_lit0(NULL, "di","Flag this is discretionary time operation"); 
+  struct arg_lit  *al_fast       = arg_lit0(NULL, "fast","Flag this as fast 1-minute scan duration"); 
+  struct arg_lit  *al_nowait     = arg_lit0(NULL, "nowait","Do not wait for minute scan boundary"); 
+  struct arg_lit  *al_onesec     = arg_lit0(NULL, "onesec","Use one second integration times"); 
+  struct arg_lit  *al_clrscan    = arg_lit0(NULL, "clrscan","Force clear frequency search at start of scan"); 
+  /* Now lets define the integer valued arguments */
+  struct arg_int  *ai_baud       = arg_int0(NULL, "baud", NULL,"Baud to use for phasecoded sequences"); /*OptionAdd( &opt, "baud", 'i', &nbaud);*/
+  struct arg_int  *ai_tau        = arg_int0(NULL, "tau", NULL,"Lag spacing in usecs"); /*OptionAdd( &opt, "tau", 'i', &mpinc);*/
+  struct arg_int  *ai_nrang      = arg_int0(NULL, "nrang", NULL,"Number of range cells"); /*OptionAdd(&opt,"nrang",'i',&nrang);*/
+  struct arg_int  *ai_frang      = arg_int0(NULL, "frang", NULL,"Distance to first range cell in km"); /*OptionAdd(&opt,"frang",'i',&frang); */
+  struct arg_int  *ai_rsep       = arg_int0(NULL, "rsep", NULL,"Range cell extent in km"); /*OptionAdd(&opt,"rsep",'i',&rsep); */
+  struct arg_int  *ai_dt         = arg_int0(NULL, "dt", NULL,"UTC Hour indicating start of day time operation"); /*OptionAdd( &opt, "dt", 'i', &day); */
+  struct arg_int  *ai_nt         = arg_int0(NULL, "nt", NULL,"UTC Hour indicating start of night time operation"); /*OptionAdd( &opt, "nt", 'i', &night); */
+  struct arg_int  *ai_df         = arg_int0(NULL, "df", NULL,"Day time transmit frequency in KHz"); /*OptionAdd( &opt, "df", 'i', &dfrq); */
+  struct arg_int  *ai_nf         = arg_int0(NULL, "nf", NULL,"Night time transmit frequency in KHz"); /*OptionAdd( &opt, "nf", 'i', &nfrq); */
+  struct arg_int  *ai_fixfrq     = arg_int0(NULL, "fixfrq", NULL,"Fixes the transmit frequency of the radar to one frequency, in KHz"); /*OptionAdd( &opt, "fixfrq", 'i', &fixfrq); */
+  struct arg_int  *ai_xcf        = arg_int0(NULL, "xcf", NULL,"Enable xcf, --xcf 1: for all sequences --xcf 2: for every other sequence, etc..."); /*OptionAdd( &opt, "xcf", 'i', &xcnt); */
+  struct arg_int  *ai_ep         = arg_int0(NULL, "ep", NULL,"Local TCP port for errorlog process"); /*OptionAdd(&opt,"ep",'i',&errlog.port); */
+  struct arg_int  *ai_sp         = arg_int0(NULL, "sp", NULL,"Local TCP port for radarshall process"); /*OptionAdd(&opt,"sp",'i',&shell.port); */
+  struct arg_int  *ai_bp         = arg_int0(NULL, "bp", NULL,"Local TCP port for start of support task proccesses"); /*OptionAdd(&opt,"bp",'i',&baseport); */
+  struct arg_int  *ai_sb         = arg_int0(NULL, "sb", NULL,         "Limits the minimum beam to the given value."); /*OptionAdd(&opt,"sb",'i',&sbm); */
+  struct arg_int  *ai_eb         = arg_int0(NULL, "eb", NULL,         "Limits the maximum beam number to the given value."); /*OptionAdd(&opt,"eb",'i',&ebm); */
+  struct arg_int  *ai_cnum          = arg_int0("c", "cnum", NULL,          "Radar Channel number, minimum value 1"); /*OptionAdd(&opt,"c",'i',&cnum); */
+  struct arg_int  *ai_clrskip     = arg_int0(NULL, "clrskip",NULL,    "Minimum number of seconds to skip between clear frequency search"); /*OptionAdd(&opt, "clrskip", 'i', &clrskip_secs); */
+  struct arg_int  *ai_cpid     = arg_int0(NULL, "cpid",NULL,           "Select control program ID number"); /*OptionAdd(&opt, "cpid", 'i', &cpid); */
+
+  /* Now lets define the string valued arguments */
+  struct arg_str  *as_ros        = arg_str0(NULL, "ros", NULL,        "IP address of ROS server process"); /* OptionAdd(&opt,"ros",'t',&roshost); */
+  struct arg_str  *as_ststr      = arg_str0(NULL, "stid", NULL,       "The station ID string. For example, use aze for azores east."); /* OptionAdd(&opt,"stid",'t',&ststr); */
+
+  /* required end argument */
+  struct arg_end  *ae_argend     = arg_end(ARG_MAXERRORS);
+
+  /* create list of all arguement structs */
+  void* argtable[] = {al_help,al_debug,al_test,al_discretion, al_fast, al_nowait, al_onesec, \
+                      ai_baud, ai_tau, ai_nrang, ai_frang, ai_rsep, ai_dt, ai_nt, ai_df, ai_nf, ai_fixfrq, ai_xcf, ai_ep, ai_sp, ai_bp, ai_sb, ai_eb, ai_cnum, \
+                      as_ros, as_ststr, ai_clrskip,al_clrscan,ai_cpid,ae_argend};
+
+/* END of variable defines */
+
+/* Set default values of globally defined variables here*/
   cp=150;
   intsc=7;
   intus=0;
@@ -178,7 +264,45 @@ int main(int argc,char *argv[]) {
   nrang=75;
   rsep=45;
   txpl=300;
+  nbaud=1;
+/* Set default values for all the cmdline options */
+  al_discretion->count = 0;
+  al_fast->count = 0;
+  al_nowait->count = 0;
+  al_onesec->count = 0;
+  al_clrscan->count = 0;
+  ai_bp->ival[0] = 44100;
+  ai_fixfrq->ival[0] = -1;
+  ai_baud->ival[0] = nbaud;
+  ai_tau->ival[0] = mpinc;
+  ai_nrang->ival[0] = nrang;
+  ai_frang->ival[0] = frang;
+  ai_rsep->ival[0] = rsep;
+  ai_dt->ival[0] = day;
+  ai_nt->ival[0] = night;
+  ai_df->ival[0] = dfrq;
+  ai_nf->ival[0] = nfrq;
+  ai_xcf->ival[0] = xcnt;
+  ai_ep->ival[0] = errlog.port;
+  ai_sp->ival[0] = shell.port;
+  ai_sb->ival[0] = sbm;
+  ai_eb->ival[0] = ebm;
+  ai_cnum->ival[0] = cnum;
+  ai_clrskip->ival[0] = -1;
+  ai_cpid->ival[0] = 0;
 
+ /* ========= PROCESS COMMAND LINE ARGUMENTS ============= */
+  nerrors = arg_parse(argc,argv,argtable);
+
+  if (nerrors > 0) {
+    arg_print_errors(stdout,ae_argend,"normalscan");
+  }
+  
+  if (argc == 1) {
+    printf("No arguements found, try running %s with --help for more information.\n", progid);
+  }
+
+<<<<<<< .merge_file_gHXrSC
   /* ========= PROCESS COMMAND LINE ARGUMENTS ============= */
 
   OptionAdd(&opt,"di",'x',&discretion);
@@ -226,23 +350,93 @@ int main(int argc,char *argv[]) {
   if (roshost==NULL) roshost=droshost;
 
 
+=======
+  if(al_help->count > 0) {
+    printf("Usage: %s", progid);
+    arg_print_syntax(stdout,argtable,"\n");
+    /* TODO: Add other useful help text describing the purpose of normalscan here */
+    arg_print_glossary(stdout,argtable,"  %-25s %s\n");
+    arg_freetable(argtable, sizeof(argtable)/sizeof(argtable[0]));
+    return 0;
+  }
 
+  /* Load roshost argument here */
+  if(strlen(as_ros->sval[0])) {
+    roshost = malloc((strlen(as_ros->sval[0]) + 1) * sizeof(char));
+    strcpy(roshost, as_ros->sval[0]);
+  } else {
+    roshost = getenv("ROSHOST");
+    if (roshost == NULL) roshost = droshost;
+  }
+
+  /* Load station string argument here */
+  if(strlen(as_ststr->sval[0])) {
+    ststr = malloc((strlen(as_ststr->sval[0]) + 1) * sizeof(char));
+    strcpy(ststr, as_ststr->sval[0]);
+  } else {
+    ststr = getenv("STSTR");
+    if (ststr == NULL) ststr = dfststr;
+  }
+>>>>>>> .merge_file_cNZicE
+
+/* This loads Radar Site information from hdw.dat files */
   OpsStart(ststr);
+<<<<<<< .merge_file_gHXrSC
 
   status=SiteBuild(libstr,NULL); /* second argument is version string */
+=======
+  status=SiteBuild(ststr,NULL); /* second argument is version string */
+>>>>>>> .merge_file_cNZicE
  
   if (status==-1) {
     fprintf(stderr,"Could not identify station.\n");
     exit(1);
   }
+<<<<<<< .merge_file_gHXrSC
 
   SiteStart(roshost,ststr);
   arg=OptionProcess(1,argc,argv,&opt,NULL);  
 
   printf("Station ID: %s  %d\n",ststr,stid);
   printf("baseport:%d\n",baseport);
+=======
+/* Run SiteStart library function to load Site specific default values for global variables*/
+  SiteStart(roshost);
 
+/* load any provided argument values overriding default values provided by SiteStart */ 
+  if (ai_xcf->count) xcnt = ai_xcf->ival[0];
+  if (ai_baud->count) nbaud = ai_baud->ival[0];
+  if (ai_tau->count) mpinc = ai_tau->ival[0];
+  if (ai_nrang->count) nrang = ai_nrang->ival[0];
+  if (ai_frang->count) frang = ai_frang->ival[0];
+  if (ai_rsep->count) rsep = ai_rsep->ival[0];
+  if (ai_dt->count) day = ai_dt->ival[0];
+  if (ai_nt->count) night = ai_nt->ival[0];
+  if (ai_df->count) dfrq = ai_df->ival[0];
+  if (ai_nf->count) nfrq = ai_nf->ival[0];
+  if (ai_ep->ival[0]) errlog.port = ai_ep->ival[0];
+  if (ai_sp->ival[0]) shell.port = ai_sp->ival[0];
+  if (ai_sb->ival[0]) sbm = ai_sb->ival[0];
+  if (ai_eb->ival[0]) ebm = ai_eb->ival[0];
+  if (ai_cnum->ival[0]) cnum = ai_cnum->ival[0];
+
+
+/* Open Connection to errorlog */  
+  if ((errlog.sock=TCPIPMsgOpen(errlog.host,errlog.port))==-1) {    
+    fprintf(stderr,"Error connecting to error log.\n");
+  }
+/* Open Connection to radar shell */  
+  if ((shell.sock=TCPIPMsgOpen(shell.host,shell.port))==-1) {    
+    fprintf(stderr,"Error connecting to shell.\n");
+  }
+
+/* Open Connection to helper utilities like fitacfwrite*/  
+  for (n=0;n<tnum;n++) task[n].port+=ai_bp->ival[0];
+>>>>>>> .merge_file_cNZicE
+
+/* Prep command string for tasks */ 
   strncpy(combf,progid,80);   
+<<<<<<< .merge_file_gHXrSC
   for (n=0;n<tnum;n++) task[n].port+=baseport;
   if ((errlog.sock=TCPIPMsgOpen(errlog.host,errlog.port))==-1) {    
     fprintf(stderr,"Error connecting to error log.\n Host: %s Port: %d\n",errlog.host,errlog.port);
@@ -269,24 +463,68 @@ int main(int argc,char *argv[]) {
   gettimeofday(&t0,NULL);
   gettimeofday(&t1,NULL);
 
+=======
+  OpsSetupCommand(argc,argv);
+  sprintf(progname,"normalscan");
+  OpsLogStart(errlog.sock,progname,argc,argv);  
+  OpsSetupTask(tnum,task,errlog.sock,progname);
+  for (n=0;n<tnum;n++) {
+    RMsgSndReset(task[n].sock);
+    RMsgSndOpen(task[n].sock,strlen( (char *) command),command);     
+  }
+>>>>>>> .merge_file_cNZicE
 
-  printf("Initial Setup Complete: Station ID: %s  %d\n",ststr,stid);
-  
   if (status !=0) {
     ErrLog(errlog.sock,progname,"Error locating hardware.");
     exit (1);
   }
 
-  if (fast) {
+  /* Initialize timing variables */
+  elapsed_secs=0;
+  gettimeofday(&t1,NULL);
+  gettimeofday(&t0,NULL);
+
+  /* Set up scan periods and beam integration times */
+  beams=abs(ebm-sbm)+1;
+  if (al_fast->count) {
     cp=151;
-    scnsc=60;
-    scnus=0;
     intsc=3;
     intus=500000;
+    scnsc=60;
+    scnus=0;
+<<<<<<< .merge_file_gHXrSC
+    intsc=3;
+    intus=500000;
+=======
+    sprintf(progname,"normalscan (fast)");
+>>>>>>> .merge_file_cNZicE
   } else {
     scnsc=120;
     scnus=0;
+    sprintf(progname,"normalscan");
   }
+  if (al_onesec->count) {
+    cp=152;
+    intsc=1;
+    intus=0;
+    scnsc=beams+4;
+    scnus=0;
+    sprintf(progname,"normalscan (onesec)");
+    al_nowait->count=1;
+    if(ai_clrskip->ival[0] < 0) ai_clrskip->ival[0]=default_clrskip_secs;
+  }
+  if(beams==1) {
+    /* Camping Beam */
+    sprintf(progname,"normalscan (camp)");
+    al_nowait->count=1;
+    if(ai_clrskip->ival[0] < 0) ai_clrskip->ival[0]=default_clrskip_secs;
+    cp=153;
+    sprintf(logtxt,"Normalscan configured for camping beam");
+    ErrLog(errlog.sock,progname,logtxt);
+    sprintf(logtxt," fast: %d onesec: %d cp: %d clrskip_secs: %d intsc: %d",al_fast->count,al_onesec->count,cp,ai_clrskip->ival[0],intsc);
+    ErrLog(errlog.sock,progname,logtxt);
+  }
+<<<<<<< .merge_file_gHXrSC
 
   beams=abs(ebm-sbm)+1;
   if (onesec) {
@@ -316,40 +554,115 @@ int main(int argc,char *argv[]) {
       total_integration_usecs=total_scan_usecs/beams;
       intsc=total_integration_usecs/1E6;
       intus=total_integration_usecs -(intsc*1E6);
+=======
+  if(beams > 16) {
+      if (al_nowait->count==0 && al_onesec->count==0) {
+        total_scan_usecs=(scnsc-3)*1E6+scnus;
+        total_integration_usecs=total_scan_usecs/beams;
+        intsc=total_integration_usecs/1E6;
+        intus=total_integration_usecs -(intsc*1E6);
+      }
+  }
+
+  /* Configure phasecoded operation if nbaud > 1 */ 
+  switch(nbaud) {
+    case 1:
+      bcode=bcode1;
+    case 2:
+      bcode=bcode2;
+      break;
+    case 3:
+      bcode=bcode3;
+      break;
+    case 4:
+      bcode=bcode4;
+      break;
+    case 5:
+      bcode=bcode5;
+      break;
+    case 7:
+      bcode=bcode7;
+      break;
+    case 11:
+      bcode=bcode11;
+      break;
+    case 13:
+      bcode=bcode13;
+      break;
+    default:
+      ErrLog(errlog.sock,progname,"Error: Unsupported nbaud requested, exiting");
+      SiteExit(0);
+  }
+  pcode=(int *)malloc((size_t)sizeof(int)*mppul*nbaud);
+  for(i=0;i<mppul;i++){
+    for(n=0;n<nbaud;n++){
+      pcode[i*nbaud+n]=bcode[n];
+>>>>>>> .merge_file_cNZicE
     }
   }
-  if (discretion) cp= -cp;
+
+  /* Set special cpid if provided on commandline */
+  if(ai_cpid->count > 0) cp=ai_cpid->ival[0];
+  /* Set cp to negative value indication discretionary period */
+  if (al_discretion->count) cp= -cp;
+
+
+  /* Calculate txpl setting from rsep */
 
   txpl=(rsep*20)/3;
 
-  if (fast) sprintf(progname,"normalscan (fast)");
-  else sprintf(progname,"normalscan");
+  /* Attempt to adjust mpinc to be a multiple of 10 and a muliple of txpl */
 
+  if ((mpinc % txpl) || (mpinc % 10))  {
+    sprintf(logtxt,"Error: mpinc not multiple of txpl... checking to see if it can be adjusted");
+    ErrLog(errlog.sock,progname,logtxt);
+    sprintf(logtxt,"Initial: mpinc: %d txpl: %d  nbaud: %d  rsep: %d", mpinc , txpl, nbaud, rsep);
+    ErrLog(errlog.sock,progname,logtxt);
+    if((txpl % 10)==0) {
 
+      sprintf(logtxt,"Attempting to adjust mpinc to correct");
+      ErrLog(errlog.sock,progname,logtxt);
+      if (mpinc < txpl) mpinc=txpl;
+      int minus_remain=mpinc % txpl;
+      int plus_remain=txpl -(mpinc % txpl);
+      if (plus_remain > minus_remain)
+        mpinc = mpinc - minus_remain;
+      else
+         mpinc = mpinc + plus_remain;
+      if (mpinc==0) mpinc = mpinc + plus_remain;
 
-  OpsLogStart(errlog.sock,progname,argc,argv);  
+    }
+  }
+  /* Check mpinc and if still invalid, exit with error */
+  if ((mpinc % txpl) || (mpinc % 10) || (mpinc==0))  {
+     sprintf(logtxt,"Error: mpinc: %d txpl: %d  nbaud: %d  rsep: %d", mpinc , txpl, nbaud, rsep);
+     ErrLog(errlog.sock,progname,logtxt);
+     exitpoll=1;
+     SiteExit(0);
+  }
+  sprintf(logtxt,"Adjusted: mpinc: %d txpl: %d  nbaud: %d  rsep: %d", mpinc , txpl, nbaud, rsep);
+  ErrLog(errlog.sock,progname,logtxt);
 
-  OpsSetupTask(tnum,task,errlog.sock,progname);
-
-  for (n=0;n<tnum;n++) {
-    RMsgSndReset(task[n].sock);
-    RMsgSndOpen(task[n].sock,strlen( (char *) command),command);     
+  if(al_test->count > 0) {
+    fprintf(stdout,"xcf arg:: count: %d value: %d xcnt: %d\n",ai_xcf->count,ai_xcf->ival[0],xcnt);
+    fprintf(stdout,"clrskip arg:: count: %d value: %d\n",ai_clrskip->count,ai_clrskip->ival[0]);
+    fprintf(stdout,"Test option enabled, exiting\n");
+    return 0;
   }
 
-  printf("Preparing OpsFitACFStart Station ID: %s  %d\n",ststr,stid);
-  
-  OpsFitACFStart();
-  
-  printf("Preparing SiteTimeSeq Station ID: %s  %d\n",ststr,stid);
+  /* SiteSetupRadar, establish connection to ROS server and do initial setup of memory buffers for raw samples */
+  printf("Running SiteSetupRadar Station ID: %s  %d\n",ststr,stid);
+  status=SiteSetupRadar();
 
+  printf("Preparing OpsFitACFStart Station ID: %s  %d\n",ststr,stid);
+  OpsFitACFStart();
+
+  printf("Preparing SiteTimeSeq Station ID: %s  %d\n",ststr,stid);
   tsgid=SiteTimeSeq(ptab);
 
   printf("Entering Scan loop Station ID: %s  %d\n",ststr,stid);
   do {
-
-    printf("Entering Site Start Scan Station ID: %s  %d\n",ststr,stid);
     if (SiteStartScan() !=0) continue;
-    
     if (OpsReOpen(2,0,0) !=0) {
       ErrLog(errlog.sock,progname,"Opening new files.");
       for (n=0;n<tnum;n++) {
@@ -359,9 +672,12 @@ int main(int argc,char *argv[]) {
     }
 
     scan=1;
-    
     ErrLog(errlog.sock,progname,"Starting scan.");
+<<<<<<< .merge_file_gHXrSC
     if(do_clr_scan_start) startup=1; 
+=======
+    if(al_clrscan->count) startup=1;
+>>>>>>> .merge_file_cNZicE
     if (xcnt>0) {
       cnt++;
       if (cnt==xcnt) {
@@ -370,7 +686,12 @@ int main(int argc,char *argv[]) {
       } else xcf=0;
     } else xcf=0;
 
+<<<<<<< .merge_file_gHXrSC
     skip=OpsFindSkip(scnsc,scnus);
+=======
+    if(al_nowait->count==0) skip=OpsFindSkip(scnsc,scnus);
+    else skip=0;
+>>>>>>> .merge_file_cNZicE
 
     if (backward) {
       bmnum=sbm-skip;
@@ -381,41 +702,53 @@ int main(int argc,char *argv[]) {
     }
 
     do {
+      if (backward) {
+        if (bmnum>sbm) bmnum=sbm;
+        if (bmnum<ebm) bmnum=ebm;
+      } else {
+        if (bmnum<sbm) bmnum=sbm;
+        if (bmnum>ebm) bmnum=ebm;
+      }
 
       TimeReadClock(&yr,&mo,&dy,&hr,&mt,&sc,&us);
-      
+/* TODO: JDS: You can not make any day night changes that impact TR gate timing at dual site locations. Care must be taken with day night operation*/      
       if (OpsDayNight()==1) {
         stfrq=dfrq;
-        mpinc=dmpinc;
-        frang=dfrang;
       } else {
         stfrq=nfrq;
-        mpinc=nmpinc;
-        frang=nfrang;
       }        
-      if(fixfrq>0) {
-        stfrq=fixfrq;
-        tfreq=fixfrq;
+      if(ai_fixfrq->ival[0]>0) {
+        stfrq=ai_fixfrq->ival[0];
+        tfreq=ai_fixfrq->ival[0];
         noise=0; 
       }
+
+      ErrLog(errlog.sock,progname,"Starting Integration.");
+      sprintf(logtxt," Int parameters:: rsep: %d mpinc: %d sbm: %d ebm: %d nrang: %d nbaud: %d scannowait: %d clrskip_secs: %d clrscan: %d cpid: %d",
+              rsep,mpinc,sbm,ebm,nrang,nbaud,al_nowait->count,ai_clrskip->ival[0],al_clrscan->count,cp);
+      ErrLog(errlog.sock,progname,logtxt);
+
       sprintf(logtxt,"Integrating beam:%d intt:%ds.%dus (%d:%d:%d:%d)",bmnum,
                       intsc,intus,hr,mt,sc,us);
       ErrLog(errlog.sock,progname,logtxt);
-
-      ErrLog(errlog.sock,progname,"Starting Integration.");
             
       printf("Entering Site Start Intt Station ID: %s  %d\n",ststr,stid);
       SiteStartIntt(intsc,intus);
       gettimeofday(&t1,NULL);
       elapsed_secs=t1.tv_sec-t0.tv_sec;
       if(elapsed_secs<0) elapsed_secs=0;
+<<<<<<< .merge_file_gHXrSC
       if((elapsed_secs >= clrskip_secs)||(startup==1)) {
+=======
+      if((elapsed_secs >= ai_clrskip->ival[0])||(startup==1)) {
+>>>>>>> .merge_file_cNZicE
         startup=0;
         ErrLog(errlog.sock,progname,"Doing clear frequency search.");
 
         sprintf(logtxt, "FRQ: %d %d", stfrq, frqrng);
         ErrLog(errlog.sock,progname, logtxt);
 
+<<<<<<< .merge_file_gHXrSC
         if(fixfrq<0) {
           tfreq=SiteFCLR(stfrq,stfrq+frqrng);
         }
@@ -424,6 +757,13 @@ int main(int argc,char *argv[]) {
       } else {
         sprintf(logtxt,"Clear Search Skipped, next search in %d secs",(int)(clrskip_secs-elapsed_secs));
         ErrLog(errlog.sock,progname,logtxt);
+=======
+        if(ai_fixfrq->ival[0]<=0) {
+          tfreq=SiteFCLR(stfrq-frqrng/2,stfrq+frqrng/2);
+        }
+        t0.tv_sec=t1.tv_sec;
+        t0.tv_usec=t1.tv_usec;
+>>>>>>> .merge_file_cNZicE
       }
       sprintf(logtxt,"Transmitting on: %d (Noise=%g)",tfreq,noise);
       ErrLog(errlog.sock,progname,logtxt);
@@ -481,25 +821,25 @@ int main(int argc,char *argv[]) {
         if (msg.data[n].type==RAW_TYPE) free(msg.ptr[n]);
         if (msg.data[n].type==FIT_TYPE) free(msg.ptr[n]); 
       }          
-
-      RadarShell(shell.sock,&rstable);
-
       if (exitpoll !=0) break;
       scan=0;
       if (bmnum==ebm) break;
       if (backward) bmnum--;
       else bmnum++;
-
     } while (1);
 
-    ErrLog(errlog.sock,progname,"Waiting for scan boundary."); 
-    if ((exitpoll==0) && (scannowait==0)) SiteEndScan(scnsc,scnus);
+    if ((exitpoll==0) && (al_nowait->count==0)) {
+      ErrLog(errlog.sock,progname,"Waiting for scan boundary.");
+      SiteEndScan(scnsc,scnus);
+    }
   } while (exitpoll==0);
-  
-  
   for (n=0;n<tnum;n++) RMsgSndClose(task[n].sock);
   
-
+  /* free argtable and space allocated for arguements */
+  arg_freetable(argtable, sizeof(argtable)/sizeof(argtable[0]));
+  free(ststr);
+  free(roshost);
+  
   ErrLog(errlog.sock,progname,"Ending program.");
 
 

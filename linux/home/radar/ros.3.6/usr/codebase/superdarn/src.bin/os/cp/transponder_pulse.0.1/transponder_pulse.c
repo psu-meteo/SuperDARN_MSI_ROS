@@ -71,6 +71,9 @@
 #include "siteglobal.h"
 #include "rosmsg.h"
 #include "tsg.h"
+char server[256]="127.0.0.1";
+int  port=0;
+int  sock=0;
 
 void CP_Exit(int signum);
 

@@ -23,7 +23,11 @@
 #include "rtypes.h"
 #define IMAGING 0
 
+<<<<<<< .merge_file_6aUYG1
 int verbose=2;
+=======
+int verbose=0;
+>>>>>>> .merge_file_LLQAt2
 int configured=1;
  
 int main(int argc, char *argv[]){
@@ -31,7 +35,11 @@ int main(int argc, char *argv[]){
     unsigned int mmap_io_ptr,IOBASE;
     int	pci_handle,IRQ;
     struct ControlPRM client;
+<<<<<<< .merge_file_6aUYG1
     int i,temp;
+=======
+    int i;
+>>>>>>> .merge_file_LLQAt2
     client.tbeam=-1;
     client.radar=1;
     client.tfreq=0;
