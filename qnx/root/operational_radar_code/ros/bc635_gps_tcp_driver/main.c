@@ -316,7 +316,7 @@ void graceful_cleanup(int signum)
 	temp=clock_gettime(CLOCK_REALTIME, &start_p);
 	//open tcp socket	
 	//sock=tcpsocket(GPS_HOST_PORT);
-	sock=server_unixsocket("rosgps",0);
+	sock=server_unixsocket("/tmp/rosgps",0);
 	listen(sock,5);
 	while(1){
         

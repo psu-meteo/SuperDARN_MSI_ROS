@@ -53,7 +53,7 @@ int set_time_compare_register(int mask,struct timespec *nexttime);
 void graceful_cleanup(int signum)
 {
   char path[256];
-  sprintf(path,"%s:%d","rosgps",0);
+  sprintf(path,"%s:%d","/tmp/rosgps",0);
   close(msgsock);
   close(sock);
   unlink(path);
@@ -174,7 +174,7 @@ void graceful_cleanup(int signum)
 	temp=clock_gettime(CLOCK_REALTIME, &start_p);
 	//open tcp socket	
 	//sock=tcpsocket(GPS_HOST_PORT);
-	sock=server_unixsocket("rosgps",0);
+	sock=server_unixsocket("/tmp/rosgps",0);
 	temp=1;
 	//ioctl(sock,FIONBIO,&temp);
 	//cntl(sock,F_SETFL,O_NONBLOCK);

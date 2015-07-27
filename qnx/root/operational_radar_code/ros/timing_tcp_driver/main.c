@@ -40,7 +40,7 @@ void graceful_cleanup(int signum)
 {
   int temp;
   char path[256];
-  sprintf(path,"%s:%d","rostiming",0);
+  sprintf(path,"%s_%d","/tmp/rostiming",0);
 #ifdef __QNX__
   // disable interrupts
   temp=in32( mmap_io_ptr_dio+0x0c);
@@ -315,7 +315,7 @@ int main(){
 
     // OPEN TCP SOCKET AND START ACCEPTING CONNECTIONS 
 	//sock=tcpsocket(TIMING_HOST_PORT);
-        sock=server_unixsocket("rostiming",0);
+        sock=server_unixsocket("/tmp/rostiming",0);
 	listen(sock, 5);
 	while (1) {
                 rval=1;
