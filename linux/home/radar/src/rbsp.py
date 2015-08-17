@@ -154,7 +154,7 @@ def write_schedule(radar, event):
     
     logging.debug('Writing new schedule to: %s:%s' % (server, sched_file))
         
-    t = datetime.now()
+    t = datetime.utcnow()
     timestamp = t.strftime('%Y-%m-%d %H:%M:%S')
     sched_timestamp = t.strftime('%Y %m %d %H %M')
     
