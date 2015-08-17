@@ -75,7 +75,7 @@ def parse_url_content(content):
     hour_offset = (hour*4) + divmod(hour, 8)[0] + 3
     current_dst = current_day_data[hour_offset:hour_offset + 4]
     logging.info('Current Dst value: ' + current_dst)
-    
+    print('Current Dst value: ' + current_dst) 
     return int(current_dst)
     
     
@@ -154,7 +154,7 @@ def write_schedule(radar, event):
     
     logging.debug('Writing new schedule to: %s:%s' % (server, sched_file))
         
-    t = datetime.now()
+    t = datetime.utcnow()
     timestamp = t.strftime('%Y-%m-%d %H:%M:%S')
     sched_timestamp = t.strftime('%Y %m %d %H %M')
     
