@@ -7,6 +7,7 @@ killall -s 2 schedule
 sleep 1
 
 killall schedule 
+pkill -9 -f server.py
 killall rtserver
 killall fitacfwrite
 killall rawacfwrite
