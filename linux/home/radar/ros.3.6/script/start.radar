@@ -25,6 +25,8 @@ rawacfwrite -r mcm.b -lp 42102 -ep 42000 &
 fitacfwrite -r mcm.b -lp 42103 -ep 42000 &
 sleep 2
 echo "Ready for Control Programs"
+rtserver -rp 41104 -ep 41000 -tp 1024 &
+rtserver -rp 42104 -ep 42000 -tp 1025 &
 
 sleep 2 
 
