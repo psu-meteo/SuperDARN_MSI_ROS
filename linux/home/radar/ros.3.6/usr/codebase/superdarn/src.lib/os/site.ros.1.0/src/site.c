@@ -284,6 +284,14 @@ int SiteRosStart(char *host,char *ststr) {
     sbm=ltemp;
     fprintf(stderr,"Site Cfg:: \'sbm\' setting in site cfg file using value: %d\n",sbm); 
   }
+  if(! config_lookup_int(&cfg, "smsep", &ltemp)) {
+    smsep=0;
+    fprintf(stderr,"Site Cfg Warning:: \'smsep\' setting undefined in site cfg file using default value: %d\n",smsep); 
+  } else {
+    smsep=ltemp;
+    fprintf(stderr,"Site Cfg:: \'smsep\' setting in site cfg file using value: %d\n",smsep); 
+  }
+
   if(! config_lookup_int(&cfg, "ebm", &ltemp)) {
     ebm=16;
     fprintf(stderr,"Site Cfg Warning:: \'ebm\' setting undefined in site cfg file using default value: %d\n",ebm); 

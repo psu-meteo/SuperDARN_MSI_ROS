@@ -189,7 +189,8 @@ int SiteMcmSetupRadar() {
   struct timeval currtime;
   time_t ttime;
   struct tm tstruct;
-
+   
+  fprintf(stderr,"Connecting to server on port %d\n", port);
   if ((sock=TCPIPMsgOpen(server,port)) == -1) {
     return -1;
   }
