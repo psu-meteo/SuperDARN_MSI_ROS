@@ -30,6 +30,7 @@ date >> $mail
 
 
 filedir="/data/ros/${dir}"
+echo $filedir
 tmpdir=$HOME/tmp_data
 dstdir="$HOME/data/daily"
 rawdir="$HOME/data/rawdata"

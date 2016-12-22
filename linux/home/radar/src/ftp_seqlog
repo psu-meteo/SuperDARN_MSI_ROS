@@ -1,0 +1,111 @@
+#!/bin/sh
+
+dir="seqlog"
+ext="seqlog"
+
+# IP address of the QNX machine.
+
+
+
+# echo this is the buffer size, if the size of the requested files results
+# is larger than the free space on the disc minus the buffer size
+# then don't get the data
+
+datestr=`date -u +%Y%m%d`
+
+
+echo "ftp_files:"${datestr}" /data/"${dir}" "${ext}
+date 
+
+
+filedir="/data/ros/${dir}"
+dstdir="/var/ftp/pub/${dir}"
+
+if [ -d $dstdir ]; then
+	echo "Dst Directory exists"
+else 
+	echo "Dst Directory does not exists"
+        exit
+fi
+if [ -d $filedir ]; then
+	echo "Requested Directory exists"
+else 
+	echo "Requested Directory does not exists"
+        exit
+fi
+getlist=$HOME/src/file.list
+dirlist=$HOME/src/dir.list
+
+echo "Date: ${datestr}"
+# build a list of files including the file size 
+cd ${filedir}
+activedir=`pwd`
+if test $filedir != $activedir
+  then
+  echo "Wrong Directory  $filedir $activedir"
+  exit
+fi
+ls -1 -o ${ext}.* > ${dirlist}
+cat ${dirlist}| tr -s " " | cut -f 4,8 -d " " | egrep -v ${datestr} > $getlist
+
+echo "Remote Files:"
+cat $getlist | tr " " "\t"
+
+fsze=`cat ${getlist} | cut -f 1 -d " "`
+let fsize=0
+for sze in $fsze
+  do
+   let fsize=1+fsize+${sze}/1024
+  done
+let fszmg=fsize/1024
+
+
+flist=`cat ${getlist} | cut -f 2 -d " "`
+cd ${dstdir}
+activedir=`pwd`
+if test $activedir != $dstdir
+  then
+  echo "Wrong Directory  $dstdir $activedir"
+  exit
+fi
+
+for fname in $flist
+  do
+    echo ${filedir}/${fname}
+    cp ${filedir}/${fname} ${dstdir} 
+  done
+## now make sure that the file sizes all agree and delete the 
+## correctly copied files
+#
+cd ${dstdir}
+activedir=`pwd`
+if test $activedir != $dstdir
+  then
+  echo "Wrong Directory  $dstdir $activedir"
+  exit
+fi
+
+flist=`ls -1 ${ext}.*`
+for fname in $flist
+  do
+    rsize=`egrep ${fname} ${getlist} | cut -f 1 -d " "`
+    lsize=`ls -l ${fname} | tr -s " " | cut -f 5 -d " "`
+    if  [[ $rsize != "" ]]
+    then 
+      echo "$fname : $lsize : $rsize"
+      if test $lsize -eq $rsize 
+      then 
+        echo "Got:"${fname}
+        rm  ${filedir}/${fname}
+      fi
+    fi
+  done
+
+
+
+
+
+
+
+
+
