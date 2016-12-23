@@ -130,17 +130,9 @@ int main(int argc,char *argv[]) {
 
   int exitpoll=0;
   int scannowait=0;
-  int onesec=0; 
+ 
   int scnsc=120;
   int scnus=0;
-  int elapsed_secs=0;
-  int default_clrskip_secs=30;
-  int clrskip_secs=-1;
-  int do_clr_scan_start=0;
-  int cpid=0;
-  int startup=1;
-  struct timeval t0,t1;
-
   int skip;
   int cnt=0;
 
@@ -207,13 +199,9 @@ int main(int argc,char *argv[]) {
   OptionAdd(&opt,"fast",'x',&fast);
 
   OptionAdd( &opt, "nowait", 'x', &scannowait);
-  OptionAdd( &opt, "onesec", 'x', &onesec);
   OptionAdd(&opt,"sb",'i',&sbm);
   OptionAdd(&opt,"eb",'i',&ebm);
   OptionAdd(&opt,"c",'i',&cnum);
-  OptionAdd( &opt, "clrskip", 'i', &clrskip_secs);
-  OptionAdd( &opt, "clrscan", 'x', &do_clr_scan_start);
-  OptionAdd( &opt, "cpid", 'i', &cpid);
 
    
   arg=OptionProcess(1,argc,argv,&opt,NULL);  
@@ -264,11 +252,6 @@ int main(int argc,char *argv[]) {
   
  
   status=SiteSetupRadar();
-  gettimeofday(&t0,NULL);
-  elapsed_secs=clrskip_secs;
-  gettimeofday(&t0,NULL);
-  gettimeofday(&t1,NULL);
-
 
   printf("Initial Setup Complete: Station ID: %s  %d\n",ststr,stid);
   
@@ -289,29 +272,8 @@ int main(int argc,char *argv[]) {
   }
 
   beams=abs(ebm-sbm)+1;
-  if (onesec) {
-    cp=152;
-    intsc=1;
-    intus=0;
-    scnsc=beams+4;
-    scnus=0;
-    sprintf(progname,"normalscan (onesec)");
-    scannowait=1;
-    if(clrskip_secs < 0) clrskip_secs=default_clrskip_secs;
-  }
-  if(beams==1) {
-    /* Camping Beam */
-    sprintf(progname,"normalscan (camp)");
-    scannowait=1;
-    if(clrskip_secs < 0) clrskip_secs=default_clrskip_secs;
-    cp=153;
-    sprintf(logtxt,"Normalscan configured for camping beam");
-    ErrLog(errlog.sock,progname,logtxt);
-    sprintf(logtxt," fast: %d onesec: %d cp: %d clrskip_secs: %d intsc: %d",fast,onesec,cp,clrskip_secs,intsc);
-    ErrLog(errlog.sock,progname,logtxt);
-  }
   if(beams > 16) {
-    if (scannowait==0 && onesec==0) {
+    if (scannowait==0) {
       total_scan_usecs=(scnsc-3)*1E6+scnus;
       total_integration_usecs=total_scan_usecs/beams;
       intsc=total_integration_usecs/1E6;
@@ -361,7 +323,7 @@ int main(int argc,char *argv[]) {
     scan=1;
     
     ErrLog(errlog.sock,progname,"Starting scan.");
-    if(do_clr_scan_start) startup=1; 
+   
     if (xcnt>0) {
       cnt++;
       if (cnt==xcnt) {
@@ -371,7 +333,7 @@ int main(int argc,char *argv[]) {
     } else xcf=0;
 
     skip=OpsFindSkip(scnsc,scnus);
-
+    
     if (backward) {
       bmnum=sbm-skip;
       if (bmnum<ebm) bmnum=sbm;
@@ -404,26 +366,16 @@ int main(int argc,char *argv[]) {
 
       ErrLog(errlog.sock,progname,"Starting Integration.");
             
-      printf("Entering Site Start Intt Station ID: %s  %d\n",ststr,stid);
+    printf("Entering Site Start Intt Station ID: %s  %d\n",ststr,stid);
       SiteStartIntt(intsc,intus);
-      gettimeofday(&t1,NULL);
-      elapsed_secs=t1.tv_sec-t0.tv_sec;
-      if(elapsed_secs<0) elapsed_secs=0;
-      if((elapsed_secs >= clrskip_secs)||(startup==1)) {
-        startup=0;
-        ErrLog(errlog.sock,progname,"Doing clear frequency search.");
 
-        sprintf(logtxt, "FRQ: %d %d", stfrq, frqrng);
-        ErrLog(errlog.sock,progname, logtxt);
+      ErrLog(errlog.sock,progname,"Doing clear frequency search."); 
+   
+      sprintf(logtxt, "FRQ: %d %d", stfrq, frqrng);
+      ErrLog(errlog.sock,progname, logtxt);
 
-        if(fixfrq<0) {
-          tfreq=SiteFCLR(stfrq-frqrng/2,stfrq+frqrng/2);
-        }
-        t0.tv_sec=t1.tv_sec;
-        t0.tv_usec=t1.tv_usec;
-      } else {
-        sprintf(logtxt,"Clear Search Skipped, next search in %d secs",(int)(clrskip_secs-elapsed_secs));
-        ErrLog(errlog.sock,progname,logtxt);
+      if(fixfrq<0) {      
+        tfreq=SiteFCLR(stfrq-frqrng/2,stfrq+frqrng/2);
       }
       sprintf(logtxt,"Transmitting on: %d (Noise=%g)",tfreq,noise);
       ErrLog(errlog.sock,progname,logtxt);

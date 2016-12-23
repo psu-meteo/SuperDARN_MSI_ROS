@@ -49,7 +49,7 @@
 #define DEFAULT_SCAN		0		/* default scan */
 #define DEFAULT_XCF			0
 #define DEFAULT_CP			0
-#define DEFAULT_RXRISE		100
+#define DEFAULT_RXRISE		0
 #define DEFAULT_MAX_ATTEN	2
 #define DEFAULT_PROT_ATTEN  3
 #define DEFAULT_RSEP_SWITCH 0

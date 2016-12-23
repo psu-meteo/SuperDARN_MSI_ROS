@@ -565,7 +565,6 @@ int main(int argc,char *argv[]) {
         fprintf(stdout,"Errors found in commandline arguements: \n");
         arg_print_errors(stdout,ae_argend,"uafscan");
     }
-    OpsFitACFStart();
  
     fprintf(stdout,"Test option enabled, exiting\n");
     return 0;

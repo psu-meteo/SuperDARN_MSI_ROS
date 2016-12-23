@@ -218,12 +218,12 @@ int SiteRosStart(char *host,char *ststr) {
     backward=ltemp;
   }
   if(! config_lookup_int(&cfg, "xcf", &ltemp)) {
-    /* xcf count value: 1 means every integration period. 2 means every other. N means every Nth.*/
-    xcnt=0;
-    fprintf(stderr,"Site Cfg Warning:: \'xcf\' setting undefined in site cfg file using default value: %d\n",xcnt); 
+    /* Radar number to register  with ROS server*/
+    xcf=0;
+    fprintf(stderr,"Site Cfg Warning:: \'xcf\' setting undefined in site cfg file using default value: %d\n",xcf); 
   } else {
-    xcnt=ltemp;
-    fprintf(stderr,"Site Cfg:: \'xcf\' setting in site cfg file using value: %d\n",xcnt); 
+    xcf=ltemp;
+    fprintf(stderr,"Site Cfg:: \'xcf\' setting in site cfg file using value: %d\n",xcf); 
   }
   if(! config_lookup_int(&cfg, "sbm", &ltemp)) {
     sbm=0;

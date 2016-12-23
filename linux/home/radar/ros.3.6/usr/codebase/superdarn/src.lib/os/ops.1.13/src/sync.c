@@ -63,34 +63,20 @@ int OpsDayNight() {
  
 int OpsFindSkip(int bsc,int bus) {
   
-  int64_t tv;
-  int64_t bv;
-  int64_t remain;
-  int64_t iv;
-  int64_t skip;
+  int tv;
+  int bv;
+  int iv;
+  int skip;
   int nbm;
   nbm=fabs(ebm-sbm);
   TimeReadClock(&yr,&mo,&dy,&hr,&mt,&sc,&us);
   iv=intsc*1000000+intus;
   bv=bsc*1000000+bus;
-  /* tv : usecs since top of the hour  */
-  tv=mt*60+sc;
-  tv*=1E6;
-  tv+=us; 
-  /* tv : plus half-ish an integration period   */
-  tv+=iv/2-100000; 
-  /* skip: first modulo by scan usecs */
-  remain=tv % bv; 
-  /* skip: now find number of integration periods that fit */
-  skip=remain/iv; 
-/* JDS: allow out of range skip values so you can jump right to wait for boundary
- *      when you have end of scan actions like sounding or special camp beams
- */       
-/*
+  tv=(mt*60+sc)*1000000+us+iv/2-100000; 
+  skip=(tv % bv)/iv; 
   if (skip>nbm) skip=0;
   if (skip<0) skip=0;
-*/
-  return (int)skip;
+  return skip;
 }
 
  
