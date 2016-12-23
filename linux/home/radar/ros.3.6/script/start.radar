@@ -27,5 +27,5 @@ rtserver -rp 41104 -ep 41000 -tp 10011 &
 rtserver -rp 42104 -ep 42000 -tp 10012 &
 
 sleep 2 
-schedule -l /data/ros/scdlog/sps.a.scdlog -f /data/ros/scd/sps.a.scd -f /data/ros/scd/sps.a-rbsp.scd &
+schedule -l /data/ros/scdlogs/sps.a.scdlog -f /data/ros/scd/sps.a.scd -f /data/ros/scd/sps.a-rbsp.scd &
 #schedule -l /data/ros/scdlog/sps.b.scdlog -f /data/ros/scd/sps.b.scd &
