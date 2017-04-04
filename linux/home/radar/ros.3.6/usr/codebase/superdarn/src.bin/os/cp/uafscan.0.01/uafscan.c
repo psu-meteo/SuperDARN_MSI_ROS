@@ -65,6 +65,8 @@
 /* Argtable define for argument error parsing */
 #define ARG_MAXERRORS 30
 
+#define MAX_INTEGRATIONS_PER_SCAN 40
+
 int main(int argc,char *argv[]) {
   char progid[80]={"uafscan"};
   char progname[256]="uafscan";
@@ -107,6 +109,13 @@ int main(int argc,char *argv[]) {
   int bcode7[7]={1,1,1,-1,-1,1,-1};
   int bcode11[11]={1,1,1,-1,-1,-1,1,-1,-1,1,-1};
   int bcode13[13]={1,1,1,1,1,-1,-1,1,1,-1,1,-1,1};
+
+  /* lists for parameters across a scan, need to send to usrp_server for swings to work.. */
+  int scan_clrfreq_fstart_list[MAX_INTEGRATIONS_PER_SCAN];
+  int scan_clrfreq_bandwidth_list[MAX_INTEGRATIONS_PER_SCAN];
+  int scan_beam_number_list[MAX_INTEGRATIONS_PER_SCAN];
+  int periods_per_scan = 0;
+
 
 /* Pulse sequence Table */
   int ptab[8] = {0,14,22,24,27,31,42,43};
@@ -375,6 +384,10 @@ int main(int argc,char *argv[]) {
 
   /* Set up scan periods and beam integration times */
   beams=abs(ebm-sbm)+1;
+    
+
+
+
   if (al_fast->count) {
     /* If fast option selected use 1 minute scan boundaries */
     cp=151;
@@ -384,6 +397,8 @@ int main(int argc,char *argv[]) {
     scnus=0;
     sprintf(modestr," (fast)");
     strncat(progname,modestr,strlen(modestr)+1);
+
+
   } else {
     /* If fast option not selected use 2 minute scan boundaries */
     intsc=7;
@@ -581,12 +596,34 @@ int main(int argc,char *argv[]) {
   printf("Preparing OpsFitACFStart Station ID: %s  %d\n",ststr,stid);
   OpsFitACFStart();
 
+
   printf("Preparing SiteTimeSeq Station ID: %s  %d\n",ststr,stid);
   tsgid=SiteTimeSeq(ptab);
 
   printf("Entering Scan loop Station ID: %s  %d\n",ststr,stid);
   do {
-    if (SiteStartScan() !=0) continue;
+
+    /* prepare data about scan to send to site library */
+    /* necessary because swinging requires knowledge of the scan beams and frequencies .. */
+    n = sbm;
+    i = 0;
+    while(1) {
+      scan_beam_number_list[i] = n;
+      scan_clrfreq_fstart_list[i] = OpsDayNight() == 1 ? dfrq : nfrq;
+      scan_clrfreq_bandwidth_list[i] = frqrng * 1e3;
+
+      n += backward ? -1 : 1;
+      i++;
+
+      if (n == ebm) {
+        break;
+      }
+    }
+    periods_per_scan = i;
+    /* send scan data to usrp_sever */
+    if (SiteStartScan(periods_per_scan, scan_beam_number_list, scan_clrfreq_fstart_list, scan_clrfreq_bandwidth_list) !=0) continue;
+
+
     if (OpsReOpen(2,0,0) !=0) {
       ErrLog(errlog.sock,progname,"Opening new files.");
       for (n=0;n<tnum;n++) {

@@ -6,10 +6,15 @@
    $License$
    */
 
+/* 
+ * modified for usrp_server
+ * symlink to SuperDARN_MSI_ROS/linux/home/radar/ros.3.6/usr/codebase/superdarn/src.lib/os/site.ros.1.0/src/site.c
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <stdint.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <errno.h>
@@ -488,9 +493,9 @@ int SiteRosSetupRadar() {
 
     sprintf(sharedmemory,"IQBuff_ROS_%d_%d",rnum,cnum);
 
-    iqbufsize = 2 * (mppul) * sizeof(int32) * 1e6 * intsc * nbaud / mpinc; /* calculate size of IQ buffer (JTK) */
+    iqbufsize = 2 * (mppul) * sizeof(int32) * 1e6 * (intsc + intus/1e6) * nbaud / mpinc; /* calculate size of IQ buffer (JTK) */
 
-    fprintf(stderr,"intc: %d, nbaud %d, mpinc %d, iq buffer size is %d\n",intsc, nbaud, mpinc, iqbufsize);
+    fprintf(stderr,"intc: %d, nbaud %d, mpinc %d, iq buffer size is %d\n", intsc, nbaud, mpinc, iqbufsize);
     samples = (int16 *)ShMemAlloc(sharedmemory,iqbufsize,O_RDWR | O_CREAT,1,&shmemfd);
 
     if(samples==NULL) { 
@@ -551,12 +556,18 @@ int SiteRosSetupRadar() {
 }
 
 
-int SiteRosStartScan() {
+int SiteRosStartScan(int32_t periods_per_scan, int32_t *scan_beam_list, int32_t *clrfreq_fstart_list, int32_t *clrfreq_bandwidth_list) {
     struct ROSMsg smsg,rmsg;
-    smsg.type=SET_ACTIVE;
-    TCPIPMsgSend(sock, &smsg, sizeof(struct ROSMsg));
-    TCPIPMsgRecv(sock, &rmsg, sizeof(struct ROSMsg));
+    smsg.type=SET_ACTIVE; /* set active only used in SiteRosStartScan */
 
+    TCPIPMsgSend(sock, &smsg, sizeof(struct ROSMsg));
+    
+    TCPIPMsgSend(sock, &periods_per_scan, sizeof(int));    /* start frequency of clrfreq */
+    TCPIPMsgSend(sock, &clrfreq_fstart_list, periods_per_scan * sizeof(int));    /* start frequency of clrfreq */
+    TCPIPMsgSend(sock, &clrfreq_bandwidth_list, periods_per_scan * sizeof(int));    /* bandwidth of clrfreq in hertz */
+    TCPIPMsgSend(sock, &scan_beam_list, periods_per_scan * sizeof(int));    /* start frequency of clrfreq */
+    
+    TCPIPMsgRecv(sock, &rmsg, sizeof(struct ROSMsg));
     return 0;
 }
 
@@ -723,6 +734,16 @@ int SiteRosTimeSeq(int *ptab) {
     TCPIPMsgSend(sock, &tprm, sizeof(struct SeqPRM));
     TCPIPMsgSend(sock, tsgbuf->rep, sizeof(unsigned char)*tprm.len);
     TCPIPMsgSend(sock, tsgbuf->code, sizeof(unsigned char)*tprm.len);
+    
+    if (debug) {
+        fprintf(stderr,"REGISTER_SEQ:intsc=%d\n",intsc);
+        fprintf(stderr,"REGISTER_SEQ:intus=%d\n",intus);
+    }
+
+
+    TCPIPMsgSend(sock, &intsc, sizeof(int));
+    TCPIPMsgSend(sock, &intus, sizeof(int));
+
     TCPIPMsgRecv(sock, &rmsg, sizeof(struct ROSMsg));
     if (debug) {
         fprintf(stderr,"REGISTER_SEQ:type=%c\n",rmsg.type);
@@ -781,6 +802,7 @@ int SiteRosIntegrate(int (*lags)[2]) {
     int seq_dds_low_pwr_flag=0;
     int bad_trigger_flag=0;
     int beam_dds_low_pwr_flag=0;
+    uint32_t number_of_sequences_in_integration_period;
     double phi_m,phi_i,phi_d;
     int32 temp32;
     /* phase code declarations */
@@ -910,158 +932,139 @@ int SiteRosIntegrate(int (*lags)[2]) {
 
     /* Seq loop to trigger and collect data */
     beam_dds_low_pwr_flag=1; 
-    while (1) {
-        SiteRosExit(0);
-        if(f_diagnostic_ascii!=NULL) {
-            clock_gettime(CLOCK_REALTIME, &time_now);
-            ttime=time_now.tv_sec;
-            gmtime_r(&ttime,&tstruct);
-            fprintf(f_diagnostic_ascii,"Sequence: START: %8d\n",nave);
-            fprintf(f_diagnostic_ascii,"  sec: %8d nsec: %12ld\n",(int)time_now.tv_sec,time_now.tv_nsec);
-        }
+    
+    /* Start of SiteIntegration loop was located here */
+    SiteRosExit(0);
+    if(f_diagnostic_ascii!=NULL) {
+        clock_gettime(CLOCK_REALTIME, &time_now);
+        ttime=time_now.tv_sec;
+        gmtime_r(&ttime,&tstruct);
+        fprintf(f_diagnostic_ascii,"Sequence: START: %8d\n",nave);
+        fprintf(f_diagnostic_ascii,"  sec: %8d nsec: %12ld\n",(int)time_now.tv_sec,time_now.tv_nsec);
+    }
 
-        seqtval[nave].tv_sec=tick.tv_sec;
-        seqtval[nave].tv_nsec=tick.tv_usec*1000;
-        seqatten[nave]=0.;
-        seqnoise[nave]=0;
-        seqbadtr[nave].num=0;
+    seqatten[nave]=0.;
+    seqnoise[nave]=0;
+    seqbadtr[nave].num=0;
+
+    rprm.tbeam=bmnum;
+    rprm.tfreq=tfreq;
+    rprm.rfreq=tfreq+diagnostics.rfreq_offset;   
+    rprm.trise=5000;
+    rprm.baseband_samplerate=((double)nbaud/(double)txpl)*1E6;
+    rprm.filter_bandwidth=rprm.baseband_samplerate;
+    rprm.match_filter=dmatch;
+    rprm.number_of_samples=total_samples+nbaud+10;
+    rprm.priority=cnum;
+    rprm.buffer_index=0;
+
+    usecs=(int)(rprm.number_of_samples/rprm.baseband_samplerate*1E6);
+
+    smsg.type=SET_PARAMETERS;
+    TCPIPMsgSend(sock,&smsg,sizeof(struct ROSMsg));
+    TCPIPMsgSend(sock,&rprm,sizeof(struct ControlPRM));
+    TCPIPMsgRecv(sock,&rmsg,sizeof(struct ROSMsg));
+    if (debug) {
+        fprintf(stderr,"SET_PARAMETERS:type=%c\n",rmsg.type);
+        fprintf(stderr,"SET_PARAMETERS:status=%d\n",rmsg.status);
+    }
 
 
-        tval=(tick.tv_sec+tick.tv_usec/1.0e6)-
-            (tack.tv_sec+tack.tv_usec/1.0e6);
 
-        if (nave>0) tavg=tval/nave; 
+    smsg.type=SET_READY_FLAG;
+    TCPIPMsgSend(sock,&smsg,sizeof(struct ROSMsg));
+    TCPIPMsgRecv(sock,&number_of_sequences_in_integration_period, sizeof(uint32_t));
+    TCPIPMsgRecv(sock,&rmsg,sizeof(struct ROSMsg));
+    if (debug) {
+        fprintf(stderr,"SET_READY_FLAG:type=%c\n",rmsg.type);
+        fprintf(stderr,"SET_READY_FLAG:status=%d\n",rmsg.status);
+    }
 
-        tick.tv_sec+=floor(tavg);
-        tick.tv_usec+=1.0e6*(tavg-floor(tavg));
+    usleep(usecs);
 
-        time_diff=(tick.tv_sec-tock.tv_sec);
-        time_diff+=(tick.tv_usec-tock.tv_usec)/1E6;
-        if (time_diff > 0.0) {
-            break;
-        }
+    smsg.type=GET_DATA;
+    if (rdata.main!=NULL) free(rdata.main);
+    if (rdata.back!=NULL) free(rdata.back);
+    rdata.main=NULL;
+    rdata.back=NULL;
+    TCPIPMsgSend(sock,&smsg,sizeof(struct ROSMsg));
+    if (debug) {
+        fprintf(stderr,"%s GET_DATA: recv dprm\n",station);
+    }
+    TCPIPMsgRecv(sock,&dprm,sizeof(struct DataPRM));
+    if(rdata.main) free(rdata.main);
+    if(rdata.back) free(rdata.back);
+    if (debug) 
+        fprintf(stderr,"%s GET_DATA: samples %d status %d\n",station,dprm.samples,dprm.status);
 
-
-        rprm.tbeam=bmnum;   
-        rprm.tfreq=tfreq;   
-        rprm.rfreq=tfreq+diagnostics.rfreq_offset;   
-        rprm.trise=5000;   
-        rprm.baseband_samplerate=((double)nbaud/(double)txpl)*1E6; 
-        rprm.filter_bandwidth=rprm.baseband_samplerate; 
-        rprm.match_filter=dmatch;
-        rprm.number_of_samples=total_samples+nbaud+10; 
-        rprm.priority=cnum;
-        rprm.buffer_index=0;  
-
-        usecs=(int)(rprm.number_of_samples/rprm.baseband_samplerate*1E6);
-
-        smsg.type=SET_PARAMETERS;
-        TCPIPMsgSend(sock,&smsg,sizeof(struct ROSMsg));
-        TCPIPMsgSend(sock,&rprm,sizeof(struct ControlPRM));
-        TCPIPMsgRecv(sock,&rmsg,sizeof(struct ROSMsg));
+    if(dprm.status==0) {
         if (debug) {
-            fprintf(stderr,"SET_PARAMETERS:type=%c\n",rmsg.type);
-            fprintf(stderr,"SET_PARAMETERS:status=%d\n",rmsg.status);
+            fprintf(stderr,"%s GET_DATA: rdata.main: uint32: %ld array: %ld\n",station,sizeof(uint32),sizeof(uint32)*dprm.samples);
         }
+        rdata.main=malloc(sizeof(uint32)*dprm.samples);
+        rdata.back=malloc(sizeof(uint32)*dprm.samples);
 
-
-
-        smsg.type=SET_READY_FLAG;
-        TCPIPMsgSend(sock,&smsg,sizeof(struct ROSMsg));
-        TCPIPMsgRecv(sock,&rmsg,sizeof(struct ROSMsg));
+        if (badtrdat.start_usec !=NULL) free(badtrdat.start_usec);
+        if (badtrdat.duration_usec !=NULL) free(badtrdat.duration_usec);
+        badtrdat.start_usec=NULL;
+        badtrdat.duration_usec=NULL;
         if (debug) {
-            fprintf(stderr,"SET_READY_FLAG:type=%c\n",rmsg.type);
-            fprintf(stderr,"SET_READY_FLAG:status=%d\n",rmsg.status);
+            fprintf(stderr,"%s GET_DATA: trtimes length %d\n",station,badtrdat.length);
         }
-
-        usleep(usecs);
-
-        /*  FIXME: This is not defined 
-            smsg.type=WAIT_FOR_DATA;
-            TCPIPMsgSend(sock,&smsg,sizeof(struct ROSMsg));
-            TCPIPMsgRecv(sock,&rmsg,sizeof(struct ROSMsg));
-            if (debug) {
-            fprintf(stderr,"SET_READY_FLAG:type=%c\n",rmsg.type);
-            fprintf(stderr,"SET_READY_FLAG:status=%d\n",rmsg.status);
-            }
-            */
-
-        smsg.type=GET_DATA;
-        if (rdata.main!=NULL) free(rdata.main);
-        if (rdata.back!=NULL) free(rdata.back);
-        rdata.main=NULL;
-        rdata.back=NULL;
-        TCPIPMsgSend(sock,&smsg,sizeof(struct ROSMsg));
-        if (debug) {
-            fprintf(stderr,"%s GET_DATA: recv dprm\n",station);
-        }
-        TCPIPMsgRecv(sock,&dprm,sizeof(struct DataPRM));
-        if(rdata.main) free(rdata.main);
-        if(rdata.back) free(rdata.back);
+        TCPIPMsgRecv(sock, &badtrdat.length, sizeof(badtrdat.length));
         if (debug) 
-            fprintf(stderr,"%s GET_DATA: samples %d status %d\n",station,dprm.samples,dprm.status);
-
-        if(dprm.status==0) {
-            if (debug) {
-                fprintf(stderr,"%s GET_DATA: rdata.main: uint32: %ld array: %ld\n",station,sizeof(uint32),sizeof(uint32)*dprm.samples);
-            }
-            rdata.main=malloc(sizeof(uint32)*dprm.samples);
-            rdata.back=malloc(sizeof(uint32)*dprm.samples);
-            if (debug) {
-                fprintf(stderr,"%s GET_DATA: recv main\n",station);
-            }
-            TCPIPMsgRecv(sock, rdata.main, sizeof(uint32)*dprm.samples);
-            if (debug) {
-                fprintf(stderr,"%s GET_DATA: recv back\n",station);
-            }
-            TCPIPMsgRecv(sock, rdata.back, sizeof(uint32)*dprm.samples);
-
-            if (badtrdat.start_usec !=NULL) free(badtrdat.start_usec);
-            if (badtrdat.duration_usec !=NULL) free(badtrdat.duration_usec);
-            badtrdat.start_usec=NULL;
-            badtrdat.duration_usec=NULL;
-            if (debug) {
-                fprintf(stderr,"%s GET_DATA: trtimes length %d\n",station,badtrdat.length);
-            }
-            TCPIPMsgRecv(sock, &badtrdat.length, sizeof(badtrdat.length));
-            if (debug) 
-                fprintf(stderr,"%s GET_DATA: badtrdat.start_usec: uint32: %ld array: %ld\n",station,sizeof(uint32),sizeof(uint32)*badtrdat.length);
-            badtrdat.start_usec=malloc(sizeof(uint32)*badtrdat.length);
-            badtrdat.duration_usec=malloc(sizeof(uint32)*badtrdat.length);
-            if (debug) {
-                fprintf(stderr,"%s GET_DATA: start_usec\n",station);
-            }
-            TCPIPMsgRecv(sock, badtrdat.start_usec,
-                    sizeof(uint32)*badtrdat.length);
-            if (debug) {
-                fprintf(stderr,"%s GET_DATA: duration_usec\n",station);
-            }
-            TCPIPMsgRecv(sock, badtrdat.duration_usec,
-                    sizeof(uint32)*badtrdat.length);
-            TCPIPMsgRecv(sock, &num_transmitters, sizeof(int));
-            TCPIPMsgRecv(sock, &txstatus.AGC, sizeof(int)*num_transmitters);
-            TCPIPMsgRecv(sock, &txstatus.LOWPWR, sizeof(int)*num_transmitters);
-        }
-        TCPIPMsgRecv(sock, &rmsg, sizeof(struct ROSMsg));
+            fprintf(stderr,"%s GET_DATA: badtrdat.start_usec: uint32: %ld array: %ld\n",station,sizeof(uint32),sizeof(uint32)*badtrdat.length);
+        badtrdat.start_usec=malloc(sizeof(uint32)*badtrdat.length);
+        badtrdat.duration_usec=malloc(sizeof(uint32)*badtrdat.length);
         if (debug) {
-            fprintf(stderr,"%s GET_DATA:type=%c\n",station,rmsg.type);
-            fprintf(stderr,"%s GET_DATA:status=%d\n",station,rmsg.status);
+            fprintf(stderr,"%s GET_DATA: start_usec\n",station);
         }
-        smsg.type=GET_PARAMETERS;
-        TCPIPMsgSend(sock, &smsg, sizeof(struct ROSMsg));
-        TCPIPMsgRecv(sock, &rprm, sizeof(struct ControlPRM));
-        TCPIPMsgRecv(sock, &rmsg, sizeof(struct ROSMsg));
+        TCPIPMsgRecv(sock, badtrdat.start_usec,
+                sizeof(uint32)*badtrdat.length);
         if (debug) {
-            fprintf(stderr,"%s GET_PARAMETERS:type=%c\n",station,rmsg.type);
-            fprintf(stderr,"%s GET_PARAMETERS:status=%d\n",station,rmsg.status);
-            fprintf(stderr,"%s Number of samples: dprm.samples:%d tsprm.samples:%d total_samples:%d\n",station,dprm.samples,tsgprm.samples,total_samples);
-            fprintf(stderr,"%s nave=%d\n",station,nave);
-            fprintf(stderr,"%s dprm.status=%d\n",station,dprm.status);
+            fprintf(stderr,"%s GET_DATA: duration_usec\n",station);
         }
+        TCPIPMsgRecv(sock, badtrdat.duration_usec,
+                sizeof(uint32)*badtrdat.length);
+        TCPIPMsgRecv(sock, &num_transmitters, sizeof(int));
+        TCPIPMsgRecv(sock, &txstatus.AGC, sizeof(int)*num_transmitters);
+        TCPIPMsgRecv(sock, &txstatus.LOWPWR, sizeof(int)*num_transmitters);
+    }
+
+    TCPIPMsgRecv(sock, &rprm, sizeof(struct ControlPRM));
+    
+    if (debug) {
+        fprintf(stderr,"%s Number of samples: dprm.samples:%d tsprm.samples:%d total_samples:%d\n",station,dprm.samples,tsgprm.samples,total_samples);
+        fprintf(stderr,"%s nave=%d\n",station,nave);
+        fprintf(stderr,"%s dprm.status=%d\n",station,dprm.status);
+        fprintf(stderr,"%s rprm.tbeam=%d\n",station,rprm.tbeam);
+        fprintf(stderr,"%s rprm.tfreq=%d\n",station,rprm.tfreq);
+    }
+
+    /* loop for receiving data from each pulse sequence */
+    for (nave = 0; nave < number_of_sequences_in_integration_period; nave++) {
+
+        /* recieve samples from main and back array */
+        if (debug) {
+            fprintf(stderr,"%s GET_DATA: recv main, expecting %d samples, %ld bytes\n", station,dprm.samples,(sizeof(uint32_t)*dprm.samples));
+        }
+        TCPIPMsgRecv(sock, rdata.main, sizeof(uint32)*dprm.samples);
+        if (debug) {
+            fprintf(stderr,"%s GET_DATA: recv back\n",station);
+        }
+        TCPIPMsgRecv(sock, rdata.back, sizeof(uint32)*dprm.samples);
+
+        /* instead of receving a full dprm for every pulse sequence, 
+           now just update the fields which change between pulse sequences within an integration period 
+           that would be uint32_t dprm.event_secs, and uint32_t dprm.event_nsecs
+           so, receive these from the usrp_server, use them to generate a new tstruct and update dprm
+         */
+        
+        TCPIPMsgRecv(sock, &dprm.event_secs, sizeof(uint32_t));
+        TCPIPMsgRecv(sock, &dprm.event_nsecs, sizeof(uint32_t));
+
         ttime=dprm.event_secs;
-        if ( ttime < 100 ) {
-            ttime=time_now.tv_sec;
-        }
+        
         gmtime_r(&ttime,&tstruct);
         if(seqlog_dir!=NULL) { 
             sprintf(filename,"%s/seqlog.%s%s.%04d%02d%02d",seqlog_dir,station,channame,tstruct.tm_year+1900,tstruct.tm_mon+1,tstruct.tm_mday);
@@ -1111,26 +1114,7 @@ int SiteRosIntegrate(int (*lags)[2]) {
             bmnum=rprm.tbeam;
             tfreq=rprm.tfreq;
         }
-        if (rprm.tbeam != bmnum) {
-            fprintf(stderr,"New beam :: end integration\n");
-            fflush(stderr);
-            break;
-        } else {
-        }
 
-        /* JDS : For testing only */
-        /*
-           dprm.status=0;
-           dprm.samples=0;
-           if (rdata.main!=NULL) free(rdata.main);
-           if (rdata.back!=NULL) free(rdata.back);
-           rdata.main=NULL;
-           rdata.back=NULL;
-           rdata.main=malloc(sizeof(uint32)*dprm.samples);
-           rdata.back=malloc(sizeof(uint32)*dprm.samples);
-           badtrdat.length=0;
-           */
-        /* JDS: End testing block */
         code=pcode;
         if(f_diagnostic_ascii!=NULL) {
             fprintf(f_diagnostic_ascii,"Sequence: Parameters: START\n");
@@ -1160,10 +1144,7 @@ int SiteRosIntegrate(int (*lags)[2]) {
                     (rdata.main)[n]=uQ32|uI32;
                 }
             }
-            /*
-               fp=f_diagnostic_ascii;
-               f_diagnostic_ascii=stderr;
-               */
+            
             if(f_diagnostic_ascii!=NULL) {
                 fprintf(f_diagnostic_ascii,"Sequence : Raw Data : START\n");
                 fprintf(f_diagnostic_ascii,"  nsamp: %8d\n",nsamp);
@@ -1187,9 +1168,7 @@ int SiteRosIntegrate(int (*lags)[2]) {
                 }
                 fprintf(f_diagnostic_ascii,"Sequence: Raw Data: END\n");
             }
-            /*
-               f_diagnostic_ascii=fp;
-               */
+            
             /* decode phase coding here */
             if(nbaud>1){
                 if(f_diagnostic_ascii!=NULL) {
@@ -1399,8 +1378,6 @@ int SiteRosIntegrate(int (*lags)[2]) {
                     if (debug) 
                         fprintf(stderr,"%s seq %d :: rngoff %d rxchn %d\n",station,nave,rngoff,rxchn);
                 }
-                nave++;
-                iqoff=iqsze;  /* set the offset bytes for the next sequence */
             }  /* end else for bad trigger */
         } else {
             seq_dds_low_pwr_flag=0; 
@@ -1420,6 +1397,13 @@ int SiteRosIntegrate(int (*lags)[2]) {
 
     } /* end of while loop */
     if(seqlog!=NULL) fflush(seqlog);
+
+    /* recv GET_DATA command status */
+    TCPIPMsgRecv(sock, &rmsg, sizeof(struct ROSMsg));
+    if (debug) {
+        fprintf(stderr,"%s GET_DATA:type=%c\n",station,rmsg.type);
+        fprintf(stderr,"%s GET_DATA:status=%d\n",station,rmsg.status);
+    }
 
     /* Now divide by nave to get the average pwr0 and acfd values for the 
        integration period */ 
@@ -1518,11 +1502,6 @@ int SiteRosEndScan(int bsc,int bus) {
         SiteRosExit(0);
         gettimeofday(&tick,NULL);
     }
-    /*
-       smsg.type=SET_ACTIVE;
-       TCPIPMsgSend(sock, &smsg, sizeof(struct ROSMsg));
-       TCPIPMsgRecv(sock, &rmsg, sizeof(struct ROSMsg));
-       */
     return 0;
 }
 
