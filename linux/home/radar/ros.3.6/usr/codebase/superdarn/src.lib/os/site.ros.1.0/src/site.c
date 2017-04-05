@@ -562,10 +562,18 @@ int SiteRosStartScan(int32_t periods_per_scan, int32_t *scan_beam_list, int32_t 
 
     TCPIPMsgSend(sock, &smsg, sizeof(struct ROSMsg));
     
-    TCPIPMsgSend(sock, &periods_per_scan, sizeof(int));    /* start frequency of clrfreq */
-    TCPIPMsgSend(sock, &clrfreq_fstart_list, periods_per_scan * sizeof(int));    /* start frequency of clrfreq */
-    TCPIPMsgSend(sock, &clrfreq_bandwidth_list, periods_per_scan * sizeof(int));    /* bandwidth of clrfreq in hertz */
-    TCPIPMsgSend(sock, &scan_beam_list, periods_per_scan * sizeof(int));    /* start frequency of clrfreq */
+    TCPIPMsgSend(sock, &periods_per_scan, sizeof(int32_t));    /* start frequency of clrfreq */
+
+    fprintf(stdout,"clrfreq[0] = %d\n", clrfreq_fstart_list[0]);
+    fprintf(stdout,"clrfreq[1] = %d\n", clrfreq_fstart_list[1]);
+    fprintf(stdout,"scan[0] = %d\n", scan_beam_list[0]);
+    fprintf(stdout,"scan[1] = %d\n", scan_beam_list[1]);
+    fprintf(stdout,"clrfreq_bandwidth[0] = %d\n", clrfreq_bandwidth_list[0]);
+    fprintf(stdout,"clrfreq_bandwidth[1] = %d\n", clrfreq_bandwidth_list[1]);
+
+    TCPIPMsgSend(sock, &clrfreq_fstart_list[0], periods_per_scan * sizeof(int32_t));    /* start frequency of clrfreq */
+    TCPIPMsgSend(sock, &clrfreq_bandwidth_list[0], periods_per_scan * sizeof(int32_t));    /* bandwidth of clrfreq in hertz */
+    TCPIPMsgSend(sock, &scan_beam_list[0], periods_per_scan * sizeof(int32_t));    /* start frequency of clrfreq */
     
     TCPIPMsgRecv(sock, &rmsg, sizeof(struct ROSMsg));
     return 0;
