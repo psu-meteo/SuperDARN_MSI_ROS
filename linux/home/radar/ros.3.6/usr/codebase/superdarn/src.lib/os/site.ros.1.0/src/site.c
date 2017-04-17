@@ -981,7 +981,7 @@ int SiteRosIntegrate(int (*lags)[2]) {
 
     smsg.type=SET_READY_FLAG;
     TCPIPMsgSend(sock,&smsg,sizeof(struct ROSMsg));
-    TCPIPMsgRecv(sock,&number_of_sequences_in_integration_period, sizeof(uint32_t));
+  /*  TCPIPMsgRecv(sock,&number_of_sequences_in_integration_period, sizeof(uint32_t)); */
     TCPIPMsgRecv(sock,&rmsg,sizeof(struct ROSMsg));
     if (debug) {
         fprintf(stderr,"SET_READY_FLAG:type=%c\n",rmsg.type);
@@ -1000,10 +1000,12 @@ int SiteRosIntegrate(int (*lags)[2]) {
         fprintf(stderr,"%s GET_DATA: recv dprm\n",station);
     }
     TCPIPMsgRecv(sock,&dprm,sizeof(struct DataPRM));
+
     if(rdata.main) free(rdata.main);
     if(rdata.back) free(rdata.back);
     if (debug) 
         fprintf(stderr,"%s GET_DATA: samples %d status %d\n",station,dprm.samples,dprm.status);
+    TCPIPMsgRecv(sock,&number_of_sequences_in_integration_period, sizeof(uint32_t));
 
     if(dprm.status==0) {
         if (debug) {
