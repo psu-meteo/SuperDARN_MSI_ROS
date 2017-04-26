@@ -1404,6 +1404,8 @@ int SiteRosIntegrate(int (*lags)[2]) {
             fprintf(f_diagnostic_ascii,"Sequence: END\n");
         }
 
+        TCPIPMsgSend(sock, &nave, sizeof(int32_t));
+
 
     } /* end of while loop */
     if(seqlog!=NULL) fflush(seqlog);
