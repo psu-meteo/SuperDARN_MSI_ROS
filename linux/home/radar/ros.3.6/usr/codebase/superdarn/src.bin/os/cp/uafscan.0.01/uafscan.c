@@ -610,7 +610,7 @@ int main(int argc,char *argv[]) {
     while(1) {
       scan_beam_number_list[i] = n;
       scan_clrfreq_fstart_list[i] = (int32_t) (OpsDayNight() == 1 ? dfrq : nfrq);
-      scan_clrfreq_bandwidth_list[i] = frqrng * 1e3;
+      scan_clrfreq_bandwidth_list[i] = frqrng;
       printf("sequence %d: beam: %d, fstart: %d, bw: %d\n",i, n, scan_clrfreq_fstart_list[i], scan_clrfreq_bandwidth_list[i]);
 
       n += backward ? -1 : 1;
