@@ -21,7 +21,7 @@ struct SiteLibrary {
 
 int SiteStart(char *host,char *ststr);
 int SiteSetupRadar();
-int SiteStartScan(int32_t periods_per_scan, int32_t *scan_beam_list, int32_t *clrfreq_fstart_list, int32_t *clrfreq_bandwidth_list);
+int SiteStartScan(int32_t periods_per_scan, int32_t *scan_beam_list, int32_t *clrfreq_fstart_list, int32_t *clrfreq_bandwidth_list, int32_t fixFreq);
 int SiteStartIntt(int intsc,int intus);
 int SiteFCLR(int stfreq,int edfreq);
 int SiteTimeSeq(int *ptab);

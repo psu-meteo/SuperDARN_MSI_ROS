@@ -556,13 +556,13 @@ int SiteRosSetupRadar() {
 }
 
 
-int SiteRosStartScan(int32_t periods_per_scan, int32_t *scan_beam_list, int32_t *clrfreq_fstart_list, int32_t *clrfreq_bandwidth_list) {
+int SiteRosStartScan(int32_t periods_per_scan, int32_t *scan_beam_list, int32_t *clrfreq_fstart_list, int32_t *clrfreq_bandwidth_list, int32_t fixFreq) {
     struct ROSMsg smsg,rmsg;
     smsg.type=SET_ACTIVE; /* set active only used in SiteRosStartScan */
 
     TCPIPMsgSend(sock, &smsg, sizeof(struct ROSMsg));
     
-    TCPIPMsgSend(sock, &periods_per_scan, sizeof(int32_t));    /* start frequency of clrfreq */
+    TCPIPMsgSend(sock, &periods_per_scan, sizeof(int32_t));    /* number of periods */
 
     fprintf(stdout,"clrfreq[0] = %d\n", clrfreq_fstart_list[0]);
     fprintf(stdout,"clrfreq[1] = %d\n", clrfreq_fstart_list[1]);
@@ -570,7 +570,9 @@ int SiteRosStartScan(int32_t periods_per_scan, int32_t *scan_beam_list, int32_t 
     fprintf(stdout,"scan[1] = %d\n", scan_beam_list[1]);
     fprintf(stdout,"clrfreq_bandwidth[0] = %d\n", clrfreq_bandwidth_list[0]);
     fprintf(stdout,"clrfreq_bandwidth[1] = %d\n", clrfreq_bandwidth_list[1]);
+    fprintf(stdout,"fixFreq...  = %d\n", fixFreq);
 
+    TCPIPMsgSend(sock, &fixFreq,  sizeof(int32_t));    /* fixed frequency or -1 for clear_frequency search */
     TCPIPMsgSend(sock, &clrfreq_fstart_list[0], periods_per_scan * sizeof(int32_t));    /* start frequency of clrfreq */
     TCPIPMsgSend(sock, &clrfreq_bandwidth_list[0], periods_per_scan * sizeof(int32_t));    /* bandwidth of clrfreq in hertz */
     TCPIPMsgSend(sock, &scan_beam_list[0], periods_per_scan * sizeof(int32_t));    /* start frequency of clrfreq */
@@ -661,6 +663,7 @@ int SiteRosFCLR(int stfreq,int edfreq) {
     rprm.priority=cnum;
     rprm.buffer_index=0;
 
+/* Not needed with SwingBuffer
     smsg.type=SET_PARAMETERS;
     TCPIPMsgSend(sock,&smsg,sizeof(struct ROSMsg));
     TCPIPMsgSend(sock,&rprm,sizeof(struct ControlPRM));
@@ -669,7 +672,7 @@ int SiteRosFCLR(int stfreq,int edfreq) {
         fprintf(stderr,"SET_PARAMETERS:type=%c\n",rmsg.type);
         fprintf(stderr,"SET_PARAMETERS:status=%d\n",rmsg.status);
     }
-
+*/
     fprm.start=stfreq; 
     fprm.end=edfreq;  
     fprm.nave=20;  
@@ -981,7 +984,7 @@ int SiteRosIntegrate(int (*lags)[2]) {
 
     smsg.type=SET_READY_FLAG;
     TCPIPMsgSend(sock,&smsg,sizeof(struct ROSMsg));
-  /*  TCPIPMsgRecv(sock,&number_of_sequences_in_integration_period, sizeof(uint32_t)); */
+
     TCPIPMsgRecv(sock,&rmsg,sizeof(struct ROSMsg));
     if (debug) {
         fprintf(stderr,"SET_READY_FLAG:type=%c\n",rmsg.type);
@@ -1403,6 +1406,8 @@ int SiteRosIntegrate(int (*lags)[2]) {
                 fprintf(f_diagnostic_ascii,"Sequence: DDS_Low_Pwr\n");
             fprintf(f_diagnostic_ascii,"Sequence: END\n");
         }
+        if (debug) 
+           fprintf(stderr,"Sending ACK for seq %d\n", nave);
 
         TCPIPMsgSend(sock, &nave, sizeof(int32_t));
 

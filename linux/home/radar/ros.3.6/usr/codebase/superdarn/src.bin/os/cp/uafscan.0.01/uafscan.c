@@ -625,7 +625,7 @@ int main(int argc,char *argv[]) {
     }
     periods_per_scan = i;
     /* send scan data to usrp_sever */
-    if (SiteStartScan(periods_per_scan, scan_beam_number_list, scan_clrfreq_fstart_list, scan_clrfreq_bandwidth_list) !=0) continue;
+    if (SiteStartScan(periods_per_scan, scan_beam_number_list, scan_clrfreq_fstart_list, scan_clrfreq_bandwidth_list, ai_fixfrq->ival[0]) !=0) continue;
 
 
     if (OpsReOpen(2,0,0) !=0) {

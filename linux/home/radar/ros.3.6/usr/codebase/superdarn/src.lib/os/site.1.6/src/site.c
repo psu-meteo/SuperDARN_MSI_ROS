@@ -80,8 +80,8 @@ int SiteSetupRadar() {
   return (sitelib.setupradar)();
 }
  
-int SiteStartScan(int32_t periods_per_scan, int32_t *scan_beam_list, int32_t *clrfreq_fstart_list, int32_t *clrfreq_bandwidth_list) {
-  return (sitelib.startscan)(periods_per_scan, scan_beam_list, clrfreq_fstart_list, clrfreq_bandwidth_list);
+int SiteStartScan(int32_t periods_per_scan, int32_t *scan_beam_list, int32_t *clrfreq_fstart_list, int32_t *clrfreq_bandwidth_list, int32_t fixFreq) {
+  return (sitelib.startscan)(periods_per_scan, scan_beam_list, clrfreq_fstart_list, clrfreq_bandwidth_list, fixFreq);
 }
 
 int SiteStartIntt(int sec,int usec) {
