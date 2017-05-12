@@ -1057,6 +1057,10 @@ int SiteRosIntegrate(int (*lags)[2]) {
     /* loop for receiving data from each pulse sequence */
     for (nave = 0; nave < number_of_sequences_in_integration_period; nave++) {
 
+        TCPIPMsgRecv(sock, &dprm.event_secs, sizeof(uint32_t));
+        TCPIPMsgRecv(sock, &dprm.event_nsecs, sizeof(uint32_t));
+        ttime=dprm.event_secs;
+
         /* recieve samples from main and back array */
         if (debug) {
             fprintf(stderr,"%s GET_DATA: recv main, expecting %d samples, %ld bytes\n", station,dprm.samples,(sizeof(uint32_t)*dprm.samples));
@@ -1073,10 +1077,7 @@ int SiteRosIntegrate(int (*lags)[2]) {
            so, receive these from the usrp_server, use them to generate a new tstruct and update dprm
          */
         
-        TCPIPMsgRecv(sock, &dprm.event_secs, sizeof(uint32_t));
-        TCPIPMsgRecv(sock, &dprm.event_nsecs, sizeof(uint32_t));
 
-        ttime=dprm.event_secs;
         
         gmtime_r(&ttime,&tstruct);
         if(seqlog_dir!=NULL) { 
