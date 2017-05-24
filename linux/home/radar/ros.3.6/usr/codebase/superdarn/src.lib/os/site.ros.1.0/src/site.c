@@ -731,8 +731,13 @@ int SiteRosTimeSeq(int *ptab) {
     for (i=0;i<tsgprm.mppul;i++) tsgprm.pat[i]=ptab[i];
 
     tsgbuf=TSGMake(&tsgprm,&flag);
-
-    if (tsgbuf==NULL) return -1;
+    if (flag != 0) {
+        fprintf(stderr,"SiteRosTImeSeq:TSGMake error code %d \n", flag);
+       
+    if (tsgbuf==NULL){
+        fprintf(stderr,"REGISTER_SEQ: not sennding TimeSeq because tsgbuf==NULL. Error code %d \n", flag);
+        return -1;
+    }
     tprm.index=index;
     /*  memcpy(&tprm.buf,tsgbuf,sizeof(struct TSGbuf));*/
     tprm.len=tsgbuf->len;
