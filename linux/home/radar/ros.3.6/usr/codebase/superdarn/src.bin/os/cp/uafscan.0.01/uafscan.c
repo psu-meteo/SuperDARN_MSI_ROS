@@ -79,6 +79,7 @@ int main(int argc,char *argv[]) {
 
   char *libstr=NULL;
   char *verstr=NULL;
+  char *beampattern=NULL;
 
   int status=0,n,i;
   int nerrors=0;
@@ -114,8 +115,8 @@ int main(int argc,char *argv[]) {
   int32_t scan_clrfreq_bandwidth_list[MAX_INTEGRATIONS_PER_SCAN];
   int32_t scan_clrfreq_fstart_list[MAX_INTEGRATIONS_PER_SCAN];
   int32_t scan_beam_number_list[MAX_INTEGRATIONS_PER_SCAN];
-  int32_t periods_per_scan = 0;
-
+  int32_t nBeams_per_scan = 0;
+  int current_beam, iBeam;
 
 /* Pulse sequence Table */
   int ptab[8] = {0,14,22,24,27,31,42,43};
@@ -205,6 +206,7 @@ int main(int argc,char *argv[]) {
   struct arg_str  *as_ststr      = arg_str0(NULL, "stid", NULL,       "The station ID string. For example, use aze for azores east."); /* OptionAdd(&opt,"stid",'t',&ststr); */
   struct arg_str  *as_libstr     = arg_str0(NULL, "lib", NULL,       "The site library string. For example, use ros for for common libsite.ros"); 
   struct arg_str  *as_verstr     = arg_str0(NULL, "version", NULL,   "The site library version string. Defaults to: \"1\" "); 
+  struct arg_str  *as_beampattern= arg_str0(NULL, "beampattern", NULL,   "The beam pattern to use. (normal, themis, interleave)"); 
 
   /* required end argument */
   struct arg_end  *ae_argend     = arg_end(ARG_MAXERRORS);
@@ -212,7 +214,7 @@ int main(int argc,char *argv[]) {
   /* create list of all arguement structs */
   void* argtable[] = {al_help,al_debug,al_test,al_discretion, al_fast, al_nowait, al_onesec, \
                       ai_baud, ai_tau, ai_nrang, ai_frang, ai_rsep, ai_dt, ai_nt, ai_df, ai_nf, ai_fixfrq, ai_xcf, ai_ep, ai_sp, ai_bp, ai_sb, ai_eb, ai_cnum, \
-                      as_ros, as_ststr, as_libstr,as_verstr,ai_clrskip,al_clrscan,ai_cpid,ae_argend};
+                      as_ros, as_ststr, as_libstr,as_verstr,as_beampattern, ai_clrskip,al_clrscan,ai_cpid,ae_argend};
 
 /* END of variable defines */
 
@@ -312,6 +314,15 @@ int main(int argc,char *argv[]) {
   } else {
     verstr = NULL;
   }
+  if(strlen(as_beampattern->sval[0])) {
+    beampattern = malloc((strlen(as_beampattern->sval[0]) + 1) * sizeof(char));
+    strcpy(beampattern, as_beampattern->sval[0]);
+  } else {
+    beampattern = malloc(7 * sizeof(char));
+    strcpy(beampattern, "normal");
+  }
+
+
   printf("Requested :: ststr: %s libstr: %s verstr: %s\n",ststr,libstr,verstr);
 /* This loads Radar Site information from hdw.dat files */
   OpsStart(ststr);
@@ -353,6 +364,43 @@ int main(int argc,char *argv[]) {
   if (ai_eb->count) ebm = ai_eb->ival[0];
   if (ai_cnum->count) cnum = ai_cnum->ival[0];
   if (ai_bp->count) baseport=ai_bp->ival[0];
+
+
+  if (strcmp(beampattern, "normal") == 0) {
+    fprintf(stderr, "Initializing normal beam pattern...\n");
+    nBeams_per_scan = abs(ebm-sbm)+1; 
+    current_beam = sbm;
+    for (iBeam =0; iBeam < nBeams_per_scan; iBeam++){
+      scan_beam_number_list[iBeam] = current_beam;
+      scan_clrfreq_fstart_list[iBeam] = (int32_t) (OpsDayNight() == 1 ? dfrq : nfrq);
+      scan_clrfreq_bandwidth_list[iBeam] = frqrng;
+      printf("sequence %d: beam: %d, fstart: %d, bw: %d\n",iBeam, current_beam, scan_clrfreq_fstart_list[iBeam], scan_clrfreq_bandwidth_list[iBeam]);
+      current_beam += backward ? -1:1;
+    }
+
+  }
+  else if (strcmp(beampattern, "interleave") == 0) {
+     fprintf(stderr, "Initializing interleave beam pattern...\n");
+     fprintf(stderr, "ERROR: Not implemented jet!\n");
+     return -1;
+  }
+  else if (strcmp(beampattern, "themis") == 0) {
+     fprintf(stderr, "Initializing themis beam pattern...\n");
+     fprintf(stderr, "ERROR: Not implemented jet!\n");
+     return -1;
+  }
+  else if (strcmp(beampattern, "rbsp") == 0) {
+     fprintf(stderr, "Initializing normal rbsp pattern...\n");
+     fprintf(stderr, "ERROR: Not implemented jet!\n");
+     return -1;
+  }
+  else  {
+    fprintf(stderr, "ERROR: Unknown beam pattern: %s. (Supported are: normal, interleave or themis)\n", beampattern);
+    return -1;
+   }
+
+
+
 
 /* Open Connection to errorlog */  
   if ((errlog.sock=TCPIPMsgOpen(errlog.host,errlog.port))==-1) {    
@@ -603,29 +651,8 @@ int main(int argc,char *argv[]) {
   printf("Entering Scan loop Station ID: %s  %d\n",ststr,stid);
   do {
 
-    /* prepare data about scan to send to site library */
-    /* necessary because swinging requires knowledge of the scan beams and frequencies .. */
-    n = sbm;
-    i = 0;
-    while(1) {
-      scan_beam_number_list[i] = n;
-      scan_clrfreq_fstart_list[i] = (int32_t) (OpsDayNight() == 1 ? dfrq : nfrq);
-      scan_clrfreq_bandwidth_list[i] = frqrng;
-      printf("sequence %d: beam: %d, fstart: %d, bw: %d\n",i, n, scan_clrfreq_fstart_list[i], scan_clrfreq_bandwidth_list[i]);
-
-      n += backward ? -1 : 1;
-      i++;
-
-      if (backward && n < ebm) {
-        break;
-      }
-      if (!backward && n > ebm) {
-        break;
-      }
-    }
-    periods_per_scan = i;
     /* send scan data to usrp_sever */
-    if (SiteStartScan(periods_per_scan, scan_beam_number_list, scan_clrfreq_fstart_list, scan_clrfreq_bandwidth_list, ai_fixfrq->ival[0]) !=0) continue;
+    if (SiteStartScan(nBeams_per_scan, scan_beam_number_list, scan_clrfreq_fstart_list, scan_clrfreq_bandwidth_list, ai_fixfrq->ival[0]) !=0) continue;
 
 
     if (OpsReOpen(2,0,0) !=0) {
