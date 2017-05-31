@@ -165,9 +165,6 @@ int main(int argc,char *argv[]) {
   /* XCF processing variables */
   int cnt=0;
 
-  /* Variables associated with beam scanning */
-  int beams=0;
-  int skip;
 
   /* create commandline argument structs */
   /* First lets define a help argument */
@@ -263,6 +260,7 @@ int main(int argc,char *argv[]) {
 
   if (nerrors > 0) {
     arg_print_errors(stdout,ae_argend,"uafscan");
+    return -1;
   }
   
   if (argc == 1) {
@@ -348,7 +346,7 @@ int main(int argc,char *argv[]) {
   }
 
 /* load any provided argument values overriding default values provided by SiteStart */ 
-  if (ai_xcf->count) xcnt = ai_xcf->ival[0];
+  if (ai_xcf->count)  xcnt = ai_xcf->ival[0];
   if (ai_baud->count) nbaud = ai_baud->ival[0];
   if (ai_tau->count) mpinc = ai_tau->ival[0];
   if (ai_nrang->count) nrang = ai_nrang->ival[0];
@@ -365,7 +363,7 @@ int main(int argc,char *argv[]) {
   if (ai_cnum->count) cnum = ai_cnum->ival[0];
   if (ai_bp->count) baseport=ai_bp->ival[0];
 
-
+  /* NORMAL beam order */
   if (strcmp(beampattern, "normal") == 0) {
     fprintf(stderr, "Initializing normal beam pattern...\n");
     nBeams_per_scan = abs(ebm-sbm)+1; 
@@ -374,23 +372,41 @@ int main(int argc,char *argv[]) {
       scan_beam_number_list[iBeam] = current_beam;
       scan_clrfreq_fstart_list[iBeam] = (int32_t) (OpsDayNight() == 1 ? dfrq : nfrq);
       scan_clrfreq_bandwidth_list[iBeam] = frqrng;
-      printf("sequence %d: beam: %d, fstart: %d, bw: %d\n",iBeam, current_beam, scan_clrfreq_fstart_list[iBeam], scan_clrfreq_bandwidth_list[iBeam]);
       current_beam += backward ? -1:1;
     }
 
   }
+  /* INTERLEAVE(D) SCAN */
   else if (strcmp(beampattern, "interleave") == 0) {
      fprintf(stderr, "Initializing interleave beam pattern...\n");
-     fprintf(stderr, "ERROR: Not implemented jet!\n");
-     return -1;
+     nBeams_per_scan = 16;
+     int bmse[16] = { 0,4,8,12, 2,6,10,14, 1,5,9,13, 3,7,11,15 };
+     int bmsw[16] = { 15,11,7,3, 13,9,5,1, 14,10,6,2, 12,8,4,0 };
+     int *beampattern2take;
+     if (strcmp(ststr,"kod") == 0) {
+        beampattern2take = bmse;             /* 1-min sequence */
+     } else if (strcmp(ststr,"cvw") == 0) {
+        beampattern2take = bmsw;             /* 1-min sequence */
+     } else {
+       printf("Error: Not intended for station %s\n", ststr);
+       return (-1);
+     }
+    for (iBeam =0; iBeam < nBeams_per_scan; iBeam++){
+      scan_beam_number_list[iBeam] = beampattern2take[iBeam];
+      scan_clrfreq_fstart_list[iBeam] = (int32_t) (OpsDayNight() == 1 ? dfrq : nfrq);
+      scan_clrfreq_bandwidth_list[iBeam] = frqrng;
+    }
   }
+  /* THEMISSCAN  */ 
   else if (strcmp(beampattern, "themis") == 0) {
      fprintf(stderr, "Initializing themis beam pattern...\n");
+     nBeams_per_scan = 0; 
      fprintf(stderr, "ERROR: Not implemented jet!\n");
      return -1;
   }
   else if (strcmp(beampattern, "rbsp") == 0) {
      fprintf(stderr, "Initializing normal rbsp pattern...\n");
+     nBeams_per_scan = 0; 
      fprintf(stderr, "ERROR: Not implemented jet!\n");
      return -1;
   }
@@ -398,6 +414,13 @@ int main(int argc,char *argv[]) {
     fprintf(stderr, "ERROR: Unknown beam pattern: %s. (Supported are: normal, interleave or themis)\n", beampattern);
     return -1;
    }
+
+
+  /* Print out details of beams */ 
+  fprintf(stderr, "Sequence details: \n");
+  for (iBeam =0; iBeam < nBeams_per_scan; iBeam++){
+    fprintf(stderr, "  sequence %2d: beam: %2d, fstart: %5d, bw: %3d\n",iBeam, scan_beam_number_list[iBeam], scan_clrfreq_fstart_list[iBeam], scan_clrfreq_bandwidth_list[iBeam]);
+  }
 
 
 
@@ -429,64 +452,58 @@ int main(int argc,char *argv[]) {
   elapsed_secs=0;
   gettimeofday(&t1,NULL);
   gettimeofday(&t0,NULL);
-
-  /* Set up scan periods and beam integration times */
-  beams=abs(ebm-sbm)+1;
-    
-
-
-
-  if (al_fast->count) {
-    /* If fast option selected use 1 minute scan boundaries */
-    cp=151;
-    intsc=3;
-    intus=500000;
-    scnsc=60;
-    scnus=0;
+  
+  /* FAST option */  
+  if (al_fast->count) {     /* If fast option selected use 1 minute scan boundaries */
+    cp    = 151;
+    intsc = 3;
+    intus = 500000;
+    scnsc = 60;
+    scnus = 0;
     sprintf(modestr," (fast)");
     strncat(progname,modestr,strlen(modestr)+1);
 
-
-  } else {
-    /* If fast option not selected use 2 minute scan boundaries */
-    intsc=7;
-    intus=0;
-    scnsc=120;
-    scnus=0;
+  } else {            /* If fast option not selected use 2 minute scan boundaries */
+    intsc = 7;
+    intus = 0;
+    scnsc = 120;
+    scnus = 0;
   }
-  if (al_onesec->count) {
-    /* If onesec option selected , no longer wait for scan boundaries, activate clear frequency skip option*/
-    cp=152;
-    intsc=1;
-    intus=0;
-    scnsc=beams+4;
-    scnus=0;
+
+  if (al_onesec->count) {    /* If onesec option selected , no longer wait for scan boundaries, activate clear frequency skip option*/
+    cp    = 152;
+    intsc = 1;
+    intus = 0;
+    scnsc = nBeams_per_scan+4;
+    scnus = 0;
     sprintf(modestr," (onesec)");
     strncat(progname,modestr,strlen(modestr)+1);
     al_nowait->count=1;
-    if(ai_clrskip->ival[0] < 0) ai_clrskip->ival[0]=default_clrskip_secs;
+    if(ai_clrskip->ival[0] < 0)
+        ai_clrskip->ival[0]=default_clrskip_secs;
   }
-  if(beams==1) {
-    /* Camping Beam, no longer wait for scan boundaaries, activate clear frequency skip option */
+
+  if (nBeams_per_scan == 1) {       /* Camping Beam, no longer wait for scan boundaries, activate clear frequency skip option */
     sprintf(modestr," (camp)");
     strncat(progname,modestr,strlen(modestr)+1);
-    al_nowait->count=1;
-    if(ai_clrskip->ival[0] < 0) ai_clrskip->ival[0]=default_clrskip_secs;
-    cp=153;
+    al_nowait->count = 1;
+    if(ai_clrskip->ival[0] < 0)
+        ai_clrskip->ival[0] = default_clrskip_secs;
+
+    cp = 153;
     sprintf(logtxt,"uafscan configured for camping beam");
     ErrLog(errlog.sock,progname,logtxt);
     sprintf(logtxt," fast: %d onesec: %d cp: %d clrskip_secs: %d intsc: %d",al_fast->count,al_onesec->count,cp,ai_clrskip->ival[0],intsc);
     ErrLog(errlog.sock,progname,logtxt);
   }
-  if(beams > 16) {
-    /* if number of beams in scan greater than legacy 16, recalculate beam dwell time to avoid over running scan boundary 
-    *  If scan boundary wait is active. 
-    */ 
+
+
+  if(nBeams_per_scan > 16) {  /* if number of beams in scan greater than legacy 16, recalculate beam dwell time to avoid over running scan boundary if scan boundary wait is active. */ 
       if (al_nowait->count==0 && al_onesec->count==0) {
-        total_scan_usecs=(scnsc-3)*1E6+scnus;
-        total_integration_usecs=total_scan_usecs/beams;
-        intsc=total_integration_usecs/1E6;
-        intus=total_integration_usecs -(intsc*1E6);
+        total_scan_usecs = (scnsc-3)*1E6+scnus;
+        total_integration_usecs = total_scan_usecs/nBeams_per_scan;
+        intsc = total_integration_usecs/1E6;
+        intus = total_integration_usecs -(intsc*1E6);
       }
   }
 
@@ -527,9 +544,12 @@ int main(int argc,char *argv[]) {
   }
 
   /* Set special cpid if provided on commandline */
-  if(ai_cpid->count > 0) cp=ai_cpid->ival[0];
+  if(ai_cpid->count > 0) 
+     cp=ai_cpid->ival[0];
+
   /* Set cp to negative value indication discretionary period */
-  if (al_discretion->count) cp= -cp;
+  if (al_discretion->count) 
+     cp= -cp;
 
 
   /* Calculate tx pulse length setting from range separation */
@@ -537,14 +557,12 @@ int main(int argc,char *argv[]) {
 
   /* Attempt to adjust mpinc to be a multiple of 10 and a muliple of txpl */
   if ((mpinc % txpl) || (mpinc % 10))  {
-    sprintf(logtxt,"Error: mpinc not multiple of txpl... checking to see if it can be adjusted");
-    ErrLog(errlog.sock,progname,logtxt);
+    ErrLog(errlog.sock,progname,"Error: mpinc not multiple of txpl... checking to see if it can be adjusted");
     sprintf(logtxt,"Initial: mpinc: %d txpl: %d  nbaud: %d  rsep: %d", mpinc , txpl, nbaud, rsep);
     ErrLog(errlog.sock,progname,logtxt);
     if((txpl % 10)==0) {
 
-      sprintf(logtxt,"Attempting to adjust mpinc to correct");
-      ErrLog(errlog.sock,progname,logtxt);
+      ErrLog(errlog.sock,progname, "Attempting to adjust mpinc to correct");
       if (mpinc < txpl) mpinc=txpl;
       int minus_remain=mpinc % txpl;
       int plus_remain=txpl -(mpinc % txpl);
@@ -560,7 +578,7 @@ int main(int argc,char *argv[]) {
   if ((mpinc % txpl) || (mpinc % 10) || (mpinc==0))  {
      sprintf(logtxt,"Error: mpinc: %d txpl: %d  nbaud: %d  rsep: %d", mpinc , txpl, nbaud, rsep);
      ErrLog(errlog.sock,progname,logtxt);
-     exitpoll=1;
+     exitpoll = 1;
      SiteExit(0);
   }
 
@@ -574,7 +592,7 @@ int main(int argc,char *argv[]) {
     fprintf(stdout,"Scan Sequence Parameters::\n");
     fprintf(stdout,"  txpl: %d mpinc: %d nbaud: %d rsep: %d\n",txpl,mpinc,nbaud,rsep);
     fprintf(stdout,"  intsc: %d intus: %d scnsc: %d scnus: %d nowait: %d\n",intsc,intus,scnsc,scnus,al_nowait->count);
-    fprintf(stdout,"  sbm: %d ebm: %d  beams: %d\n",sbm,ebm,beams);
+    fprintf(stdout,"  sbm: %d ebm: %d  nBeams_per_scan: %d\n",sbm,ebm,nBeams_per_scan);
     
     /* TODO: ADD PARAMETER CHECKING, SEE IF PCODE IS SANE AND WHATNOT */
    if(nbaud >= 1) {
@@ -587,23 +605,24 @@ int main(int argc,char *argv[]) {
         if (tsgbuf !=NULL) TSGFree(tsgbuf);
 
         memset(&tsgprm,0,sizeof(struct TSGprm));   
-        tsgprm.nrang = nrang;
-        tsgprm.frang = frang;
-        tsgprm.rsep = rsep; 
-        tsgprm.smsep = smsep;
-        tsgprm.txpl = txpl;
-        tsgprm.mppul = mppul;
-        tsgprm.mpinc = mpinc;
-        tsgprm.mlag = 0;
-        tsgprm.nbaud = nbaud;
+        tsgprm.nrang   = nrang;
+        tsgprm.frang   = frang;
+        tsgprm.rsep    = rsep; 
+        tsgprm.smsep   = smsep;
+        tsgprm.txpl    = txpl;
+        tsgprm.mppul   = mppul;
+        tsgprm.mpinc   = mpinc;
+        tsgprm.mlag    = 0;
+        tsgprm.nbaud   = nbaud;
         tsgprm.stdelay = 18 + 2;
-        tsgprm.gort = 1;
+        tsgprm.gort    = 1;
         tsgprm.rtoxmin = 0;
 
-        tsgprm.pat = malloc(sizeof(int)*mppul);
+        tsgprm.pat  = malloc(sizeof(int)*mppul);
         tsgprm.code = ptab;
 
-        for (i=0;i<tsgprm.mppul;i++) tsgprm.pat[i]=ptab[i];
+        for (i=0;i<tsgprm.mppul;i++) 
+           tsgprm.pat[i]=ptab[i];
 
         tsgbuf=TSGMake(&tsgprm,&flag);
         fprintf(stdout,"Sequence Parameters::\n");
@@ -631,11 +650,11 @@ int main(int argc,char *argv[]) {
     fprintf(stdout,"Test option enabled, exiting\n");
     return 0;
   }
-  /* SiteSetupRadar, establish connection to ROS server and do initial setup of memory buffers for raw samples */
+  /* SiteSetupRadar, establish connection to usrp_server and do initial setup of memory buffers for raw samples */
   printf("Running SiteSetupRadar Station ID: %s  %d\n",ststr,stid);
   status=SiteSetupRadar();
   if (status !=0) {
-    ErrLog(errlog.sock,progname,"Error locating hardware.");
+    ErrLog(errlog.sock,progname,"Error connection to usrp_server.");
     exit (1);
   }
 
@@ -672,32 +691,14 @@ int main(int argc,char *argv[]) {
       } else xcf=0;
     } else xcf=0;
 
+    /*   */ 
     if(al_nowait->count==0) 
-       skip = OpsFindSkip(scnsc,scnus);
+       iBeam = OpsFindSkip(scnsc,scnus);
     else 
-       skip = 0;
-   
-    iBeam = skip;
-/* DEL
-    if (backward) {
-      bmnum=sbm-skip;
-      if (bmnum<ebm) bmnum=sbm;
-    } else {
-      bmnum=sbm+skip;
-      if (bmnum>ebm) bmnum=sbm;
-    }
-*/    
+       iBeam = 0;
+
     /* Loop for sequences/beams  */
     do {  
-/* DEL
-      if (backward) {
-        if (bmnum>sbm) bmnum=sbm;
-        if (bmnum<ebm) bmnum=ebm;
-      } else {
-        if (bmnum<sbm) bmnum=sbm;
-        if (bmnum>ebm) bmnum=ebm;
-      }
-*/
       bmnum = scan_beam_number_list[iBeam];
 
       TimeReadClock(&yr,&mo,&dy,&hr,&mt,&sc,&us);
@@ -798,11 +799,6 @@ int main(int argc,char *argv[]) {
       if (exitpoll !=0) break;
       scan=0;
 
-      /* DEL 
-      if (bmnum==ebm) break;
-      if (backward) bmnum--;
-      else bmnum++;
-*/
       iBeam++;
       if (iBeam >= nBeams_per_scan) break;
 
