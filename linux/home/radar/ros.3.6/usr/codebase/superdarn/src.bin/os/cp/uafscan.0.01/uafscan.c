@@ -532,12 +532,10 @@ int main(int argc,char *argv[]) {
   if (al_discretion->count) cp= -cp;
 
 
-  /* Calculate txpl setting from rsep */
-
-  txpl=(nbaud*rsep*20)/3;
+  /* Calculate tx pulse length setting from range separation */
+  txpl = (nbaud*rsep*20)/3;
 
   /* Attempt to adjust mpinc to be a multiple of 10 and a muliple of txpl */
-
   if ((mpinc % txpl) || (mpinc % 10))  {
     sprintf(logtxt,"Error: mpinc not multiple of txpl... checking to see if it can be adjusted");
     ErrLog(errlog.sock,progname,logtxt);
@@ -674,9 +672,13 @@ int main(int argc,char *argv[]) {
       } else xcf=0;
     } else xcf=0;
 
-    if(al_nowait->count==0) skip=OpsFindSkip(scnsc,scnus);
-    else skip=0;
-
+    if(al_nowait->count==0) 
+       skip = OpsFindSkip(scnsc,scnus);
+    else 
+       skip = 0;
+   
+    iBeam = skip;
+/* DEL
     if (backward) {
       bmnum=sbm-skip;
       if (bmnum<ebm) bmnum=sbm;
@@ -684,8 +686,10 @@ int main(int argc,char *argv[]) {
       bmnum=sbm+skip;
       if (bmnum>ebm) bmnum=sbm;
     }
-
-    do {
+*/    
+    /* Loop for sequences/beams  */
+    do {  
+/* DEL
       if (backward) {
         if (bmnum>sbm) bmnum=sbm;
         if (bmnum<ebm) bmnum=ebm;
@@ -693,9 +697,11 @@ int main(int argc,char *argv[]) {
         if (bmnum<sbm) bmnum=sbm;
         if (bmnum>ebm) bmnum=ebm;
       }
+*/
+      bmnum = scan_beam_number_list[iBeam];
 
       TimeReadClock(&yr,&mo,&dy,&hr,&mt,&sc,&us);
-/* TODO: JDS: You can not make any day night changes that impact TR gate timing at dual site locations. Care must be taken with day night operation*/      
+      /* TODO: JDS: You can not make any day night changes that impact TR gate timing at dual site locations. Care must be taken with day night operation*/      
       if (OpsDayNight()==1) {
         stfrq=dfrq;
       } else {
@@ -712,8 +718,7 @@ int main(int argc,char *argv[]) {
               rsep,mpinc,sbm,ebm,nrang,nbaud,al_nowait->count,ai_clrskip->ival[0],al_clrscan->count,cp);
       ErrLog(errlog.sock,progname,logtxt);
 
-      sprintf(logtxt,"Integrating beam:%d intt:%ds.%dus (%d:%d:%d:%d)",bmnum,
-                      intsc,intus,hr,mt,sc,us);
+      sprintf(logtxt,"Integrating beam:%d intt:%ds.%dus (%d:%d:%d:%d)",bmnum, intsc,intus,hr,mt,sc,us);
       ErrLog(errlog.sock,progname,logtxt);
             
       printf("Entering Site Start Intt Station ID: %s  %d\n",ststr,stid);
@@ -792,9 +797,15 @@ int main(int argc,char *argv[]) {
       }          
       if (exitpoll !=0) break;
       scan=0;
+
+      /* DEL 
       if (bmnum==ebm) break;
       if (backward) bmnum--;
       else bmnum++;
+*/
+      iBeam++;
+      if (iBeam >= nBeams_per_scan) break;
+
     } while (1);
 
     if ((exitpoll==0) && (al_nowait->count==0)) {
