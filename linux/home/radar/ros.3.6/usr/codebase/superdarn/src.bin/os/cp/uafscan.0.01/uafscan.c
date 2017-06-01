@@ -33,6 +33,7 @@
 #include <sys/time.h>
 #include <argtable2.h>
 #include <zlib.h>
+#include <math.h>
 
 /* Includes provided by the RST */ 
 #include "rtypes.h"
@@ -117,6 +118,7 @@ int main(int argc,char *argv[]) {
   int32_t scan_beam_number_list[MAX_INTEGRATIONS_PER_SCAN];
   int32_t nBeams_per_scan = 0;
   int current_beam, iBeam;
+  int sync_scan;
 
 /* Pulse sequence Table */
   int ptab[8] = {0,14,22,24,27,31,42,43};
@@ -165,6 +167,8 @@ int main(int argc,char *argv[]) {
   /* XCF processing variables */
   int cnt=0;
 
+  /* time sync of integration periods/ beams */
+  int syncPeriods = 0;  
 
   /* create commandline argument structs */
   /* First lets define a help argument */
@@ -194,9 +198,13 @@ int main(int argc,char *argv[]) {
   struct arg_int  *ai_bp         = arg_int0(NULL, "bp", NULL,"Local TCP port for start of support task proccesses"); /*OptionAdd(&opt,"bp",'i',&baseport); */
   struct arg_int  *ai_sb         = arg_int0(NULL, "sb", NULL,"Limits the minimum beam to the given value."); /*OptionAdd(&opt,"sb",'i',&sbm); */
   struct arg_int  *ai_eb         = arg_int0(NULL, "eb", NULL,"Limits the maximum beam number to the given value."); /*OptionAdd(&opt,"eb",'i',&ebm); */
-  struct arg_int  *ai_cnum       = arg_int0("c", "cnum", NULL,"Radar Channel number, minimum value 1"); /*OptionAdd(&opt,"c",'i',&cnum); */
+  struct arg_int  *ai_camp       = arg_int0(NULL, "camp",NULL,"Camping on one beam (camp overwrites sb and eb), or camping beam for themisscan beam pattern."); 
+  struct arg_int  *ai_cnum       = arg_int0("c",  "cnum", NULL,"Radar Channel number, minimum value 1"); /*OptionAdd(&opt,"c",'i',&cnum); */
   struct arg_int  *ai_clrskip    = arg_int0(NULL, "clrskip",NULL,"Minimum number of seconds to skip between clear frequency search"); /*OptionAdd(&opt, "clrskip", 'i', &clrskip_secs); */
   struct arg_int  *ai_cpid       = arg_int0(NULL, "cpid",NULL,"Select control program ID number"); /*OptionAdd(&opt, "cpid", 'i', &cpid); */
+  struct arg_int  *ai_meribm     = arg_int0(NULL, "meribm", NULL, "Only used for RBSP scan: meridional beam");
+  struct arg_int  *ai_westbm     = arg_int0(NULL, "westbm", NULL, "Only used for RBSP scan: west beam");
+  struct arg_int  *ai_eastbm     = arg_int0(NULL, "eastbm", NULL, "Only used for RBSP scan: east beam");
 
   /* Now lets define the string valued arguments */
   struct arg_str  *as_ros        = arg_str0(NULL, "ros", NULL,        "IP address of ROS server process"); /* OptionAdd(&opt,"ros",'t',&roshost); */
@@ -210,8 +218,8 @@ int main(int argc,char *argv[]) {
 
   /* create list of all arguement structs */
   void* argtable[] = {al_help,al_debug,al_test,al_discretion, al_fast, al_nowait, al_onesec, \
-                      ai_baud, ai_tau, ai_nrang, ai_frang, ai_rsep, ai_dt, ai_nt, ai_df, ai_nf, ai_fixfrq, ai_xcf, ai_ep, ai_sp, ai_bp, ai_sb, ai_eb, ai_cnum, \
-                      as_ros, as_ststr, as_libstr,as_verstr,as_beampattern, ai_clrskip,al_clrscan,ai_cpid,ae_argend};
+                      ai_baud, ai_tau, ai_nrang, ai_frang, ai_rsep, ai_dt, ai_nt, ai_df, ai_nf, ai_fixfrq, ai_xcf, ai_ep, ai_sp, ai_bp, ai_sb, ai_eb, ai_camp, ai_cnum, \
+                      as_ros, as_ststr, as_libstr,as_verstr,as_beampattern, ai_clrskip,al_clrscan,ai_cpid, ai_meribm, ai_eastbm, ai_westbm, ae_argend};
 
 /* END of variable defines */
 
@@ -265,12 +273,14 @@ int main(int argc,char *argv[]) {
   
   if (argc == 1) {
     printf("No arguements found, try running %s with --help for more information.\n", progid);
+    return -1;
   }
 
+  /* print help */
   if(al_help->count > 0) {
-    printf("Usage: %s", progid);
+    printf("UAFSCAN: One control program to emulate the behaviour of all control programs.\n Supported modes: ... \n\n");
+    printf(" Usage: %s", progid);
     arg_print_syntax(stdout,argtable,"\n");
-    /* TODO: Add other useful help text describing the purpose of uafscan here */
     arg_print_glossary(stdout,argtable,"  %-25s %s\n");
     arg_freetable(argtable, sizeof(argtable)/sizeof(argtable[0]));
     return 0;
@@ -325,9 +335,7 @@ int main(int argc,char *argv[]) {
 /* This loads Radar Site information from hdw.dat files */
   OpsStart(ststr);
 
-/* This loads Site library via dlopen and maps:
- * site library specific functions into Site name space
-*/
+/* This loads Site library via dlopen and maps: site library specific functions into Site name space */
   status=SiteBuild(libstr,verstr); /* second argument is version string */
   if (status==-1) {
     fprintf(stderr,"Could not load requested site library\n");
@@ -363,19 +371,28 @@ int main(int argc,char *argv[]) {
   if (ai_cnum->count) cnum = ai_cnum->ival[0];
   if (ai_bp->count) baseport=ai_bp->ival[0];
 
-  /* NORMAL beam order */
+ /* ========= SET PARAMETER TO EMULATE OTHER CONTROL PROGRAMS ============= */
+
+  /* NORMAL beam order  or CAMPING one one beam */
   if (strcmp(beampattern, "normal") == 0) {
-    fprintf(stderr, "Initializing normal beam pattern...\n");
-    nBeams_per_scan = abs(ebm-sbm)+1; 
-    current_beam = sbm;
+    if (ai_camp->count) {
+       fprintf(stderr, "Initializing one camping beam...\n");
+       nBeams_per_scan = 1; 
+       current_beam = ai_camp->ival[0];
+    }
+    else {  
+       fprintf(stderr, "Initializing normal beam pattern...\n");
+       nBeams_per_scan = abs(ebm-sbm)+1; 
+       current_beam = sbm;
+    }
     for (iBeam =0; iBeam < nBeams_per_scan; iBeam++){
       scan_beam_number_list[iBeam] = current_beam;
-      scan_clrfreq_fstart_list[iBeam] = (int32_t) (OpsDayNight() == 1 ? dfrq : nfrq);
+      scan_clrfreq_fstart_list[iBeam] = (int32_t) (OpsDayNight() == 1 ? dfrq : nfrq); /* TODO move all DayNight stuff in main loop, since this here will never change!*/
       scan_clrfreq_bandwidth_list[iBeam] = frqrng;
       current_beam += backward ? -1:1;
     }
-
   }
+
   /* INTERLEAVE(D) SCAN */
   else if (strcmp(beampattern, "interleave") == 0) {
      fprintf(stderr, "Initializing interleave beam pattern...\n");
@@ -397,18 +414,177 @@ int main(int argc,char *argv[]) {
       scan_clrfreq_bandwidth_list[iBeam] = frqrng;
     }
   }
+
   /* THEMISSCAN  */ 
   else if (strcmp(beampattern, "themis") == 0) {
      fprintf(stderr, "Initializing themis beam pattern...\n");
-     nBeams_per_scan = 0; 
-     fprintf(stderr, "ERROR: Not implemented jet!\n");
-     return -1;
+     nBeams_per_scan = 38;
+     int camping_beam= 7; /* Default Camping Beam */
+
+     if (ai_camp->count) 
+        camping_beam = ai_camp->ival[0];
+     
+
+     /* Second within the 2min interval at which this beam is supposed to start */
+     int scan_times[ 38]=     {
+       0,   3,   6,   9,  12,  15,  18,  21,  24,  27,  30,  33,  36,  39,  42,
+      45,  48,  51,  54,  60,  63,  66,  69,  72,  75,  78,  81,  84,  87,  90,
+      93,  96,  99, 102, 105, 108, 111, 114 };
+     sync_scan = 1;
+
+     /* beams for forward and backward scanning radars; 
+      *   -1 will be replaced by the selected camping beam */
+     int forward_beams[ 38]=  {
+       0,  -1,   1,  -1,   2,  -1,   3,  -1,   4,  -1,   5,  -1,   6,  -1,   7,
+      -1,   8,  -1,   9,  -1,  10,  -1,  11,  -1,  12,  -1,  13,  -1,  14,  -1,
+      15,  -1,  -1,  -1,  -1,  -1,  -1,  -1 };
+     int backward_beams[ 38]= {
+      15,  -1,  14,  -1,  13,  -1,  12,  -1,  11,  -1,  10,  -1,   9,  -1,   8,
+      -1,   7,  -1,   6,  -1,   5,  -1,   4,  -1,   3,  -1,   2,  -1,   1,  -1,
+       0,  -1,  -1,  -1,  -1,  -1,  -1,  -1 };
+     
+     int *beampattern2take;
+     if (backward) 
+        beampattern2take = backward_beams;
+     else
+        beampattern2take = forward_beams;
+
+     for (iBeam =0; iBeam < nBeams_per_scan; iBeam++){
+        if (beampattern2take[iBeam] == -1)
+            scan_beam_number_list[iBeam] = camping_beam;
+        else
+            scan_beam_number_list[iBeam] = beampattern2take[iBeam];
+        scan_clrfreq_fstart_list[iBeam] = (int32_t) (OpsDayNight() == 1 ? dfrq : nfrq);
+        scan_clrfreq_bandwidth_list[iBeam] = frqrng;
+     }
+
   }
-  else if (strcmp(beampattern, "rbsp") == 0) {
+  /* RPSP Scan */
+  else if (strcmp(beampattern, "rbsp") == 0) { 
+  /* Code is copied from:
+        rbspscan.c   Author: Kevin Sterne  
+        This code uses the 'Option 2' beam progression in which the west, meridional, and east beams are skipped in the regular field 
+        of view scan.  As a bit of a trick, the beam progression goes for a forward radar:
+                westbm, fovbm, meribm, eastbm, fovbm, fovbm, westbm, fovbm, meribm, eastbm, fovbm, fovbm, westbm, ...
+        It was noticed that this kind of pattern still allows for 5 repetitions of the mini-scan beams for the traditional 16 beams radars.
+        This code also does not synchronize the start of the beam sounding to an integer time interval.  
+       
+        This code is largely based off of the themisscan.c RCP.  The credits for this go to:  Author: J.Spaleta  With Modifications by M. McClorey
+  */
+
      fprintf(stderr, "Initializing normal rbsp pattern...\n");
-     nBeams_per_scan = 0; 
-     fprintf(stderr, "ERROR: Not implemented jet!\n");
-     return -1;
+
+     cp=200;                 /* Semi-official cpid for rbspscan as of 26Oct2012 -KTS */
+     scnsc = 120;
+     scnus = 0;
+     intsc=3;
+     intus=200000;
+     mppul=8;
+     mplgs=23;
+     mpinc=1500;
+     dmpinc=1500;
+     nrang=100;
+     rsep=45;
+
+     /* new variables for dynamically creating beam sequences */
+     int isecond, ithird, tempF, tempB;                     /* used in beam progression */
+     int *fbms;                                              /* forward  scanning beams */
+     int *bbms;                                              /* backward scanning beams */
+     int meribm=10;                                          /* meridional beam */
+     int westbm=9;                                           /* west beam */
+     int eastbm=11;                                          /* east beam */
+
+     if (ai_meribm->count) meribm = ai_meribm->ival[0];
+     if (ai_westbm->count) westbm = ai_westbm->ival[0];
+     if (ai_eastbm->count) eastbm = ai_eastbm->ival[0];
+
+     /* number of integration periods possible in scan time. basing this off of intsc and intus to reflect the integration
+        used by the radar -KTS 25Sept2012 */
+     nBeams_per_scan = floor((scnsc+scnus*1e-6)/(intsc+(intus*1e-6)));
+
+     /* Makes sure there is an equal number of miniscan beams */
+     /* Taking one off for buffer at the end of the scan */
+     nBeams_per_scan = nBeams_per_scan - nBeams_per_scan%6 - 1;
+
+     /* arrays for integration start times and beam sequences */
+ /*     intgt = (int *)malloc(nBeams_per_scan*sizeof(int));*/
+     fbms  = (int *)malloc(nBeams_per_scan*sizeof(int));
+     bbms  = (int *)malloc(nBeams_per_scan*sizeof(int));
+
+     /* If backward is set for West radar, start and end beams need to be reversed for the beam assigning code that follows until "End of Dartmouth Mods".  Usual SuperDARN
+      * logic follows that for West radars sbm >= ebm and East radars sbm <= ebm. However, the code below for assigning the beam number arrays, fbms & bbms,
+      * does not follow usual SuperDARN logic and always assumes sbm <= ebm.  -KTS 2/20/2012 */
+     if (backward == 1) {
+             i = sbm;
+             sbm = ebm;
+             ebm = i;
+     }
+
+     /* Creating beam progression arrays fbms and bbms. ASSUMES that forward scan radars will use west beam first,
+      * and backward scan radars will use east beam first.  -KTS 09Oct2012 */
+
+     tempB = ebm;
+     tempF = sbm;
+     for(i = 0; i<nBeams_per_scan; i++){
+             isecond = (i-2)%6;
+             ithird  = (i-3)%6;
+             /* Every 0th, 6th, 12th, etc sounding is a mini-scan beam */
+             if(i%6 == 0) {
+                     fbms[i] = westbm;
+                     bbms[i] = eastbm;
+             /* Every 6th sounding starting with 2 is a mini-scan beam */
+             } else if (isecond == 0) {
+                     fbms[i] = meribm;
+                     bbms[i] = meribm;
+             /* Every 6th sounding starting with 3 is a mini-scan beam */
+             } else if (ithird == 0) {
+                     fbms[i] = eastbm;
+                     bbms[i] = westbm;
+             } else if (tempF<=ebm) {
+
+                     /* Here is where mini-scan beams are skipped in the FoV scan.  The logic works out that if a 
+                      start or end beam is in the mini-scan, then it must be treated differently.  -KTS 10Oct2012 */
+
+
+             /* If tempF is any of the mini-scan beams, then increment it again */
+                     if (tempF == westbm)
+                             tempF++;
+                     if (tempF == meribm)
+                             tempF++;
+                     if (tempF == eastbm)
+                             tempF++;
+                     fbms[i] = tempF;
+                     tempF++;
+
+             /* If tempB is any of the mini-scan beams, then decrement it again */
+                     if (tempB == eastbm)
+                             tempB--;
+                     if (tempB == meribm)
+                             tempB--;
+                     if (tempB == westbm)
+                             tempB--;
+                     bbms[i] = tempB;
+                     tempB--;
+
+             } else {
+            /* In case the calculation earlier gets messed up, set the beam number to something useful.  Otherwise, leaving the array value unassigned can be bad!!! -KTS 31Oct2012 */
+                     bbms[i] = 7;
+                     fbms[i] = 7;
+             }
+     }
+
+     int *beampattern2take;
+     if (backward) 
+        beampattern2take = bbms;
+     else
+        beampattern2take = fbms;
+
+     for (iBeam =0; iBeam < nBeams_per_scan; iBeam++){
+        scan_beam_number_list[iBeam]    = beampattern2take[iBeam];
+        scan_clrfreq_fstart_list[iBeam] = (int32_t) (OpsDayNight() == 1 ? dfrq : nfrq);
+        scan_clrfreq_bandwidth_list[iBeam] = frqrng;
+     }
+
   }
   else  {
     fprintf(stderr, "ERROR: Unknown beam pattern: %s. (Supported are: normal, interleave or themis)\n", beampattern);
@@ -667,8 +843,14 @@ int main(int argc,char *argv[]) {
 
   printf("Entering Scan loop Station ID: %s  %d\n",ststr,stid);
   do {
+    /* reset clearfreq paramaters, in case daytime changed */
+    for (iBeam =0; iBeam < nBeams_per_scan; iBeam++){
+      scan_clrfreq_fstart_list[iBeam] = (int32_t) (OpsDayNight() == 1 ? dfrq : nfrq); 
+      scan_clrfreq_bandwidth_list[iBeam] = frqrng;
+      current_beam += backward ? -1:1;
+    }
 
-    /* send scan data to usrp_sever */
+    /* send stan data to usrp_sever */
     if (SiteStartScan(nBeams_per_scan, scan_beam_number_list, scan_clrfreq_fstart_list, scan_clrfreq_bandwidth_list, ai_fixfrq->ival[0]) !=0) continue;
 
 
@@ -691,23 +873,21 @@ int main(int argc,char *argv[]) {
       } else xcf=0;
     } else xcf=0;
 
-    /*   */ 
+
+    /* Set iBeam for scan loop  */ 
     if(al_nowait->count==0) 
        iBeam = OpsFindSkip(scnsc,scnus);
     else 
        iBeam = 0;
 
-    /* Loop for sequences/beams  */
+    /* Scan loop for sequences/beams  */
     do {  
       bmnum = scan_beam_number_list[iBeam];
 
       TimeReadClock(&yr,&mo,&dy,&hr,&mt,&sc,&us);
       /* TODO: JDS: You can not make any day night changes that impact TR gate timing at dual site locations. Care must be taken with day night operation*/      
-      if (OpsDayNight()==1) {
-        stfrq=dfrq;
-      } else {
-        stfrq=nfrq;
-      }        
+      
+      stfrq = scan_clrfreq_fstart_list[iBeam];
       if(ai_fixfrq->ival[0]>0) {
         stfrq=ai_fixfrq->ival[0];
         tfreq=ai_fixfrq->ival[0];
@@ -726,19 +906,18 @@ int main(int argc,char *argv[]) {
       SiteStartIntt(intsc,intus);
       gettimeofday(&t1,NULL);
       elapsed_secs=t1.tv_sec-t0.tv_sec;
-      if(elapsed_secs<0) elapsed_secs=0;
-      if((elapsed_secs >= ai_clrskip->ival[0])||(startup==1)) {
-        startup=0;
-        ErrLog(errlog.sock,progname,"Doing clear frequency search.");
-
-        sprintf(logtxt, "FRQ: %d %d", stfrq, frqrng);
-        ErrLog(errlog.sock,progname, logtxt);
-
-        if(ai_fixfrq->ival[0]<=0) {
-          tfreq=SiteFCLR(stfrq,stfrq+frqrng);
-        }
-        t0.tv_sec=t1.tv_sec;
-        t0.tv_usec=t1.tv_usec;
+      if (elapsed_secs<0) elapsed_secs=0;
+      if ((elapsed_secs >= ai_clrskip->ival[0]) || (startup==1)) {
+          startup = 0;
+          ErrLog(errlog.sock,progname,"Doing clear frequency search.");  
+          sprintf(logtxt, "FRQ: %d %d", stfrq, frqrng);
+          ErrLog(errlog.sock,progname, logtxt);
+  
+          if (ai_fixfrq->ival[0]<=0) {
+              tfreq=SiteFCLR(stfrq,stfrq+frqrng);
+          }
+          t0.tv_sec  = t1.tv_sec;
+          t0.tv_usec = t1.tv_usec;
       }
       sprintf(logtxt,"Transmitting on: %d (Noise=%g)",tfreq,noise);
       ErrLog(errlog.sock,progname,logtxt);
@@ -752,29 +931,23 @@ int main(int argc,char *argv[]) {
       sprintf(logtxt,"Number of sequences: %d",nave);
       ErrLog(errlog.sock,progname,logtxt);
 
-      OpsBuildPrm(prm,ptab,lags);
-      
+      /* Processing and sending data */ 
+      OpsBuildPrm(prm,ptab,lags);    
       OpsBuildIQ(iq,&badtr);
-            
       OpsBuildRaw(raw);
-       
       FitACF(prm,raw,fblk,fit);
       
-      msg.num=0;
-      msg.tsize=0;
+      msg.num   = 0;
+      msg.tsize = 0;
 
-      tmpbuf=RadarParmFlatten(prm,&tmpsze);
-      RMsgSndAdd(&msg,tmpsze,tmpbuf,
-		PRM_TYPE,0); 
+      tmpbuf = RadarParmFlatten(prm,&tmpsze);
+      RMsgSndAdd(&msg, tmpsze, tmpbuf, PRM_TYPE, 0); 
 
-      tmpbuf=IQFlatten(iq,prm->nave,&tmpsze);
+      tmpbuf=IQFlatten(iq, prm->nave, &tmpsze);
       RMsgSndAdd(&msg,tmpsze,tmpbuf,IQ_TYPE,0);
 
-      RMsgSndAdd(&msg,sizeof(unsigned int)*2*iq->tbadtr,
-                 (unsigned char *) badtr,BADTR_TYPE,0);
-		 
-      RMsgSndAdd(&msg,strlen(sharedmemory)+1,(unsigned char *) sharedmemory,
-		 IQS_TYPE,0);
+      RMsgSndAdd(&msg, sizeof(unsigned int)*2*iq->tbadtr, (unsigned char *) badtr, BADTR_TYPE, 0);
+      RMsgSndAdd(&msg, strlen(sharedmemory)+1, (unsigned char *) sharedmemory, IQS_TYPE, 0);
 
       tmpbuf=RawFlatten(raw,prm->nrang,prm->mplgs,&tmpsze);
       RMsgSndAdd(&msg,tmpsze,tmpbuf,RAW_TYPE,0); 
@@ -782,22 +955,20 @@ int main(int argc,char *argv[]) {
       tmpbuf=FitFlatten(fit,prm->nrang,&tmpsze);
       RMsgSndAdd(&msg,tmpsze,tmpbuf,FIT_TYPE,0); 
 
-        
-      RMsgSndAdd(&msg,strlen(progname)+1,(unsigned char *) progname,
-		NME_TYPE,0);   
+      RMsgSndAdd(&msg,strlen(progname)+1,(unsigned char *) progname, NME_TYPE,0);   
      
-
      
       for (n=0;n<tnum;n++) RMsgSndSend(task[n].sock,&msg); 
 
       for (n=0;n<msg.num;n++) {
         if (msg.data[n].type==PRM_TYPE) free(msg.ptr[n]);
-        if (msg.data[n].type==IQ_TYPE) free(msg.ptr[n]);
+        if (msg.data[n].type==IQ_TYPE)  free(msg.ptr[n]);
         if (msg.data[n].type==RAW_TYPE) free(msg.ptr[n]);
         if (msg.data[n].type==FIT_TYPE) free(msg.ptr[n]); 
       }          
+
       if (exitpoll !=0) break;
-      scan=0;
+      scan = 0;
 
       iBeam++;
       if (iBeam >= nBeams_per_scan) break;
