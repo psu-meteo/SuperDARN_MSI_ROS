@@ -119,6 +119,7 @@ int main(int argc,char *argv[]) {
   int32_t nBeams_per_scan = 0;
   int current_beam, iBeam;
 
+  /* time sync of integration periods/ beams */
   int sync_scan;
   int time_now,  time_to_wait; /* times in ms for period synchronization */
   int *scan_times;  /* scan times in ms */
@@ -169,9 +170,6 @@ int main(int argc,char *argv[]) {
 
   /* XCF processing variables */
   int cnt=0;
-
-  /* time sync of integration periods/ beams */
-  int syncPeriods = 0;  
 
   /* create commandline argument structs */
   /* First lets define a help argument */
@@ -464,7 +462,7 @@ int main(int argc,char *argv[]) {
      int bmse[16] = { 0,4,8,12, 2,6,10,14, 1,5,9,13, 3,7,11,15 };
      int bmsw[16] = { 15,11,7,3, 13,9,5,1, 14,10,6,2, 12,8,4,0 };
      int *beampattern2take;
-     if (strcmp(ststr,"kod") == 0) {
+     if (strcmp(ststr,"mcm") == 0) {  /* TODO change back to kod */
         beampattern2take = bmse;             /* 1-min sequence */
      } else if (strcmp(ststr,"cvw") == 0) {
         beampattern2take = bmsw;             /* 1-min sequence */
@@ -668,7 +666,7 @@ int main(int argc,char *argv[]) {
   /* Print out details of beams */ 
   fprintf(stderr, "Sequence details: \n");
   for (iBeam =0; iBeam < nBeams_per_scan; iBeam++){
-    fprintf(stderr, "  sequence %2d: beam: %2d, fstart: %5d, bw: %3d\n",iBeam, scan_beam_number_list[iBeam], scan_clrfreq_fstart_list[iBeam], scan_clrfreq_bandwidth_list[iBeam]);
+    fprintf(stderr, "  sequence %2d: beam: %2d, \n",iBeam, scan_beam_number_list[iBeam] );
   }
 
 
@@ -920,7 +918,7 @@ int main(int argc,char *argv[]) {
       /* SYNC periods/beams */
       if (sync_scan) {
           time_now     = ( (mt*60 + sc)*1000 + us/1000 ) % (scnsc*1000 + scnus/1000);
-          time_to_wait = scan_times[iBeam]*1000 - time_now;
+          time_to_wait = scan_times[iBeam] - time_now;
           if (time_to_wait > 0){
              printf("Sync periods: Waiting for %d ms ...", time_to_wait);
              usleep(time_to_wait);
