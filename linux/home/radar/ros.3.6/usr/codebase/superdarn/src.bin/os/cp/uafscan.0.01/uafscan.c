@@ -209,9 +209,9 @@ int main(int argc,char *argv[]) {
   /* Now lets define the string valued arguments */
   struct arg_str  *as_ros        = arg_str0(NULL, "ros", NULL,        "IP address of ROS server process"); /* OptionAdd(&opt,"ros",'t',&roshost); */
   struct arg_str  *as_ststr      = arg_str0(NULL, "stid", NULL,       "The station ID string. For example, use aze for azores east."); /* OptionAdd(&opt,"stid",'t',&ststr); */
-  struct arg_str  *as_libstr     = arg_str0(NULL, "lib", NULL,       "The site library string. For example, use ros for for common libsite.ros"); 
-  struct arg_str  *as_verstr     = arg_str0(NULL, "version", NULL,   "The site library version string. Defaults to: \"1\" "); 
-  struct arg_str  *as_beampattern= arg_str0(NULL, "beampattern", NULL,   "The beam pattern to use. (normal, themis, interleave)"); 
+  struct arg_str  *as_libstr     = arg_str0(NULL, "lib", NULL,        "The site library string. For example, use ros for for common libsite.ros"); 
+  struct arg_str  *as_verstr     = arg_str0(NULL, "version", NULL,    "The site library version string. Defaults to: \"1\" "); 
+  struct arg_str  *as_beampattern= arg_str0(NULL, "beampattern", NULL,"The beam pattern to use. (normal, themis, interleave, rbsp)"); 
 
   /* required end argument */
   struct arg_end  *ae_argend     = arg_end(ARG_MAXERRORS);
@@ -224,17 +224,17 @@ int main(int argc,char *argv[]) {
 /* END of variable defines */
 
 /* Set default values of globally defined variables here*/
-  cp=150;
-  intsc=7;
-  intus=0;
-  mppul=8;
-  mplgs=23;
-  mpinc=1500;
-  dmpinc=1500;
-  nrang=75;
-  rsep=45;
-  txpl=300;
-  nbaud=1;
+  cp     = 9000;    /*unused Alaska cpid, will be reset below  */
+  intsc  = 7;
+  intus  = 0;
+  mppul  = 8;
+  mplgs  = 23;
+  mpinc  = 1500;
+  dmpinc = 1500;
+  nrang  = 75;
+  rsep   = 45;
+  txpl   = 300;
+  nbaud  = 1;
 
 /* Set default values for all the cmdline options */
   al_discretion->count = 0;
@@ -375,27 +375,86 @@ int main(int argc,char *argv[]) {
 
   /* NORMAL beam order  or CAMPING one one beam */
   if (strcmp(beampattern, "normal") == 0) {
-    if (ai_camp->count) {
-       fprintf(stderr, "Initializing one camping beam...\n");
-       nBeams_per_scan = 1; 
-       current_beam = ai_camp->ival[0];
-    }
-    else {  
-       fprintf(stderr, "Initializing normal beam pattern...\n");
-       nBeams_per_scan = abs(ebm-sbm)+1; 
-       current_beam = sbm;
-    }
-    for (iBeam =0; iBeam < nBeams_per_scan; iBeam++){
-      scan_beam_number_list[iBeam] = current_beam;
-      scan_clrfreq_fstart_list[iBeam] = (int32_t) (OpsDayNight() == 1 ? dfrq : nfrq); /* TODO move all DayNight stuff in main loop, since this here will never change!*/
-      scan_clrfreq_bandwidth_list[iBeam] = frqrng;
-      current_beam += backward ? -1:1;
-    }
+      fprintf(stderr, "Initializing normal beam pattern...\n");
+      nBeams_per_scan = abs(ebm-sbm)+1;
+      current_beam = sbm;
+
+      /* defaults for normalscan, adjusted   */  
+      cp=150;
+      scnsc = 120;
+      scnus = 0;
+      intsc=7;
+      intus=0;
+
+      nrang=75;
+      rsep=45;
+      txpl=300;
+      nbaud=1;
+ 
+      /* FAST option */  
+      if (al_fast->count) {     /* If fast option selected use 1 minute scan boundaries */
+        cp    = 151;
+        intsc = 3;
+        intus = 500000;
+        scnsc = 60;
+        scnus = 0;
+        sprintf(modestr," (fast)");
+        strncat(progname,modestr,strlen(modestr)+1);
+      } 
+
+      if (al_onesec->count) {    /* If onesec option selected , no longer wait for scan boundaries, activate clear frequency skip option*/
+        cp    = 152;
+        intsc = 1;
+        intus = 0;
+        scnsc = nBeams_per_scan+4;
+        scnus = 0;
+        sprintf(modestr," (onesec)");
+        strncat(progname,modestr,strlen(modestr)+1);
+        al_nowait->count = 1;
+        if(ai_clrskip->ival[0] < 0)
+            ai_clrskip->ival[0] = default_clrskip_secs;
+      }
+      
+
+      if (ai_camp->count || nBeams_per_scan == 1) {   /* Camping Beam, no longer wait for scan boundaries, activate clear frequency skip option */ 
+         fprintf(stderr, "Initializing one camping beam...\n");
+         sprintf(modestr," (camp)");
+         strncat(progname,modestr,strlen(modestr)+1);
+
+         cp = 153;
+         al_nowait->count = 1;
+         if(ai_clrskip->ival[0] < 0)
+             ai_clrskip->ival[0] = default_clrskip_secs;
+         if (ai_camp->count){
+             current_beam = ai_camp->ival[0];
+             nBeams_per_scan = 1; 
+         } 
+
+         sprintf(logtxt,"uafscan configured for camping beam");
+         ErrLog(errlog.sock,progname,logtxt);
+         sprintf(logtxt," fast: %d onesec: %d cp: %d clrskip_secs: %d intsc: %d",al_fast->count,al_onesec->count,cp,ai_clrskip->ival[0],intsc);
+         ErrLog(errlog.sock,progname,logtxt);
+
+      }
+
+      for (iBeam =0; iBeam < nBeams_per_scan; iBeam++){
+         scan_beam_number_list[iBeam] = current_beam;
+         current_beam += backward ? -1:1;
+      }
   }
 
   /* INTERLEAVE(D) SCAN */
   else if (strcmp(beampattern, "interleave") == 0) {
      fprintf(stderr, "Initializing interleave beam pattern...\n");
+     cp     = 191;                   /* using 191 per memorandum */
+     intsc  = 3;                             /* integration period; not sure how critical this is */
+     intus  = 0;                             /*  but can be changed here */
+     scnsc  = 60;
+     scnus  = 0;
+     nrang  = 100;
+     rsep   = 45;
+
+     sync_scan = 1; /* TODO implemt waiting */
      nBeams_per_scan = 16;
      int bmse[16] = { 0,4,8,12, 2,6,10,14, 1,5,9,13, 3,7,11,15 };
      int bmsw[16] = { 15,11,7,3, 13,9,5,1, 14,10,6,2, 12,8,4,0 };
@@ -409,15 +468,23 @@ int main(int argc,char *argv[]) {
        return (-1);
      }
     for (iBeam =0; iBeam < nBeams_per_scan; iBeam++){
-      scan_beam_number_list[iBeam] = beampattern2take[iBeam];
-      scan_clrfreq_fstart_list[iBeam] = (int32_t) (OpsDayNight() == 1 ? dfrq : nfrq);
-      scan_clrfreq_bandwidth_list[iBeam] = frqrng;
+        scan_beam_number_list[iBeam] = beampattern2take[iBeam];
     }
   }
 
   /* THEMISSCAN  */ 
   else if (strcmp(beampattern, "themis") == 0) {
      fprintf(stderr, "Initializing themis beam pattern...\n");
+     scnsc  = 120;
+     scnus  = 0;
+     intsc  = 2;
+     intus  = 600000;
+     nrang  = 75;
+     rsep   = 45;
+/*     skip_time = 3.0l;  TODO first skip is calculated with 3s not int sc+us */
+
+     sync_scan = 1; /* TODO implemt waiting */
+
      nBeams_per_scan = 38;
      int camping_beam= 7; /* Default Camping Beam */
 
@@ -454,8 +521,6 @@ int main(int argc,char *argv[]) {
             scan_beam_number_list[iBeam] = camping_beam;
         else
             scan_beam_number_list[iBeam] = beampattern2take[iBeam];
-        scan_clrfreq_fstart_list[iBeam] = (int32_t) (OpsDayNight() == 1 ? dfrq : nfrq);
-        scan_clrfreq_bandwidth_list[iBeam] = frqrng;
      }
 
   }
@@ -581,13 +646,11 @@ int main(int argc,char *argv[]) {
 
      for (iBeam =0; iBeam < nBeams_per_scan; iBeam++){
         scan_beam_number_list[iBeam]    = beampattern2take[iBeam];
-        scan_clrfreq_fstart_list[iBeam] = (int32_t) (OpsDayNight() == 1 ? dfrq : nfrq);
-        scan_clrfreq_bandwidth_list[iBeam] = frqrng;
      }
 
   }
   else  {
-    fprintf(stderr, "ERROR: Unknown beam pattern: %s. (Supported are: normal, interleave or themis)\n", beampattern);
+    fprintf(stderr, "ERROR: Unknown beam pattern: %s. (Supported are: normal, interleave, rbsp or themis)\n", beampattern);
     return -1;
    }
 
@@ -629,50 +692,6 @@ int main(int argc,char *argv[]) {
   gettimeofday(&t1,NULL);
   gettimeofday(&t0,NULL);
   
-  /* FAST option */  
-  if (al_fast->count) {     /* If fast option selected use 1 minute scan boundaries */
-    cp    = 151;
-    intsc = 3;
-    intus = 500000;
-    scnsc = 60;
-    scnus = 0;
-    sprintf(modestr," (fast)");
-    strncat(progname,modestr,strlen(modestr)+1);
-
-  } else {            /* If fast option not selected use 2 minute scan boundaries */
-    intsc = 7;
-    intus = 0;
-    scnsc = 120;
-    scnus = 0;
-  }
-
-  if (al_onesec->count) {    /* If onesec option selected , no longer wait for scan boundaries, activate clear frequency skip option*/
-    cp    = 152;
-    intsc = 1;
-    intus = 0;
-    scnsc = nBeams_per_scan+4;
-    scnus = 0;
-    sprintf(modestr," (onesec)");
-    strncat(progname,modestr,strlen(modestr)+1);
-    al_nowait->count=1;
-    if(ai_clrskip->ival[0] < 0)
-        ai_clrskip->ival[0]=default_clrskip_secs;
-  }
-
-  if (nBeams_per_scan == 1) {       /* Camping Beam, no longer wait for scan boundaries, activate clear frequency skip option */
-    sprintf(modestr," (camp)");
-    strncat(progname,modestr,strlen(modestr)+1);
-    al_nowait->count = 1;
-    if(ai_clrskip->ival[0] < 0)
-        ai_clrskip->ival[0] = default_clrskip_secs;
-
-    cp = 153;
-    sprintf(logtxt,"uafscan configured for camping beam");
-    ErrLog(errlog.sock,progname,logtxt);
-    sprintf(logtxt," fast: %d onesec: %d cp: %d clrskip_secs: %d intsc: %d",al_fast->count,al_onesec->count,cp,ai_clrskip->ival[0],intsc);
-    ErrLog(errlog.sock,progname,logtxt);
-  }
-
 
   if(nBeams_per_scan > 16) {  /* if number of beams in scan greater than legacy 16, recalculate beam dwell time to avoid over running scan boundary if scan boundary wait is active. */ 
       if (al_nowait->count==0 && al_onesec->count==0) {
