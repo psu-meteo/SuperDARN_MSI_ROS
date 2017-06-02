@@ -118,7 +118,10 @@ int main(int argc,char *argv[]) {
   int32_t scan_beam_number_list[MAX_INTEGRATIONS_PER_SCAN];
   int32_t nBeams_per_scan = 0;
   int current_beam, iBeam;
+
   int sync_scan;
+  int time_now,  time_to_wait; /* times in ms for period synchronization */
+  int *scan_times;  /* scan times in ms */
 
 /* Pulse sequence Table */
   int ptab[8] = {0,14,22,24,27,31,42,43};
@@ -390,6 +393,8 @@ int main(int argc,char *argv[]) {
       rsep=45;
       txpl=300;
       nbaud=1;
+
+      sync_scan = 0; 
  
       /* FAST option */  
       if (al_fast->count) {     /* If fast option selected use 1 minute scan boundaries */
@@ -454,8 +459,8 @@ int main(int argc,char *argv[]) {
      nrang  = 100;
      rsep   = 45;
 
-     sync_scan = 1; /* TODO implemt waiting */
      nBeams_per_scan = 16;
+
      int bmse[16] = { 0,4,8,12, 2,6,10,14, 1,5,9,13, 3,7,11,15 };
      int bmsw[16] = { 15,11,7,3, 13,9,5,1, 14,10,6,2, 12,8,4,0 };
      int *beampattern2take;
@@ -467,8 +472,12 @@ int main(int argc,char *argv[]) {
        printf("Error: Not intended for station %s\n", ststr);
        return (-1);
      }
-    for (iBeam =0; iBeam < nBeams_per_scan; iBeam++){
+     sync_scan  = 1; 
+     scan_times = malloc(nBeams_per_scan * sizeof(int));
+
+     for (iBeam =0; iBeam < nBeams_per_scan; iBeam++){
         scan_beam_number_list[iBeam] = beampattern2take[iBeam];
+        scan_times[iBeam] = iBeam * (intsc * 1000 + intus/1000); /* in ms*/
     }
   }
 
@@ -483,8 +492,6 @@ int main(int argc,char *argv[]) {
      rsep   = 45;
 /*     skip_time = 3.0l;  TODO first skip is calculated with 3s not int sc+us */
 
-     sync_scan = 1; /* TODO implemt waiting */
-
      nBeams_per_scan = 38;
      int camping_beam= 7; /* Default Camping Beam */
 
@@ -493,7 +500,7 @@ int main(int argc,char *argv[]) {
      
 
      /* Second within the 2min interval at which this beam is supposed to start */
-     int scan_times[ 38]=     {
+     scan_times = ( int [38])    {
        0,   3,   6,   9,  12,  15,  18,  21,  24,  27,  30,  33,  36,  39,  42,
       45,  48,  51,  54,  60,  63,  66,  69,  72,  75,  78,  81,  84,  87,  90,
       93,  96,  99, 102, 105, 108, 111, 114 };
@@ -521,6 +528,7 @@ int main(int argc,char *argv[]) {
             scan_beam_number_list[iBeam] = camping_beam;
         else
             scan_beam_number_list[iBeam] = beampattern2take[iBeam];
+        scan_times[iBeam] = scan_times[iBeam] * 1000; /* convert to ms */
      }
 
   }
@@ -550,6 +558,8 @@ int main(int argc,char *argv[]) {
      dmpinc=1500;
      nrang=100;
      rsep=45;
+
+     sync_scan = 0; 
 
      /* new variables for dynamically creating beam sequences */
      int isecond, ithird, tempF, tempB;                     /* used in beam progression */
@@ -899,13 +909,28 @@ int main(int argc,char *argv[]) {
     else 
        iBeam = 0;
 
+
+
     /* Scan loop for sequences/beams  */
     do {  
       bmnum = scan_beam_number_list[iBeam];
 
-      TimeReadClock(&yr,&mo,&dy,&hr,&mt,&sc,&us);
-      /* TODO: JDS: You can not make any day night changes that impact TR gate timing at dual site locations. Care must be taken with day night operation*/      
-      
+      TimeReadClock( &yr, &mo, &dy, &hr, &mt, &sc, &us);
+
+      /* SYNC periods/beams */
+      if (sync_scan) {
+          time_now     = ( (mt*60 + sc)*1000 + us/1000 ) % (scnsc*1000 + scnus/1000);
+          time_to_wait = scan_times[iBeam]*1000 - time_now;
+          if (time_to_wait > 0){
+             printf("Sync periods: Waiting for %d ms ...", time_to_wait);
+             usleep(time_to_wait);
+             printf("done.\n");
+          } else {
+             printf("Sync periods: Not waiting, sinc periods is %d ms too late.", time_to_wait);
+          }
+      } 
+
+      /* TODO: JDS: You can not make any day night changes that impact TR gate timing at dual site locations. Care must be taken with day night operation*/ 
       stfrq = scan_clrfreq_fstart_list[iBeam];
       if(ai_fixfrq->ival[0]>0) {
         stfrq=ai_fixfrq->ival[0];
