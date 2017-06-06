@@ -556,7 +556,7 @@ int SiteRosSetupRadar() {
 }
 
 
-int SiteRosStartScan(int32_t periods_per_scan, int32_t *scan_beam_list, int32_t *clrfreq_fstart_list, int32_t *clrfreq_bandwidth_list, int32_t fixFreq) {
+int SiteRosStartScan(int32_t periods_per_scan, int32_t *scan_beam_list, int32_t *clrfreq_fstart_list, int32_t *clrfreq_bandwidth_list, int32_t fixFreq, int32_t sync_scan, int32_t *beam_times, int32_t scn_sc, int32_t scn_us, int32_t int_sc, int32_t int_us) {
     struct ROSMsg smsg,rmsg;
     smsg.type=SET_ACTIVE; /* set active only used in SiteRosStartScan */
 
@@ -577,6 +577,16 @@ int SiteRosStartScan(int32_t periods_per_scan, int32_t *scan_beam_list, int32_t 
     TCPIPMsgSend(sock, &clrfreq_bandwidth_list[0], periods_per_scan * sizeof(int32_t));    /* bandwidth of clrfreq in hertz */
     TCPIPMsgSend(sock, &scan_beam_list[0], periods_per_scan * sizeof(int32_t));    /* start frequency of clrfreq */
     
+    TCPIPMsgSend(sock, &sync_scan,  sizeof(int32_t));    /* if the periods/beams should start at fixed times*/
+    TCPIPMsgSend(sock, &scn_sc,  sizeof(int32_t));    /* scan and inetegration times */
+    TCPIPMsgSend(sock, &scn_us,  sizeof(int32_t));    
+    TCPIPMsgSend(sock, &int_sc,  sizeof(int32_t));    
+    TCPIPMsgSend(sock, &int_us,  sizeof(int32_t));    
+    if (sync_scan == 1) {
+       TCPIPMsgSend(sock, &beam_times[0], periods_per_scan * sizeof(int32_t));
+    
+    }
+
     TCPIPMsgRecv(sock, &rmsg, sizeof(struct ROSMsg));
     return 0;
 }
@@ -731,7 +741,7 @@ int SiteRosTimeSeq(int *ptab) {
     for (i=0;i<tsgprm.mppul;i++) tsgprm.pat[i]=ptab[i];
 
     tsgbuf=TSGMake(&tsgprm,&flag);
-    if (flag != 0) {
+    if (flag != 0) 
         fprintf(stderr,"SiteRosTImeSeq:TSGMake error code %d \n", flag);
        
     if (tsgbuf==NULL){

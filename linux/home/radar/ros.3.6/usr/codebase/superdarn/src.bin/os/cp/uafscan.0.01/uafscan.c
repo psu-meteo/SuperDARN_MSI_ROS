@@ -878,7 +878,7 @@ int main(int argc,char *argv[]) {
     }
 
     /* send stan data to usrp_sever */
-    if (SiteStartScan(nBeams_per_scan, scan_beam_number_list, scan_clrfreq_fstart_list, scan_clrfreq_bandwidth_list, ai_fixfrq->ival[0]) !=0) continue;
+    if (SiteStartScan(nBeams_per_scan, scan_beam_number_list, scan_clrfreq_fstart_list, scan_clrfreq_bandwidth_list, ai_fixfrq->ival[0], sync_scan, scan_times, scnsc, scnus, intsc, intus) !=0) continue;
 
 
     if (OpsReOpen(2,0,0) !=0) {
@@ -915,7 +915,9 @@ int main(int argc,char *argv[]) {
 
       TimeReadClock( &yr, &mo, &dy, &hr, &mt, &sc, &us);
 
-      /* SYNC periods/beams */
+
+      /* THIS IS NOW IS USRP_SERVER */
+      /* SYNC periods/beams */ /*
       if (sync_scan) {
           time_now     = ( (mt*60 + sc)*1000 + us/1000 ) % (scnsc*1000 + scnus/1000);
           time_to_wait = scan_times[iBeam] - time_now;
@@ -926,7 +928,7 @@ int main(int argc,char *argv[]) {
           } else {
              printf("Sync periods: Not waiting, sinc periods is %d ms too late.", time_to_wait);
           }
-      } 
+      }  */
 
       /* TODO: JDS: You can not make any day night changes that impact TR gate timing at dual site locations. Care must be taken with day night operation*/ 
       stfrq = scan_clrfreq_fstart_list[iBeam];
