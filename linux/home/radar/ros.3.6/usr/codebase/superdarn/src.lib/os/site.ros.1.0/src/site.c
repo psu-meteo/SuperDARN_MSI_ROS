@@ -556,7 +556,7 @@ int SiteRosSetupRadar() {
 }
 
 
-int SiteRosStartScan(int32_t periods_per_scan, int32_t *scan_beam_list, int32_t *clrfreq_fstart_list, int32_t *clrfreq_bandwidth_list, int32_t fixFreq, int32_t sync_scan, int32_t *beam_times, int32_t scn_sc, int32_t scn_us, int32_t int_sc, int32_t int_us) {
+int SiteRosStartScan(int32_t periods_per_scan, int32_t *scan_beam_list, int32_t *clrfreq_fstart_list, int32_t *clrfreq_bandwidth_list, int32_t fixFreq, int32_t sync_scan, int32_t *beam_times, int32_t scn_sc, int32_t scn_us, int32_t int_sc, int32_t int_us, int32_t start_period) {
     struct ROSMsg smsg,rmsg;
     smsg.type=SET_ACTIVE; /* set active only used in SiteRosStartScan */
 
@@ -581,7 +581,9 @@ int SiteRosStartScan(int32_t periods_per_scan, int32_t *scan_beam_list, int32_t 
     TCPIPMsgSend(sock, &scn_sc,  sizeof(int32_t));    /* scan and inetegration times */
     TCPIPMsgSend(sock, &scn_us,  sizeof(int32_t));    
     TCPIPMsgSend(sock, &int_sc,  sizeof(int32_t));    
-    TCPIPMsgSend(sock, &int_us,  sizeof(int32_t));    
+    TCPIPMsgSend(sock, &int_us,  sizeof(int32_t));   
+ 
+    TCPIPMsgSend(sock, &start_period,  sizeof(int32_t));    
     if (sync_scan == 1) {
        TCPIPMsgSend(sock, &beam_times[0], periods_per_scan * sizeof(int32_t));
     

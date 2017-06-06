@@ -877,8 +877,14 @@ int main(int argc,char *argv[]) {
       current_beam += backward ? -1:1;
     }
 
+    /* Set iBeam for scan loop  */ 
+    if(al_nowait->count==0) 
+       iBeam = OpsFindSkip(scnsc,scnus);
+    else 
+       iBeam = 0;
+
     /* send stan data to usrp_sever */
-    if (SiteStartScan(nBeams_per_scan, scan_beam_number_list, scan_clrfreq_fstart_list, scan_clrfreq_bandwidth_list, ai_fixfrq->ival[0], sync_scan, scan_times, scnsc, scnus, intsc, intus) !=0) continue;
+    if (SiteStartScan(nBeams_per_scan, scan_beam_number_list, scan_clrfreq_fstart_list, scan_clrfreq_bandwidth_list, ai_fixfrq->ival[0], sync_scan, scan_times, scnsc, scnus, intsc, intus, iBeam) !=0) continue;
 
 
     if (OpsReOpen(2,0,0) !=0) {
@@ -900,12 +906,6 @@ int main(int argc,char *argv[]) {
       } else xcf=0;
     } else xcf=0;
 
-
-    /* Set iBeam for scan loop  */ 
-    if(al_nowait->count==0) 
-       iBeam = OpsFindSkip(scnsc,scnus);
-    else 
-       iBeam = 0;
 
 
 
