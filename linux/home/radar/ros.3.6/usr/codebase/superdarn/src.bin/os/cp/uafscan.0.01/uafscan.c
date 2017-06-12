@@ -388,9 +388,7 @@ int main(int argc,char *argv[]) {
       intus=0;
 
       nrang=75;
-      rsep=45;
       txpl=300;
-      nbaud=1;
 
       sync_scan = 0; 
  
@@ -455,7 +453,6 @@ int main(int argc,char *argv[]) {
      scnsc  = 60;
      scnus  = 0;
      nrang  = 100;
-     rsep   = 45;
 
      nBeams_per_scan = 16;
 
@@ -487,7 +484,6 @@ int main(int argc,char *argv[]) {
      intsc  = 2;
      intus  = 600000;
      nrang  = 75;
-     rsep   = 45;
 /*     skip_time = 3.0l;  TODO first skip is calculated with 3s not int sc+us */
 
      nBeams_per_scan = 38;
@@ -555,7 +551,6 @@ int main(int argc,char *argv[]) {
      mpinc=1500;
      dmpinc=1500;
      nrang=100;
-     rsep=45;
 
      sync_scan = 0; 
 

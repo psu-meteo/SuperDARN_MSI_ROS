@@ -726,20 +726,20 @@ int SiteRosTimeSeq(int *ptab) {
     if (tsgprm.pat !=NULL) free(tsgprm.pat);
     memset(&tsgprm,0,sizeof(struct TSGprm));
 
-    tsgprm.nrang=nrang;         
-    tsgprm.frang=frang;
-    tsgprm.rtoxmin=0;      
-    tsgprm.stdelay=18+2;
-    tsgprm.gort=1;
-    tsgprm.rsep=rsep;          
-    tsgprm.smsep=smsep;
-    tsgprm.txpl=txpl; 
-    tsgprm.mpinc=mpinc;
-    tsgprm.mppul=mppul; 
-    tsgprm.mlag=0;
-    tsgprm.nbaud=nbaud;
-    tsgprm.code=pcode;
-    tsgprm.pat=malloc(sizeof(int)*tsgprm.mppul);
+    tsgprm.nrang   = nrang;         
+    tsgprm.frang   = frang;
+    tsgprm.rtoxmin = 0;      
+    tsgprm.stdelay = 18+2;
+    tsgprm.gort    = 1;
+    tsgprm.rsep    = rsep;          
+    tsgprm.smsep   = smsep;
+    tsgprm.txpl    = txpl; 
+    tsgprm.mpinc   = mpinc;
+    tsgprm.mppul   = mppul; 
+    tsgprm.mlag    = 0;
+    tsgprm.nbaud   = nbaud;
+    tsgprm.code    = pcode;
+    tsgprm.pat     = malloc(sizeof(int)*tsgprm.mppul);
     for (i=0;i<tsgprm.mppul;i++) tsgprm.pat[i]=ptab[i];
 
     tsgbuf=TSGMake(&tsgprm,&flag);
@@ -771,6 +771,20 @@ int SiteRosTimeSeq(int *ptab) {
 
     TCPIPMsgSend(sock, &intsc, sizeof(int));
     TCPIPMsgSend(sock, &intus, sizeof(int));
+
+    TCPIPMsgSend(sock, &nrang, sizeof(int));
+    TCPIPMsgSend(sock, &mpinc, sizeof(int));
+    TCPIPMsgSend(sock, &smsep, sizeof(int));
+    TCPIPMsgSend(sock, &lagfr, sizeof(int));
+    TCPIPMsgSend(sock, &mppul, sizeof(int));
+    for (i=0; i<mppul; i++)
+       TCPIPMsgSend(sock, &tsgprm.pat[i], sizeof(int)); 
+
+    TCPIPMsgSend(sock, &nbaud, sizeof(int));
+    for (i=0; i<nbaud; i++)
+       TCPIPMsgSend(sock, &pcode[i], sizeof(int)); 
+   
+
 
     TCPIPMsgRecv(sock, &rmsg, sizeof(struct ROSMsg));
     if (debug) {
