@@ -590,7 +590,7 @@ int SiteRosStartScan(int32_t periods_per_scan, int32_t *scan_beam_list, int32_t 
     }
 
     TCPIPMsgRecv(sock, &rmsg, sizeof(struct ROSMsg));
-    return 0;
+    return rmsg.status;
 }
 
 
@@ -705,7 +705,7 @@ int SiteRosFCLR(int stfreq,int edfreq) {
     TCPIPMsgRecv(sock,&noise, sizeof(float));  
     TCPIPMsgRecv(sock,&rmsg, sizeof(struct ROSMsg)); 
     if (debug) {
-        fprintf(stderr,"REQUEST_ASSIGNED_FREQ:type=%c\n",rmsg.status);
+        fprintf(stderr,"REQUEST_ASSIGNED_FREQ:type=%c\n",rmsg.type);
         fprintf(stderr,"REQUEST_ASSIGNED_FREQ:status=%d\n",rmsg.status);
     }
 
