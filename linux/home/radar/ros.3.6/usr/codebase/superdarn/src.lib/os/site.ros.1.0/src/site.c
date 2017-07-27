@@ -633,7 +633,6 @@ int SiteRosStartIntt(int sec,int usec) {
     rprm.buffer_index=0;
 
     smsg.type=SET_PARAMETERS;
- /* DON'T SEND WRONG PARAMETER EVERY PERIOD (mgu -2017/07)
     TCPIPMsgSend(sock,&smsg,sizeof(struct ROSMsg));
     TCPIPMsgSend(sock,&rprm,sizeof(struct ControlPRM));
     TCPIPMsgRecv(sock,&rmsg,sizeof(struct ROSMsg));
@@ -641,7 +640,7 @@ int SiteRosStartIntt(int sec,int usec) {
         fprintf(stderr,"SET_PARAMETERS:type=%c\n",rmsg.type);
         fprintf(stderr,"SET_PARAMETERS:status=%d\n",rmsg.status);
     }
-*/
+
     secs=sec+(double)usec/1E6;
     if (gettimeofday(&tock,NULL)==-1) return -1;
     tock.tv_sec+=floor(secs);
