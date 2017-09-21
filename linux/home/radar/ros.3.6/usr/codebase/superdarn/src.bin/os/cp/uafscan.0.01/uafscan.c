@@ -387,7 +387,7 @@ int main(int argc,char *argv[]) {
       intsc=7;
       intus=0;
 
-      nrang=75;
+   /*   nrang=75; */
       txpl=300;
 
       sync_scan = 0; 
