@@ -750,6 +750,10 @@ int SiteRosTimeSeq(int *ptab) {
         fprintf(stderr,"REGISTER_SEQ: not sennding TimeSeq because tsgbuf==NULL. Error code %d \n", flag);
         return -1;
     }
+
+    smsep = tsgprm.smsep; /* why not use the new smsep value? */
+    lagfr = tsgprm.lagfr;
+
     tprm.index=index;
     /*  memcpy(&tprm.buf,tsgbuf,sizeof(struct TSGbuf));*/
     tprm.len=tsgbuf->len;

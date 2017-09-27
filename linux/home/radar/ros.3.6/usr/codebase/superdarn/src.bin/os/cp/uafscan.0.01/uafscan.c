@@ -395,8 +395,8 @@ int main(int argc,char *argv[]) {
       /* FAST option */  
       if (al_fast->count) {     /* If fast option selected use 1 minute scan boundaries */
         cp    = 151;
-        intsc = 3;
-        intus = 500000;
+        intsc = 2;
+        intus = 900000; /* changed from 3.5 to avooid overflowing scan boundary.. */
         scnsc = 60;
         scnus = 0;
         sprintf(modestr," (fast)");
