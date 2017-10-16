@@ -194,7 +194,31 @@ int SiteRosStart(char *host,char *ststr) {
         return -1;
     }
     /* TODO: implement chanstr handling as an option to allow for chan specific defaults */
-    if(chanstr==NULL) chanstr=getenv("CHANSTR");
+    if(chanstr==NULL){
+       printf("cnum: %d, ", cnum);
+       switch(cnum) {
+           case 1:
+               chanstr = malloc(sizeof(char*));
+               chanstr = "a";
+               break;
+           case 2:
+               chanstr = malloc(sizeof(char*));
+               chanstr = "b";
+               break;
+           case 3:
+               chanstr = malloc(sizeof(char*));
+               chanstr = "c";
+               break;
+           case 4:
+               chanstr = malloc(sizeof(char*));
+               chanstr = "d";
+               break;
+           default:
+               chanstr=getenv("CHANSTR");
+               break;
+       }
+    }
+
     if(ststr==NULL) ststr=getenv("STSTR");
     if(ststr==NULL) ststr=dfststr;
     printf("StStr: %s ChanStr %s\n",ststr,chanstr);

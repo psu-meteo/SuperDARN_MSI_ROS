@@ -342,7 +342,11 @@ int main(int argc,char *argv[]) {
     fprintf(stderr,"Could not load requested site library\n");
     exit(1);
   }
- 
+
+  /* cnum is needed to know the config file name */
+  if (ai_cnum->count) cnum = ai_cnum->ival[0];
+
+
 /* Run SiteStart library function to load Site specific default values for global variables
  * This should be run before all options are parsed and before any task sockets are opened
  * arguments: host ip address, 3-letter station string
@@ -369,7 +373,6 @@ int main(int argc,char *argv[]) {
   if (ai_sp->count) shell.port = ai_sp->ival[0];
   if (ai_sb->count) sbm = ai_sb->ival[0];
   if (ai_eb->count) ebm = ai_eb->ival[0];
-  if (ai_cnum->count) cnum = ai_cnum->ival[0];
   if (ai_bp->count) baseport=ai_bp->ival[0];
 
  /* ========= SET PARAMETER TO EMULATE OTHER CONTROL PROGRAMS ============= */
