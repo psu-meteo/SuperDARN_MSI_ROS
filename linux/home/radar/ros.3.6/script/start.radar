@@ -1,5 +1,5 @@
 #!/bin/bash
-
+export SEQLOG_DIR=/data/ros/seqlog
 # dummy radar server
 #radar &
 
