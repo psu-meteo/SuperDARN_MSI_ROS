@@ -1101,6 +1101,16 @@ int SiteRosIntegrate(int (*lags)[2]) {
         TCPIPMsgRecv(sock, &num_transmitters, sizeof(int));
         TCPIPMsgRecv(sock, &txstatus.AGC, sizeof(int)*num_transmitters);
         TCPIPMsgRecv(sock, &txstatus.LOWPWR, sizeof(int)*num_transmitters);
+
+        /* receive trigger time of integration period */
+        TCPIPMsgRecv(sock, &yr, sizeof(int));
+        TCPIPMsgRecv(sock, &mo, sizeof(int));
+        TCPIPMsgRecv(sock, &dy, sizeof(int));
+        TCPIPMsgRecv(sock, &hr, sizeof(int));
+        TCPIPMsgRecv(sock, &mt, sizeof(int));
+        TCPIPMsgRecv(sock, &sc, sizeof(int));
+        TCPIPMsgRecv(sock, &us, sizeof(int));
+
     }
 
     TCPIPMsgRecv(sock, &rprm, sizeof(struct ControlPRM));
