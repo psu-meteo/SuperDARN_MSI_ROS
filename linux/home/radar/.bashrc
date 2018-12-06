@@ -12,7 +12,7 @@ export PATH
 
 # McM  ROS operational 
 export ROSHOST="192.168.1.2"
-export RSTPATH=$HOME/rst/
+export RSTPATH=$HOME/rst
 export LIBSTR="ros"
 export SITE_CFG="$RSTPATH/tables/superdarn/site/"
 source $RSTPATH/.profile.bash
