@@ -133,7 +133,7 @@ struct TSGbuf *TSGMake(struct TSGprm *tsg,int *flg) {
   int scope = 0x80;
   int noscope = 0;
 
-  printf("Inside TSGMake: Start\n")
+  printf("Inside TSGMake: Start\n");
   *flg = TSG_OK;
 
   if ((tsg->frang < 0) || (tsg->rsep <= 0)) {
@@ -141,12 +141,12 @@ struct TSGbuf *TSGMake(struct TSGprm *tsg,int *flg) {
     return NULL;
   }
 
-  if ((tsg->txpl <= 0) && (tsg->smsep <= 0) && (tsg->rsep <= 0)) {
+  if ((tsg->txpl <= 0) && (tsg->smsep <= 0)) {
     *flg = TSG_NO_SMSEP;
     return NULL;
   }
 
-  if ((tsg->mppul == 0) && (tsg->smsep == 0) && (tsg->rsep == 0)) {
+  if ((tsg->mppul == 0) && (tsg->smsep == 0)) {
     *flg = TSG_INV_MPPUL_SMSEP;
 	return NULL;
   }
