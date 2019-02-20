@@ -133,7 +133,7 @@ struct TSGbuf *TSGMake(struct TSGprm *tsg,int *flg) {
   int scope = 0x80;
   int noscope = 0;
 
-  printf("Inside TSGMake: Start\n");
+/*  printf("Inside TSGMake: Start\n");*/
   *flg = TSG_OK;
 
   if ((tsg->frang < 0) || (tsg->rsep <= 0)) {
@@ -152,15 +152,15 @@ struct TSGbuf *TSGMake(struct TSGprm *tsg,int *flg) {
   }
 
   if (tsg->mppul > 0) {
-     for (i = 1; (i < tsg->mppul) && (tsg->pat[i] > tsg->pat[i-1]); i++);
-     if (i < tsg->mppul) {
+    for (i = 1; (i < tsg->mppul) && (tsg->pat[i] > tsg->pat[i-1]); i++);
+    if (i < tsg->mppul) {
        *flg = TSG_INV_PAT;
        return NULL;
     }
   }
 
   if ((buf = malloc(sizeof(struct TSGbuf))) == NULL){
-      printf("maketsg.c: Error: TSG_INV_DUTY_CYCLE. \n");
+      printf("maketsg.c: Error: Not enough memory to allocate TSGbuf. \n");
       return NULL;
   }
   cnt.last = 0;
