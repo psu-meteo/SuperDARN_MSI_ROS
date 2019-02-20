@@ -137,7 +137,7 @@ struct TSGbuf *TSGMake(struct TSGprm *tsg,int *flg) {
   *flg = TSG_OK;
 
   if ((tsg->frang < 0) || (tsg->rsep <= 0)) {
-    *flg = TSG_INV_RSEP;
+    *flg =  TSG_INV_RSEP;
     return NULL;
   }
 
@@ -219,15 +219,16 @@ struct TSGbuf *TSGMake(struct TSGprm *tsg,int *flg) {
       return NULL;
     }
 
-    if ( ((20L * (long)(tsg->mppul) * (tsg->txpl)) /
-         ( (long)(tsg->mlag) * (tsg->mpinc) +
-		 (tsg->nrang) * (tsg->nbaud) * (tsg->smsep) +
-                 tsg->lagfr) ) >= 1L) {
+    long duty_top = 20L * (long)(tsg->mppul) * (tsg->txpl);
+    long duty_bot = (tsg->mlag) * (tsg->mpinc) +
+                    (tsg->nrang) * (tsg->nbaud) * (tsg->smsep) +
+                     tsg->lagfr;
+    if ( (duty_top / duty_bot) >= 1L) {
       free(buf);
       printf("maketsg.c: Error: TSG_INV_DUTY_CYCLE. Details:\n");
       printf("mppul=%d, txpl=%d, mlag=%d, mpinc=%d, ", tsg->mppul, tsg->txpl,
                                                      tsg->mlag, tsg->mpinc);
-      printf("nrang=%d, nbaud=%d, sesep=%d, lagfr=%d\n", tsg->nrang, tsg->nbaud,
+      printf("nrang=%d, nbaud=%d, smsep=%d, lagfr=%d\n", tsg->nrang, tsg->nbaud,
                                                        tsg->smsep, tsg->lagfr);
       *flg = TSG_INV_DUTY_CYCLE;
       return NULL;
