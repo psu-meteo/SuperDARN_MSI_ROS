@@ -349,7 +349,7 @@ struct TSGbuf *TSGMake(struct TSGprm *tsg,int *flg) {
   code = scope;
   TSGWrBuf(buf, code, 1, &cnt);
   delay = tsg->stdelay;
-  printf("********** stdelay: %d\n", delay);
+/*  printf("********** stdelay: %d\n", delay); */
 
   code = states[state].rf_code;
   TSGWrBuf(buf, code, delay, &cnt);
@@ -436,7 +436,7 @@ struct TSGbuf *TSGMake(struct TSGprm *tsg,int *flg) {
   if ( (tsg->mppul == 0) || (ttemp <= 0)) {
     ttemp = 1;
   }
-  ttemp = 0; /* This is for timscan, trying to get rid of delays between sequences*/
+  ttemp = 1; /* This is for timscan, trying to get rid of delays between sequences*/
   TSGWrBuf(buf, Null_code, ttemp, &cnt);
 
   buf->code[buf->len-1] = buf->code[buf->len-1] | noscope;
