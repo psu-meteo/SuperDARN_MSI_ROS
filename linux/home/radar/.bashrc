@@ -12,7 +12,7 @@ export PATH
 
 # ADAK ROS operational : 20130413
 export ROSHOST="192.168.1.1"
-export RSTPATH=$HOME/rst/
+export RSTPATH=$HOME/rst
 export LIBSTR="ros"
 export SITE_CFG="$RSTPATH/tables/superdarn/site/"
 source $RSTPATH/.profile.bash
