@@ -1,12 +1,14 @@
-#!/usr/bin/bash
-cd $HOME
-/usr/bin/bash $HOME/src/cp_files dat dat
-/usr/bin/bash $HOME/src/cp_files fitacf fit
-/usr/bin/bash $HOME/src/cp_files fitacf inx
-/usr/bin/bash $HOME/src/cp_files rawacf rawacf
-/usr/bin/bash $HOME/src/local_archive_only fitacf fitacf
-/usr/bin/bash #$HOME/src/cp_files fitacf fitacf
-/usr/bin/bash $HOME/src/cp_files snd snd
+#!/bin/sh
+export SRCPATH="/home/radar/repos/SuperDARN_MSI_ROS/linux/home/radar"
+#cd $SRCPATH
+$SRCPATH/src/cp_files dat dat
+$SRCPATH/src/cp_files fitacf fit
+$SRCPATH/src/cp_files fitacf inx
+$SRCPATH/src/cp_files rawacf rawacf
+#$SRCPATH/src/local_archive_only fitacf fitacf
+$SRCPATH/src/cp_files fitacf fitacf
+$SRCPATH/src/cp_files snd snd
 #
 #$HOME/src/cdproc
 
+$SRCPATH/src/archive_imaging

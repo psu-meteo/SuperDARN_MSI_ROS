@@ -165,7 +165,7 @@ int main(int argc,char *argv[]) {
   /* Variables for controlling clear frequency search */
   struct timeval t0,t1;
   int elapsed_secs=0;
-  int default_clrskip_secs=0;
+  int default_clrskip_secs=30;
   int startup=1;
 
   /* XCF processing variables */
@@ -180,6 +180,7 @@ int main(int argc,char *argv[]) {
   struct arg_lit  *al_discretion = arg_lit0(NULL, "di","Flag this is discretionary time operation"); 
   struct arg_lit  *al_fast       = arg_lit0(NULL, "fast","Flag this as fast 1-minute scan duration"); 
   struct arg_lit  *al_nowait     = arg_lit0(NULL, "nowait","Do not wait for minute scan boundary"); 
+  struct arg_lit  *al_alwayswait = arg_lit0(NULL, "alwayswait","Always wait for minute scan boundary, overwrites nowait"); 
   struct arg_lit  *al_onesec     = arg_lit0(NULL, "onesec","Use one second integration times"); 
   struct arg_lit  *al_clrscan    = arg_lit0(NULL, "clrscan","Force clear frequency search at start of scan"); 
   /* Now lets define the integer valued arguments */
@@ -218,7 +219,7 @@ int main(int argc,char *argv[]) {
   struct arg_end  *ae_argend     = arg_end(ARG_MAXERRORS);
 
   /* create list of all arguement structs */
-  void* argtable[] = {al_help,al_debug,al_test,al_discretion, al_fast, al_nowait, al_onesec, \
+  void* argtable[] = {al_help,al_debug,al_test,al_discretion, al_fast, al_nowait, al_alwayswait,  al_onesec, \
                       ai_baud, ai_tau, ai_nrang, ai_frang, ai_rsep, ai_dt, ai_nt, ai_df, ai_nf, ai_fixfrq, ai_xcf, ai_ep, ai_sp, ai_bp, ai_sb, ai_eb, ai_camp, ai_cnum, \
                       as_ros, as_ststr, as_libstr,as_verstr,as_beampattern, ai_clrskip,al_clrscan,ai_cpid, ai_meribm, ai_eastbm, ai_westbm, ae_argend};
 
@@ -241,6 +242,7 @@ int main(int argc,char *argv[]) {
   al_discretion->count = 0;
   al_fast->count = 0;
   al_nowait->count = 0;
+  al_alwayswait->count = 0;
   al_onesec->count = 0;
   al_clrscan->count = 0;
   al_debug->count = 0;
@@ -377,7 +379,7 @@ int main(int argc,char *argv[]) {
 
  /* ========= SET PARAMETER TO EMULATE OTHER CONTROL PROGRAMS ============= */
 
-  /* NORMAL beam order  or CAMPING one one beam */
+  /* NORMAL beam order or CAMPING on one beam */
   if (strcmp(beampattern, "normal") == 0) {
       fprintf(stderr, "Initializing normal beam pattern...\n");
       nBeams_per_scan = abs(ebm-sbm)+1;
@@ -427,12 +429,14 @@ int main(int argc,char *argv[]) {
 
          cp = 153;
          al_nowait->count = 1;
+         ai_camp->count = 1;
          if(ai_clrskip->ival[0] < 0)
              ai_clrskip->ival[0] = default_clrskip_secs;
          if (ai_camp->count){
              current_beam = ai_camp->ival[0];
-             nBeams_per_scan = 1; 
          } 
+         /* demanded by Bill */
+         nBeams_per_scan = floor((scnsc+scnus*1e-6)/(intsc+(intus*1e-6))) - 1;
 
          sprintf(logtxt,"uafscan configured for camping beam");
          ErrLog(errlog.sock,progname,logtxt);
@@ -443,7 +447,9 @@ int main(int argc,char *argv[]) {
 
       for (iBeam =0; iBeam < nBeams_per_scan; iBeam++){
          scan_beam_number_list[iBeam] = current_beam;
-         current_beam += backward ? -1:1;
+         if (!ai_camp->count) {
+             current_beam += backward ? -1:1;
+         }
       }
   }
 
@@ -452,8 +458,7 @@ int main(int argc,char *argv[]) {
      fprintf(stderr, "Initializing interleave beam pattern...\n");
      cp     = 191;                   /* using 191 per memorandum */
      intsc  = 3;                             /* integration period; not sure how critical this is */
-     intus  = 500000;                             /*  but can be changed here */
-/*     intus  = 0;                             /*  but can be changed here */
+     intus  = 0;                             /*  but can be changed here */
      scnsc  = 60;
      scnus  = 0;
      nrang  = 100;
@@ -882,7 +887,7 @@ int main(int argc,char *argv[]) {
     else 
        iBeam = 0;
 
-    /* send scan data to usrp_sever */
+    /* send stan data to usrp_sever */
     if (SiteStartScan(nBeams_per_scan, scan_beam_number_list, scan_clrfreq_fstart_list, scan_clrfreq_bandwidth_list, ai_fixfrq->ival[0], sync_scan, scan_times, scnsc, scnus, intsc, intus, iBeam) !=0){
          ErrLog(errlog.sock,progname,"Received error from usrp_server in ROS:SiteStartScan. Probably channel frequency issue in SetActiveHandler.");  
          sleep(1);
@@ -970,7 +975,7 @@ int main(int argc,char *argv[]) {
       }
       sprintf(logtxt,"Transmitting on: %d (Noise=%g)",tfreq,noise);
       ErrLog(errlog.sock,progname,logtxt);
-
+    
       nave=SiteIntegrate(lags);   
       if (nave<0) {
         sprintf(logtxt,"Integration error:%d",nave);
@@ -1024,7 +1029,7 @@ int main(int argc,char *argv[]) {
 
     } while (1);
 
-    if ((exitpoll==0) && (al_nowait->count==0)) {
+    if ((exitpoll==0) && ((al_nowait->count==0) || al_alwayswait->count) ) {
       ErrLog(errlog.sock,progname,"Waiting for scan boundary.");
       SiteEndScan(scnsc,scnus);
     }

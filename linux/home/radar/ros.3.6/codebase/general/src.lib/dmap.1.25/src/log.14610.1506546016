@@ -1,0 +1,359 @@
+make.version /home/radar/repos/SuperDARN_MSI_ROS/linux/home/radar/ros.3.6/codebase/general/src.lib/dmap.1.25/src/..
+make.hdr /home/radar/repos/SuperDARN_MSI_ROS/linux/home/radar/ros.3.6/codebase/general/src.lib/dmap.1.25/src/../include /home/radar/ros.3.6//include/general 
+/home/radar/repos/SuperDARN_MSI_ROS/linux/home/radar/ros.3.6/codebase/general/src.lib/dmap.1.25/src/../include/dmap.h
+'/home/radar/repos/SuperDARN_MSI_ROS/linux/home/radar/ros.3.6/codebase/general/src.lib/dmap.1.25/src/../include/dmap.h' -> '/home/radar/ros.3.6//include/general/dmap.h'
+cc -fPIC -g -Wall -O3 -ansi -D_GNU_SOURCE -D_LINUX -I/home/radar/ros.3.6//include/base -I/home/radar/ros.3.6//include/general -c dmap.c    
+dmap.c: In function ‘DataMapEncodeBuffer’:
+dmap.c:667:27: warning: pointer targets in passing argument 2 of ‘ConvertFromInt’ differ in signedness [-Wpointer-sign]
+   ConvertFromInt(DATACODE,buf+off);
+                           ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:27:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertFromInt(int32 val,unsigned char *cnv);
+      ^
+dmap.c:669:22: warning: pointer targets in passing argument 2 of ‘ConvertFromInt’ differ in signedness [-Wpointer-sign]
+   ConvertFromInt(sze,buf+off);
+                      ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:27:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertFromInt(int32 val,unsigned char *cnv);
+      ^
+dmap.c:671:28: warning: pointer targets in passing argument 2 of ‘ConvertFromInt’ differ in signedness [-Wpointer-sign]
+   ConvertFromInt(ptr->snum,buf+off);
+                            ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:27:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertFromInt(int32 val,unsigned char *cnv);
+      ^
+dmap.c:673:28: warning: pointer targets in passing argument 2 of ‘ConvertFromInt’ differ in signedness [-Wpointer-sign]
+   ConvertFromInt(ptr->anum,buf+off);
+                            ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:27:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertFromInt(int32 val,unsigned char *cnv);
+      ^
+dmap.c:690:40: warning: pointer targets in passing argument 2 of ‘ConvertFromShort’ differ in signedness [-Wpointer-sign]
+       ConvertFromShort(*(s->data.sptr),buf+off);
+                                        ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:28:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertFromShort(int16 val,unsigned char *cnv);
+      ^
+dmap.c:694:38: warning: pointer targets in passing argument 2 of ‘ConvertFromInt’ differ in signedness [-Wpointer-sign]
+       ConvertFromInt(*(s->data.iptr),buf+off);
+                                      ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:27:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertFromInt(int32 val,unsigned char *cnv);
+      ^
+dmap.c:698:39: warning: pointer targets in passing argument 2 of ‘ConvertFromLong’ differ in signedness [-Wpointer-sign]
+       ConvertFromLong(*(s->data.lptr),buf+off);
+                                       ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:26:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertFromLong(int64 val,unsigned char *cnv);
+      ^
+dmap.c:707:42: warning: pointer targets in passing argument 2 of ‘ConvertFromUShort’ differ in signedness [-Wpointer-sign]
+       ConvertFromUShort(*(s->data.usptr),buf+off);
+                                          ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:31:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertFromUShort(uint16 val,unsigned char *cnv);
+      ^
+dmap.c:711:40: warning: pointer targets in passing argument 2 of ‘ConvertFromUInt’ differ in signedness [-Wpointer-sign]
+       ConvertFromUInt(*(s->data.uiptr),buf+off);
+                                        ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:30:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertFromUInt(uint32 val,unsigned char *cnv);
+      ^
+dmap.c:715:41: warning: pointer targets in passing argument 2 of ‘ConvertFromULong’ differ in signedness [-Wpointer-sign]
+       ConvertFromULong(*(s->data.ulptr),buf+off);
+                                         ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:29:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertFromULong(uint64 val,unsigned char *cnv);
+      ^
+dmap.c:720:40: warning: pointer targets in passing argument 2 of ‘ConvertFromFloat’ differ in signedness [-Wpointer-sign]
+       ConvertFromFloat(*(s->data.fptr),buf+off);
+                                        ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:24:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertFromFloat(float val,unsigned char *cnv);
+      ^
+dmap.c:724:41: warning: pointer targets in passing argument 2 of ‘ConvertFromDouble’ differ in signedness [-Wpointer-sign]
+       ConvertFromDouble(*(s->data.dptr),buf+off);
+                                         ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:25:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertFromDouble(double val,unsigned char *cnv);
+      ^
+dmap.c:742:29: warning: pointer targets in passing argument 2 of ‘ConvertFromInt’ differ in signedness [-Wpointer-sign]
+         ConvertFromInt(tsze,buf+off);
+                             ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:27:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertFromInt(int32 val,unsigned char *cnv);
+      ^
+dmap.c:749:29: warning: pointer targets in passing argument 2 of ‘ConvertFromInt’ differ in signedness [-Wpointer-sign]
+         ConvertFromInt(tsze,buf+off);
+                             ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:27:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertFromInt(int32 val,unsigned char *cnv);
+      ^
+dmap.c:764:27: warning: pointer targets in passing argument 2 of ‘ConvertFromInt’ differ in signedness [-Wpointer-sign]
+     ConvertFromInt(a->dim,buf+off);
+                           ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:27:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertFromInt(int32 val,unsigned char *cnv);
+      ^
+dmap.c:767:32: warning: pointer targets in passing argument 2 of ‘ConvertFromInt’ differ in signedness [-Wpointer-sign]
+       ConvertFromInt(a->rng[x],buf+off);
+                                ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:27:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertFromInt(int32 val,unsigned char *cnv);
+      ^
+dmap.c:779:42: warning: pointer targets in passing argument 2 of ‘ConvertFromShort’ differ in signedness [-Wpointer-sign]
+         ConvertFromShort(a->data.sptr[x],buf+off);
+                                          ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:28:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertFromShort(int16 val,unsigned char *cnv);
+      ^
+dmap.c:785:40: warning: pointer targets in passing argument 2 of ‘ConvertFromInt’ differ in signedness [-Wpointer-sign]
+         ConvertFromInt(a->data.iptr[x],buf+off);
+                                        ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:27:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertFromInt(int32 val,unsigned char *cnv);
+      ^
+dmap.c:791:41: warning: pointer targets in passing argument 2 of ‘ConvertFromLong’ differ in signedness [-Wpointer-sign]
+         ConvertFromLong(a->data.lptr[x],buf+off);
+                                         ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:26:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertFromLong(int64 val,unsigned char *cnv);
+      ^
+dmap.c:802:44: warning: pointer targets in passing argument 2 of ‘ConvertFromUShort’ differ in signedness [-Wpointer-sign]
+         ConvertFromUShort(a->data.usptr[x],buf+off);
+                                            ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:31:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertFromUShort(uint16 val,unsigned char *cnv);
+      ^
+dmap.c:808:42: warning: pointer targets in passing argument 2 of ‘ConvertFromUInt’ differ in signedness [-Wpointer-sign]
+         ConvertFromUInt(a->data.uiptr[x],buf+off);
+                                          ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:30:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertFromUInt(uint32 val,unsigned char *cnv);
+      ^
+dmap.c:814:43: warning: pointer targets in passing argument 2 of ‘ConvertFromULong’ differ in signedness [-Wpointer-sign]
+         ConvertFromULong(a->data.ulptr[x],buf+off);
+                                           ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:29:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertFromULong(uint64 val,unsigned char *cnv);
+      ^
+dmap.c:821:42: warning: pointer targets in passing argument 2 of ‘ConvertFromFloat’ differ in signedness [-Wpointer-sign]
+         ConvertFromFloat(a->data.fptr[x],buf+off);
+                                          ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:24:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertFromFloat(float val,unsigned char *cnv);
+      ^
+dmap.c:827:43: warning: pointer targets in passing argument 2 of ‘ConvertFromDouble’ differ in signedness [-Wpointer-sign]
+         ConvertFromDouble(a->data.dptr[x],buf+off);
+                                           ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:25:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertFromDouble(double val,unsigned char *cnv);
+      ^
+dmap.c:849:31: warning: pointer targets in passing argument 2 of ‘ConvertFromInt’ differ in signedness [-Wpointer-sign]
+           ConvertFromInt(tsze,buf+off);
+                               ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:27:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertFromInt(int32 val,unsigned char *cnv);
+      ^
+dmap.c:856:31: warning: pointer targets in passing argument 2 of ‘ConvertFromInt’ differ in signedness [-Wpointer-sign]
+           ConvertFromInt(tsze,buf+off);
+                               ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:27:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertFromInt(int32 val,unsigned char *cnv);
+      ^
+dmap.c: In function ‘DataMapDecodeBuffer’:
+dmap.c:987:16: warning: pointer targets in passing argument 1 of ‘ConvertToInt’ differ in signedness [-Wpointer-sign]
+   ConvertToInt(buf+off,&code);
+                ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:17:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertToInt(unsigned char *cnv,int32 *val);
+      ^
+dmap.c:989:16: warning: pointer targets in passing argument 1 of ‘ConvertToInt’ differ in signedness [-Wpointer-sign]
+   ConvertToInt(buf+off,&sze);
+                ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:17:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertToInt(unsigned char *cnv,int32 *val);
+      ^
+dmap.c:991:16: warning: pointer targets in passing argument 1 of ‘ConvertToInt’ differ in signedness [-Wpointer-sign]
+   ConvertToInt(buf+off,&sn);
+                ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:17:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertToInt(unsigned char *cnv,int32 *val);
+      ^
+dmap.c:993:16: warning: pointer targets in passing argument 1 of ‘ConvertToInt’ differ in signedness [-Wpointer-sign]
+   ConvertToInt(buf+off,&an);
+                ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:17:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertToInt(unsigned char *cnv,int32 *val);
+      ^
+dmap.c:1053:22: warning: pointer targets in passing argument 1 of ‘ConvertToShort’ differ in signedness [-Wpointer-sign]
+       ConvertToShort(buf+off,s->data.sptr);
+                      ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:18:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertToShort(unsigned char *cnv,int16 *val);
+      ^
+dmap.c:1062:20: warning: pointer targets in passing argument 1 of ‘ConvertToInt’ differ in signedness [-Wpointer-sign]
+       ConvertToInt(buf+off,s->data.iptr);
+                    ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:17:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertToInt(unsigned char *cnv,int32 *val);
+      ^
+dmap.c:1071:21: warning: pointer targets in passing argument 1 of ‘ConvertToLong’ differ in signedness [-Wpointer-sign]
+       ConvertToLong(buf+off,s->data.lptr);
+                     ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:16:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertToLong(unsigned char *cnv,int64 *val);
+      ^
+dmap.c:1089:23: warning: pointer targets in passing argument 1 of ‘ConvertToUShort’ differ in signedness [-Wpointer-sign]
+       ConvertToUShort(buf+off,s->data.usptr);
+                       ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:21:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertToUShort(unsigned char *cnv,uint16 *val);
+      ^
+dmap.c:1098:21: warning: pointer targets in passing argument 1 of ‘ConvertToUInt’ differ in signedness [-Wpointer-sign]
+       ConvertToUInt(buf+off,s->data.uiptr);
+                     ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:20:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertToUInt(unsigned char *cnv,uint32 *val);
+      ^
+dmap.c:1107:22: warning: pointer targets in passing argument 1 of ‘ConvertToULong’ differ in signedness [-Wpointer-sign]
+       ConvertToULong(buf+off,s->data.ulptr);
+                      ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:19:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertToULong(unsigned char *cnv,uint64 *val);
+      ^
+dmap.c:1116:22: warning: pointer targets in passing argument 1 of ‘ConvertToFloat’ differ in signedness [-Wpointer-sign]
+       ConvertToFloat(buf+off,s->data.fptr);
+                      ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:23:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertToFloat(unsigned char *cnv,float *val);
+      ^
+dmap.c:1125:23: warning: pointer targets in passing argument 1 of ‘ConvertToDouble’ differ in signedness [-Wpointer-sign]
+       ConvertToDouble(buf+off,s->data.dptr);
+                       ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:22:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertToDouble(unsigned char *cnv,double *val);
+      ^
+dmap.c:1162:20: warning: pointer targets in passing argument 1 of ‘ConvertToInt’ differ in signedness [-Wpointer-sign]
+       ConvertToInt(buf+off,&tsze);
+                    ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:17:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertToInt(unsigned char *cnv,int32 *val);
+      ^
+dmap.c:1196:18: warning: pointer targets in passing argument 1 of ‘ConvertToInt’ differ in signedness [-Wpointer-sign]
+     ConvertToInt(buf+off,(int32 *) &(a->dim));
+                  ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:17:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertToInt(unsigned char *cnv,int32 *val);
+      ^
+dmap.c:1201:21: warning: pointer targets in passing argument 1 of ‘ConvertToInt’ differ in signedness [-Wpointer-sign]
+        ConvertToInt(buf+off,&a->rng[x]);
+                     ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:17:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertToInt(unsigned char *cnv,int32 *val);
+      ^
+dmap.c:1224:24: warning: pointer targets in passing argument 1 of ‘ConvertToShort’ differ in signedness [-Wpointer-sign]
+         ConvertToShort(buf+off,&a->data.sptr[x]);
+                        ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:18:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertToShort(unsigned char *cnv,int16 *val);
+      ^
+dmap.c:1235:22: warning: pointer targets in passing argument 1 of ‘ConvertToInt’ differ in signedness [-Wpointer-sign]
+         ConvertToInt(buf+off,&a->data.iptr[x]);
+                      ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:17:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertToInt(unsigned char *cnv,int32 *val);
+      ^
+dmap.c:1246:23: warning: pointer targets in passing argument 1 of ‘ConvertToLong’ differ in signedness [-Wpointer-sign]
+         ConvertToLong(buf+off,&a->data.lptr[x]);
+                       ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:16:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertToLong(unsigned char *cnv,int64 *val);
+      ^
+dmap.c:1267:25: warning: pointer targets in passing argument 1 of ‘ConvertToUShort’ differ in signedness [-Wpointer-sign]
+         ConvertToUShort(buf+off,&a->data.usptr[x]);
+                         ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:21:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertToUShort(unsigned char *cnv,uint16 *val);
+      ^
+dmap.c:1278:23: warning: pointer targets in passing argument 1 of ‘ConvertToUInt’ differ in signedness [-Wpointer-sign]
+         ConvertToUInt(buf+off,&a->data.uiptr[x]);
+                       ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:20:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertToUInt(unsigned char *cnv,uint32 *val);
+      ^
+dmap.c:1289:24: warning: pointer targets in passing argument 1 of ‘ConvertToULong’ differ in signedness [-Wpointer-sign]
+         ConvertToULong(buf+off,&a->data.ulptr[x]);
+                        ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:19:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertToULong(unsigned char *cnv,uint64 *val);
+      ^
+dmap.c:1300:24: warning: pointer targets in passing argument 1 of ‘ConvertToFloat’ differ in signedness [-Wpointer-sign]
+         ConvertToFloat(buf+off,&a->data.fptr[x]);
+                        ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:23:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertToFloat(unsigned char *cnv,float *val);
+      ^
+dmap.c:1311:18: warning: pointer targets in passing argument 1 of ‘ConvertToDouble’ differ in signedness [-Wpointer-sign]
+  ConvertToDouble(buf+off,&a->data.dptr[x]);
+                  ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:22:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertToDouble(unsigned char *cnv,double *val);
+      ^
+dmap.c:1342:22: warning: pointer targets in passing argument 1 of ‘ConvertToInt’ differ in signedness [-Wpointer-sign]
+         ConvertToInt(buf+off,&tsze);
+                      ^
+In file included from dmap.c:38:0:
+/home/radar/ros.3.6//include/base/rconvert.h:17:6: note: expected ‘unsigned char *’ but argument is of type ‘char *’
+ void ConvertToInt(unsigned char *cnv,int32 *val);
+      ^
+/home/radar/ros.3.6//build/make/makelib.linux:19: recipe for target 'dmap.o' failed
+make: *** [dmap.o] Interrupt

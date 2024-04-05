@@ -168,6 +168,7 @@ struct TXStatus {
 
 #define GET_PARAMETERS 'c'
 #define SET_PARAMETERS 'C'
+#define SET_PARAMETERS_I 'D'
 
 #define PING '='
 #define OKAY '^'

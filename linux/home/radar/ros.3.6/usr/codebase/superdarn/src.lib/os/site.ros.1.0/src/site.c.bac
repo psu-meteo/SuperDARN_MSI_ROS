@@ -194,31 +194,7 @@ int SiteRosStart(char *host,char *ststr) {
         return -1;
     }
     /* TODO: implement chanstr handling as an option to allow for chan specific defaults */
-    if(chanstr==NULL){
-       printf("cnum: %d, ", cnum);
-       switch(cnum) {
-           case 1:
-               chanstr = malloc(sizeof(char*));
-               chanstr = "a";
-               break;
-           case 2:
-               chanstr = malloc(sizeof(char*));
-               chanstr = "b";
-               break;
-           case 3:
-               chanstr = malloc(sizeof(char*));
-               chanstr = "c";
-               break;
-           case 4:
-               chanstr = malloc(sizeof(char*));
-               chanstr = "d";
-               break;
-           default:
-               chanstr=getenv("CHANSTR");
-               break;
-       }
-    }
-
+    if(chanstr==NULL) chanstr=getenv("CHANSTR");
     if(ststr==NULL) ststr=getenv("STSTR");
     if(ststr==NULL) ststr=dfststr;
     printf("StStr: %s ChanStr %s\n",ststr,chanstr);
@@ -656,7 +632,7 @@ int SiteRosStartIntt(int sec,int usec) {
     rprm.priority=cnum;
     rprm.buffer_index=0;
 
-    smsg.type=SET_PARAMETERS_I;
+    smsg.type=SET_PARAMETERS;
     TCPIPMsgSend(sock,&smsg,sizeof(struct ROSMsg));
     TCPIPMsgSend(sock,&rprm,sizeof(struct ControlPRM));
     TCPIPMsgRecv(sock,&rmsg,sizeof(struct ROSMsg));
@@ -1101,16 +1077,6 @@ int SiteRosIntegrate(int (*lags)[2]) {
         TCPIPMsgRecv(sock, &num_transmitters, sizeof(int));
         TCPIPMsgRecv(sock, &txstatus.AGC, sizeof(int)*num_transmitters);
         TCPIPMsgRecv(sock, &txstatus.LOWPWR, sizeof(int)*num_transmitters);
-
-        /* receive trigger time of integration period */
-        TCPIPMsgRecv(sock, &yr, sizeof(int));
-        TCPIPMsgRecv(sock, &mo, sizeof(int));
-        TCPIPMsgRecv(sock, &dy, sizeof(int));
-        TCPIPMsgRecv(sock, &hr, sizeof(int));
-        TCPIPMsgRecv(sock, &mt, sizeof(int));
-        TCPIPMsgRecv(sock, &sc, sizeof(int));
-        TCPIPMsgRecv(sock, &us, sizeof(int));
-
     }
 
     TCPIPMsgRecv(sock, &rprm, sizeof(struct ControlPRM));

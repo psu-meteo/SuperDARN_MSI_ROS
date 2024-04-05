@@ -21,7 +21,7 @@
 
 void print_schedule(struct scd_blk *ptr) {/* prints out the schedule */
   int i,c;
-  char txt[2048];
+  char txt[256];
   double current_time;
   int yr,mo,dy,hr,mt,sc,us;
   TimeReadClock(&yr,&mo,&dy,&hr,&mt,&sc,&us);
