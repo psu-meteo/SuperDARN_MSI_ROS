@@ -1,0 +1,162 @@
+#!/bin/sh
+
+HOME=/home/radar2
+
+report=$HOME/radar.report
+mail=$HOME/radar.mail
+
+echo "cdproc" 
+echo "======"
+echo "cdproc" > $report
+echo "======" >> $report
+echo "cdproc" > $mail
+echo "======" >> $mail
+ 
+date
+date >> $mail
+date >> $report
+
+# cdrecord parameters
+
+speed=40
+#dev="4,0,0"
+dev=/dev/cdwriter
+dev1="0,1,0"
+
+# mount points
+cdmnt="/cdrom"
+
+# Holding directory for compressed processed files
+rawdir="$HOME/data/rawdata"
+
+# Staging directory for CD creation
+stgdir="$HOME/data/stage"
+
+# CD Image file
+cddir="$HOME/data/cdimage"
+
+# SND data files
+snddir="$HOME/data/snd"
+
+#  Trigger limit for CD creation - If the holding directory contains
+#  more than this number of megabytes of Data, CD creation is triggered
+cdtrig=600
+
+# CD Limit size limit for the amount of data that can be put on one disk.
+# Files are copied from the holding area to the staging area up to this
+# Limit, then a CD is written.
+
+let cdlmt=630*1024
+
+# This avoids the possibility of having too much data to write on a single
+# CD. The holding area can contain a lot of data, but the staging area
+# will only contain enough for one CD. 
+# The data is moved around the disk, so it is impossible for it to become
+# overfull - The only caveat being that the CD images must remain roughly the
+# same size.
+
+rawsze=`du -m ${rawdir} | cut -f 1`
+echo "Trigger limit for holding area:"${cdtrig}" MB" 
+echo "Trigger limit for holding area:"${cdtrig}" MB" >> $report
+echo "Data stored in holding area:"${rawsze}" MB"
+echo "Data stored in holding area:"${rawsze}" MB" >> $report
+
+echo "Trigger limit for holding area:"${cdtrig}" MB" >> $mail
+echo "Data stored in holding area:"${rawsze}" MB" >> $mail
+ 
+days=1
+
+if test ${rawsze} -lt ${cdtrig} 
+  then
+    # work out how many days left until a CD is written 
+    exit
+  fi
+
+echo "CD Creation Triggered"
+echo "CD Creation Triggered" >> $report
+echo "CD Creation Triggered" >> $mail
+  
+# Now move files across to the staging area and make a CD image.
+# First we have to work out how many files we can move 
+
+cd ${rawdir}
+
+flist=`ls -1 `
+for fname in $flist
+  do
+    fsze=`ls -l ${fname} | tr -s " " | cut -f 5 -d " "`
+    let dsize=dsize+fsze/1024 
+    if test $dsize -gt $cdlmt
+    then  
+      break
+    fi
+ 
+    # move data into the staging area
+    echo "Linking:"${fname}
+    echo "Linking:"${fname} >> $report
+    ln ${fname} ${stgdir}/${fname}
+  done
+
+  name1=`ls $stgdir | head -1`
+  name2=`ls $stgdir | tail -1`
+  name="$name1"_"$name2".iso
+
+  cdimage=${cddir}/${name}
+  
+  echo "Making CD image:"${cdimage} 
+  echo "Making CD image:"${cdimage} >> $report
+  cd ${stgdir}  
+  mkisofs -v -R -o ${cdimage} .
+  status=${?}
+  if test ${status} -ne 0
+   then
+     echo "Error creating CD image: error="${status}
+     echo "Error creating CD image: error="${status}  >> $report
+     echo "Error creating CD image: error="${status}  >> $mail
+     rm -f ${stgdir}/*
+     rm -f ${cdimage}
+     exit
+   fi
+
+   echo "Writing CD 0"
+   echo "Writing CD 0" >> $report
+   cdrecord -v dev=${dev} speed=${speed} ${cdimage}   
+   status=$?
+   if test ${status} -ne 0
+   then
+     echo "Error Writing CD : error="${status}   
+     echo "Error Writing CD : error="${status} >> $report
+     echo "Error Writing CD : error="${status} >> $mail
+
+     rm -f ${stgdir}/*
+     rm -f ${cdimage}
+     exit
+   fi
+
+   echo "Mounting CD 0"
+   cdrecord dev=${dev} --eject
+   mount $cdmnt
+   status=$?
+   if test ${status} -ne 0
+   then 
+     echo "Error Mounting CD: error="${status}
+     echo "Error Mounting CD: error="${status} >> $report
+     echo "Error Mounting CD: error="${status} >> $mail
+     rm -f ${stgdir}/*
+     exit
+   fi
+   umount $cdmnt
+
+   cd ${stgdir} 
+   flist=`ls -1 ${stgdir}`
+   for fname in $flist 
+   do
+     rm -f ${stgdir}/${fname}
+     rm -f ${rawdir}/${fname}
+   done
+
+ sleep 3
+ cdrecord dev=${dev} --eject
+
+mail -s KODIAK_CD alnjer@ptialaska.net -c bill.bristow@gi.alaska.edu < ~/radar.report
+

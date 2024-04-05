@@ -156,7 +156,10 @@ struct TSGbuf *TSGMake(struct TSGprm *tsg,int *flg) {
     }
   }
 
- if ((buf=malloc(sizeof(struct TSGbuf)))==NULL) return NULL;  
+  if ((buf=malloc(sizeof(struct TSGbuf)))==NULL){
+      printf("maketsg.c: Error: TSG_INV_DUTY_CYCLE. \n"); 
+      return NULL;  
+  }
   cnt.last=0;
   cnt.n_smp=0;
 
@@ -192,27 +195,30 @@ struct TSGbuf *TSGMake(struct TSGprm *tsg,int *flg) {
 
   if (tsg->mppul>0) {
   	if ((tsg->mpinc) < (tsg->smsep)) {
-      free(buf);
-      *flg=TSG_INV_MPINC_SMSEP; 
-      return NULL;
+           free(buf);
+           *flg=TSG_INV_MPINC_SMSEP; 
+           return NULL;
   	}
   	if (tsg->lagfr % tsg->smsep != 0) {
-      free(buf);
-      *flg=TSG_INV_LAGFR_SMSEP; 
-	  return NULL;
+           free(buf);
+           *flg=TSG_INV_LAGFR_SMSEP; 
+           return NULL;
 	}
   	if (tsg->mpinc % tsg->smsep != 0) {
-      free(buf);
-      *flg=TSG_INV_MPINC_SMSEP;   
-	  return NULL;
+           free(buf);
+           *flg=TSG_INV_MPINC_SMSEP;   
+            return NULL;
   	}
   	if ( ((20L*(long)(tsg->mppul)*(tsg->txpl))/
          ( (long)(tsg->mlag)*(tsg->mpinc) +
 		 (tsg->nrang)*(tsg->nbaud)*(tsg->smsep) + 
                  tsg->lagfr) ) >= 1L) {
-      free(buf);
-      *flg=TSG_INV_DUTY_CYCLE;  
-	  return NULL;
+           free(buf);
+           printf("maketsg.c: Error: TSG_INV_DUTY_CYCLE. Details:\n"); 
+           printf("mppul=%d, txpl=%d, mlag=%d, mpinc=%d, ", tsg->mppul, tsg->txpl, tsg->mlag, tsg->mpinc);
+           printf("nrang=%d, nbaud=%d, sesep=%d, lagfr=%d\n", tsg->nrang, tsg->nbaud,tsg->smsep, tsg->lagfr);
+           *flg=TSG_INV_DUTY_CYCLE;  
+           return NULL;
     }
   } 
 

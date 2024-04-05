@@ -1,0 +1,73 @@
+#!/bin/bash
+
+main () {
+    src_dir="image_samples/bb_data"
+    file_type="iraw.d"
+
+    source_path="/data/${src_dir}"
+    temp_path="/data/tmp_image"
+    archive_path="/data/archive/imaging"
+
+    does_directory_exist $source_path
+    does_directory_exist $temp_path
+    does_directory_exist $archive_path
+
+    for file in $source_path/*$file_type
+    do
+        file_name=$(basename $file)
+        echo $file
+        cp $file $archive_path
+        cp $file $temp_path
+
+        if is_copy_successful $file $temp_path/$file_name
+        then
+            echo "${file_name} copied successfully"
+        else
+            echo "${file_name} copy failed"
+        fi
+
+        if is_copy_successful $file $archive_path/$file_name
+        then
+            echo "${file_name} archived successfully"
+            rm $file
+            echo "${file} removed"
+        else
+            echo "{file_name} archive failed"
+        fi
+    done
+
+    echo "Files transfered"
+}
+
+# Check if the directories exist
+function does_directory_exist() {
+    local __dir=$1
+
+    if [ -d $__dir ]; then
+        echo ${__dir}" exists"
+    else
+        echo ${__dir}" does not exist"
+        exit
+    fi
+}
+
+
+function is_copy_successful() {
+    local __src_file=$1
+    local __dest_file=$2
+    local __src_size=$(wc -c < $__src_file)
+    local __dest_size=$(wc -c < $__dest_file)
+
+    if [ $__src_size -eq $__dest_size ]
+    then
+        # 0 = true
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Run main
+main
+
+# EOF

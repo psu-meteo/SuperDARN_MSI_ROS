@@ -4,7 +4,7 @@
 
 include $(MAKECFG).$(SYSTEM)
 
-INCLUDE=-I$(IPATH)/base -I$(IPATH)/general -I$(IPATH)/superdarn
+INCLUDE=-I$(IPATH)/base -I$(IPATH)/general -I$(IPATH)/superdarn -I$(USR_IPATH)/superdarn
 OBJS = iqwrite.o 
 SRC=hlpstr.h errstr.h iqwrite.c
 

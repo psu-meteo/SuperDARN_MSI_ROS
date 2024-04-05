@@ -18,6 +18,7 @@ extern int sock;
 extern char server[256];
 extern int port;
 extern int num_transmitters;
+extern int dmatch;
 extern struct timeval tock;
 extern struct ControlPRM rprm;
 extern struct RosData rdata;
@@ -25,7 +26,7 @@ extern struct DataPRM dprm;
 extern struct TRTimes badtrdat;
 extern struct TXStatus txstatus;
 extern struct SiteLibrary sitelib;
-extern int *exit_flag;
+extern int exit_flag;
 extern int cancel_count;
 
 

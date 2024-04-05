@@ -1,0 +1,13 @@
+#!/bin/sh
+cd $HOME
+$HOME/src/cp_files dat dat
+$HOME/src/cp_files fitacf fit
+$HOME/src/cp_files fitacf inx
+$HOME/src/cp_files rawacf rawacf
+$HOME/src/local_archive_only fitacf fitacf
+#$HOME/src/cp_files fitacf fitacf
+$HOME/src/cp_files snd snd
+$HOME/src/archive_imaging
+#
+#$HOME/src/cdproc
+
