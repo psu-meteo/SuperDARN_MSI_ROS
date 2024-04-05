@@ -54,7 +54,7 @@ int sock;
 char server[256];
 int port;
 int num_transmitters;
-
+int dmatch=0; /* default value for match filter */
 struct timeval tock;
 struct ControlPRM rprm;
 struct RosData rdata;
@@ -62,26 +62,26 @@ struct DataPRM dprm;
 struct TRTimes badtrdat;
 struct TXStatus txstatus;
 struct SiteLibrary sitelib;
-int *exit_flag=NULL;
+int exit_flag=0;
 int cancel_count=0;
 
 
 
 
-int SiteStart(char *host) {
+int SiteStart(char *host,char *ststr) {
   rdata.main=NULL;
   rdata.back=NULL;
   badtrdat.start_usec=NULL;
   badtrdat.duration_usec=NULL; 
-  return (sitelib.start)(host);
+  return (sitelib.start)(host,ststr);
 }
 
 int SiteSetupRadar() {
   return (sitelib.setupradar)();
 }
  
-int SiteStartScan() {
-  return (sitelib.startscan)();
+int SiteStartScan(int32_t periods_per_scan, int32_t *scan_beam_list, int32_t *clrfreq_fstart_list, int32_t *clrfreq_bandwidth_list, int32_t fixFreq, int32_t sync_scan, int32_t *beam_times, int32_t scn_sc, int32_t scn_us, int32_t int_sc, int32_t int_us, int32_t start_period) {
+  return (sitelib.startscan)(periods_per_scan, scan_beam_list, clrfreq_fstart_list, clrfreq_bandwidth_list, fixFreq, sync_scan, beam_times, scn_sc, scn_us, int_sc, int_us, start_period);
 }
 
 int SiteStartIntt(int sec,int usec) {

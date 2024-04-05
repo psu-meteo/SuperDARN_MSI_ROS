@@ -15,6 +15,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <errno.h>
+#include <ctype.h>
 #include "rtime.h"
 #include "schedule.h"
 #include "log_info.h"
@@ -25,9 +26,53 @@ int default_priority=0;
 int max_duration_minutes=0;
 int has_priority=0,has_duration=0;
 
+char *trim(char *str)
+{
+    size_t len = 0;
+    char *frontp = str - 1;
+    char *endp = NULL;
+
+    if( str == NULL )
+            return NULL;
+
+    if( str[0] == '\0' )
+            return str;
+
+    len = strlen(str);
+    endp = str + len;
+
+    /* Move the front and back pointers to address
+     * the first non-whitespace characters from
+     * each end.
+     */
+    while( isspace(*(++frontp)) );
+    while( isspace(*(--endp)) && endp != frontp );
+
+    if( str + len - 1 != endp )
+            *(endp + 1) = '\0';
+    else if( frontp != str &&  endp == frontp )
+            *str = '\0';
+
+    /* Shift the string so that it starts at str so
+     * that if it's dynamically allocated, we can
+     * still free it on the returned pointer.  Note
+     * the reuse of endp to mean the front of the
+     * string buffer now.
+     */
+    endp = str;
+    if( frontp != str )
+    {
+            while( *frontp ) *endp++ = *frontp++;
+            *endp = '\0';
+    }
+
+
+    return str;
+}
+
 int parse_schedule_line(char *line,struct scd_blk *ptr) {
  
-  char *token,*endptr;
+  char *token,*endptr,*ttok;
   long val;
   int year,month,day,hour,minute,i;
   errno=0;
@@ -46,6 +91,24 @@ int parse_schedule_line(char *line,struct scd_blk *ptr) {
     /* the path variable */
     if ((token=strtok(NULL,""))==NULL) return -1; /* command */
     strcpy(ptr->path,token);
+  } else if (strcmp(token,"channel")==0) {
+    /* Set the CHANSTR envvar */
+    if ((token=strtok(NULL,""))==NULL) return -1; /* string */
+    ttok=trim(token);
+    fprintf(stdout,"Setting the CHANSTR envvar: \'%s\'\n",ttok);
+    setenv("CHANSTR",ttok,1);
+  } else if (strcmp(token,"sitelib")==0) {
+    /* Set the CHANSTR envvar */
+    if ((token=strtok(NULL,""))==NULL) return -1; /* string */
+    ttok=trim(token);
+    fprintf(stdout,"Setting the LIBSTR envvar: \'%s\'\n",ttok);
+    setenv("LIBSTR",ttok,1);
+  } else if (strcmp(token,"stationid")==0) {
+    /* Set the STSTR envvar */
+    if ((token=strtok(NULL,""))==NULL) return -1; /* string */
+    ttok=trim(token);
+    fprintf(stdout,"Setting the STSTR envvar: \'%s\'\n",ttok);
+    setenv("STSTR",ttok,1);
   } else if (strcmp(token,"priority")==0) {
     if ((token=strtok(NULL,""))==NULL) return -1; /* minutes */
     default_priority=atoi(token);

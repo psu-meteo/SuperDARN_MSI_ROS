@@ -1,5 +1,5 @@
 /* sync.c
-   ====== 
+    ======  
    Author: R.J.Barnes
 */
 
@@ -20,7 +20,7 @@
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU Lesser General Public License for more details.
  
- You should have received a copy of the GNU Lesser General Public License
+ You should have receintegration_timeed a copy of the GNU Lesser General Public License
  along with RST.  If not, see <http://www.gnu.org/licenses/>.
  
  
@@ -53,29 +53,31 @@
 
 int OpsDayNight() {
   if (day < night) {
-    if ((day <= hr) && (hr < night)) return 1;
+    if ((day <=  hr) && (hr < night)) return 1;
     else return 0;
   } else {
-    if ((night <= hr) && (hr < day)) return 0;
+    if ((night <=  hr) && (hr < day)) return 0;
   }
   return 1;
 }
  
 int OpsFindSkip(int bsc,int bus) {
-  
-  int tv;
-  int bv;
-  int iv;
+  /* (Just mgu's guess:) 
+     Function to calculate the number of the sequence that should be transmitted to this time.
+     When called at the start of a scan this is equal to the number ob sequences that have to be skipped to be in the correct time order. */
+
+  int current_time,  scan_time, integration_time; /* all times in us */
   int skip;
-  int nbm;
-  nbm=fabs(ebm-sbm);
+  int nBeams;
+
+  nBeams = fabs(ebm-sbm);
   TimeReadClock(&yr,&mo,&dy,&hr,&mt,&sc,&us);
-  iv=intsc*1000000+intus;
-  bv=bsc*1000000+bus;
-  tv=(mt*60+sc)*1000000+us+iv/2-100000; 
-  skip=(tv % bv)/iv; 
-  if (skip>nbm) skip=0;
-  if (skip<0) skip=0;
+  integration_time = intsc*1000000+intus;
+  scan_time = bsc*1000000+bus;
+  current_time = (mt*60+sc)*1000000+us + integration_time/2 - 100000; 
+  skip = (current_time % scan_time) / integration_time; 
+  if (skip>nBeams) skip = 0;
+  if (skip<0) skip = 0;
   return skip;
 }
 

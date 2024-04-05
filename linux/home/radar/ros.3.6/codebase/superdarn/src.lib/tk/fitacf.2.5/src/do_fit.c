@@ -84,22 +84,8 @@ int do_fit(struct FitBlock *iptr,int lag_lim,int goose,
     return -1;
   }
 
-/* 
- * JDS: July 2013: 
- * FitACFBadlagsStereo is only valid if offset!=0
- *   This is used for the UK Stereo radar design which interleaves channels inside
- *   a pulse sequence. See badlag_s.c file for specifics on how "offset" is used
- *   to calculate transmit pulse locations.
- * UAF MSI-like radars use independent channels with offset=0 and use the 
- *   standard Badlags calculation when in multi-channel operation channel!=0.
- *
-*/ 
   if (iptr->prm.channel==0) FitACFBadlags(&iptr->prm,&badsmp);	
-  else {
-    if (iptr->prm.offset!=0) FitACFBadlagsStereo(&iptr->prm,&badsmp);  
-/* JDS: Added for UAF "multi-channel" radar design" */
-    else FitACFBadlags(&iptr->prm,&badsmp);
-  }
+  else FitACFBadlagsStereo(&iptr->prm,&badsmp);  
 
 
   /* Determine the lag_0 noise level (0 dB reference) and the noise level at 
@@ -207,9 +193,25 @@ int do_fit(struct FitBlock *iptr,int lag_lim,int goose,
 
   for (k=0, i=0; k<iptr->prm.nrang;k++) {
 
+/*
+    fprintf(stderr,"do_fit: rbin: %d\n",k);
+    fprintf(stderr,"do_fit: : acf xcf\n",k);
+*/
+    struct complex zm,zx;    
+    int l=0;
+    for (l=0;l<iptr->prm.mplgs;l++ ){
+      zm=iptr->acfd[k*iptr->prm.mplgs+l];
+      zx=iptr->xcfd[k*iptr->prm.mplgs+l];
+/*
+      fprintf(stderr,"do_fit: %d : %lf %lf :: %lf %lf\n",l,zm.x,zm.y,zx.x,zx.y);
+*/
+    }
     ptr[k].qflg = fit_acf(&iptr->acfd[k*iptr->prm.mplgs], k+1,
                               &badlag[k*iptr->prm.mplgs],&badsmp,
                               lag_lim,&iptr->prm,noise_pwr,0,0.0,&ptr[k]);
+/*
+    fprintf(stderr,"do_fit:   acf qflg: %d\n", ptr[k].qflg);
+*/
     xomega=ptr[k].v;
     if (ptr[k].qflg == 1)	{
       /* several changes have been made here to 
@@ -301,6 +303,9 @@ int do_fit(struct FitBlock *iptr,int lag_lim,int goose,
                                   &badlag[k*iptr->prm.mplgs],&badsmp,
                                   lag_lim,&iptr->prm,noise_pwr,1,xomega,
 				  &xptr[k]);
+/*
+    fprintf(stderr,"do_fit:   xcf qflg: %d\n", xptr[k].qflg);
+*/
        
     if (xptr[k].qflg == 1) {
       xptr[k].p_l = xptr[k].p_l*LN_TO_LOG - skylog;

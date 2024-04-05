@@ -88,12 +88,14 @@ extern int mppul;
 extern int mplgs;
 extern int mplgexs;
 extern int ifmode;
+extern int invert;
 extern int nrang;
 extern int frang;
 extern int rsep;
 extern int bmnum;
 extern int xcf;
 extern int tfreq;
+extern int rfreq;
 extern int scan;
 extern int mxpwr;
 extern int lvmax;
@@ -106,6 +108,7 @@ extern int noiselim;
 
 extern float noisestat[4];
 extern char combf[128];
+extern char station[10];
 
 extern int rxchn;
 extern int smpnum;
@@ -155,7 +158,9 @@ extern int stfrq;
 extern int frqrng;
 
 
-
+extern struct TCPIPMsgHost errlog;
+extern struct TCPIPMsgHost shell;
+extern int baseport; 
 #endif
 
 

@@ -161,6 +161,7 @@ int SiteKodStart(char *host) {
   backward=0;
   sbm=0;
   ebm=15;
+  xcf=1;
 /* rxchn number of channels typically 1*/
 /* rngoff argument in ACFCalculate.. is 2*rxchn and is normally set to 2 */
   rxchn=1;
@@ -352,7 +353,7 @@ int SiteKodStartIntt(int sec,int usec) {
   rprm.trise=5000;   
   rprm.baseband_samplerate=((double)nbaud/(double)txpl)*1E6; 
   rprm.filter_bandwidth=rprm.baseband_samplerate; 
-  rprm.match_filter=1;
+  rprm.match_filter=0;
   rprm.number_of_samples=total_samples+nbaud+10; 
   rprm.priority=cnum;
   rprm.buffer_index=0;
@@ -395,7 +396,7 @@ int SiteKodFCLR(int stfreq,int edfreq) {
   rprm.trise=5000;   
   rprm.baseband_samplerate=((double)nbaud/(double)txpl)*1E6; 
   rprm.filter_bandwidth=rprm.baseband_samplerate; 
-  rprm.match_filter=1;
+  rprm.match_filter=0;
   rprm.number_of_samples=total_samples+nbaud+10; 
   rprm.priority=cnum;
   rprm.buffer_index=0;
@@ -541,6 +542,7 @@ int SiteKodIntegrate(int (*lags)[2]) {
   int32 temp32;
   /* phase code declarations */
   int n,nsamp, *code,   Iout, Qout;
+  uint32 uQ32,uI32;
   if (debug) {
     fprintf(stderr,"KOD SiteIntegrate: start\n");
   }
@@ -704,7 +706,7 @@ int SiteKodIntegrate(int (*lags)[2]) {
     rprm.trise=5000;   
     rprm.baseband_samplerate=((double)nbaud/(double)txpl)*1E6; 
     rprm.filter_bandwidth=rprm.baseband_samplerate; 
-    rprm.match_filter=1;
+    rprm.match_filter=0;
     rprm.number_of_samples=total_samples+nbaud+10; 
     rprm.priority=cnum;
     rprm.buffer_index=0;  
@@ -986,12 +988,15 @@ usleep(usecs);
           Qout/=nbaud;
           I=(short)Iout;
           Q=(short)Qout;
-
+          uQ32=((uint32) Q) << 16;
+          uI32=((uint32) I) & 0xFFFF;
+          (rdata.main)[n]=(uQ32)|uI32;
           if(f_diagnostic_ascii!=NULL) {
+            Q=((rdata.main)[n] & 0xffff0000) >> 16;
+            I=(rdata.main)[n] & 0x0000ffff;
             fprintf(f_diagnostic_ascii,"%8d %8d %8d %8d ", n, I, Q, (int)sqrt(I*I+Q*Q));
           }
-                
-          (rdata.main)[n]=(Q<<16)|I;
+
           Iout=0;
           Qout=0;
           for(i=0;i<nbaud;i++){
@@ -1004,11 +1009,14 @@ usleep(usecs);
           Qout/=nbaud;
           I=(short)Iout;
           Q=(short)Qout;
+          uQ32=((uint32) Q) << 16;
+          uI32=((uint32) I) & 0xFFFF;
+          (rdata.back)[n]=(uQ32)|uI32;
           if(f_diagnostic_ascii!=NULL) {
+            Q=((rdata.back)[n] & 0xffff0000) >> 16;
+            I=(rdata.back)[n] & 0x0000ffff;
             fprintf(f_diagnostic_ascii,"%8d %8d %8d\n", I, Q, (int)sqrt(I*I+Q*Q));
           }
-
-          (rdata.back)[n]=(Q<<16)|I;
         }
         if(f_diagnostic_ascii!=NULL) fprintf(f_diagnostic_ascii,"PCODE: DECODE_END\n");
 

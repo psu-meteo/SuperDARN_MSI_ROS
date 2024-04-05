@@ -8,7 +8,7 @@
 #define _SITE_H
 
 struct SiteLibrary {
-  int (*start)(char *);
+  int (*start)(char *,char *);
   int (*setupradar)();
   int (*startscan)();
   int (*startintt)(int,int);
@@ -19,9 +19,9 @@ struct SiteLibrary {
   void (*exit)(int);
 };
 
-int SiteStart(char *host);
+int SiteStart(char *host,char *ststr);
 int SiteSetupRadar();
-int SiteStartScan();
+int SiteStartScan(int32_t periods_per_scan, int32_t *scan_beam_list, int32_t *clrfreq_fstart_list, int32_t *clrfreq_bandwidth_list, int32_t fixFreq,int32_t sync_scan, int32_t *beam_times, int32_t scn_sc, int32_t scn_us, int32_t int_sc, int32_t int_us, int32_t start_period);
 int SiteStartIntt(int intsc,int intus);
 int SiteFCLR(int stfreq,int edfreq);
 int SiteTimeSeq(int *ptab);

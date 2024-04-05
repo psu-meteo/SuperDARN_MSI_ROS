@@ -1,0 +1,12 @@
+#!/usr/bin/bash
+cd $HOME
+/usr/bin/bash $HOME/src/cp_files dat dat
+/usr/bin/bash $HOME/src/cp_files fitacf fit
+/usr/bin/bash $HOME/src/cp_files fitacf inx
+/usr/bin/bash $HOME/src/cp_files rawacf rawacf
+/usr/bin/bash $HOME/src/local_archive_only fitacf fitacf
+/usr/bin/bash #$HOME/src/cp_files fitacf fitacf
+/usr/bin/bash $HOME/src/cp_files snd snd
+#
+#$HOME/src/cdproc
+
