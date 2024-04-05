@@ -1,0 +1,52 @@
+make.version /home/radar/repos/SuperDARN_MSI_ROS/linux/home/radar/ros.3.6/usr/codebase/superdarn/src.bin/os/cp/uafsound.1.0
+make.help
+cc -fPIC -g -Wall -O3 -ansi -D_GNU_SOURCE -D_LINUX -D_SVGLIB_ -I/home/radar/repos/rst/include/base -I/home/radar/repos/rst/include/general -I/home/radar/repos/rst/include/superdarn -I/home/radar/repos/rst/usr/include/superdarn -c uafsound.c    
+uafsound.c: In function ‘main’:
+uafsound.c:190:7: warning: unused variable ‘default_clrskip_secs’ [-Wunused-variable]
+  190 |   int default_clrskip_secs=30;
+      |       ^~~~~~~~~~~~~~~~~~~~
+uafsound.c:139:18: warning: unused variable ‘time_to_wait’ [-Wunused-variable]
+  139 |   int time_now,  time_to_wait; /* times in ms for period synchronization */
+      |                  ^~~~~~~~~~~~
+uafsound.c:139:7: warning: unused variable ‘time_now’ [-Wunused-variable]
+  139 |   int time_now,  time_to_wait; /* times in ms for period synchronization */
+      |       ^~~~~~~~
+uafsound.c:129:11: warning: variable ‘snd_clrfreq_bandwidth_list’ set but not used [-Wunused-but-set-variable]
+  129 |   int32_t snd_clrfreq_bandwidth_list[MAX_INTEGRATIONS_PER_SCAN];
+      |           ^~~~~~~~~~~~~~~~~~~~~~~~~~
+uafsound.c:402:5: warning: ignoring return value of ‘fscanf’, declared with attribute warn_unused_result [-Wunused-result]
+  402 |     fscanf(snd_dat, "%d", &snd_freqs_tot);
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+uafsound.c:405:7: warning: ignoring return value of ‘fscanf’, declared with attribute warn_unused_result [-Wunused-result]
+  405 |       fscanf(snd_dat, "%d", &snd_freqs[snd_freq_cnt]);
+      |       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+uafsound.c: In function ‘write_snd_record’:
+uafsound.c:1058:22: warning: ‘%s’ directive writing up to 99 bytes into a region of size 80 [-Wformat-overflow=]
+ 1058 |   sprintf(filename, "%s%s.snd", data_path, data_filename);
+      |                      ^~         ~~~~~~~~~
+In file included from /usr/include/stdio.h:867,
+                 from uafsound.c:31:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:36:10: note: ‘__builtin___sprintf_chk’ output between 5 and 153 bytes into a destination of size 80
+   36 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   37 |       __bos (__s), __fmt, __va_arg_pack ());
+      |       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+In file included from /usr/include/string.h:495,
+                 from uafsound.c:32:
+In function ‘strncat’,
+    inlined from ‘main’ at uafsound.c:484:5:
+/usr/include/x86_64-linux-gnu/bits/string_fortified.h:136:10: warning: ‘__builtin___strncat_chk’ specified bound depends on the length of the source argument [-Wstringop-overflow=]
+  136 |   return __builtin___strncat_chk (__dest, __src, __len, __bos (__dest));
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+uafsound.c: In function ‘main’:
+uafsound.c:484:30: note: length computed here
+  484 |     strncat(progname,modestr,strlen(modestr)+1);
+      |                              ^~~~~~~~~~~~~~~
+uafsound.c:723:9: warning: ‘scan_times’ may be used uninitialized in this function [-Wmaybe-uninitialized]
+  723 |     if (SiteStartScan(nBeams_per_scan, scan_beam_number_list, scan_clrfreq_fstart_list, scan_clrfreq_bandwidth_list, ai_fixfrq->ival[0], sync_scan, scan_times, scnsc, scnus, intsc, intus, iBeam) !=0){
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+cc -fPIC -g -Wall -O3 -ansi -D_GNU_SOURCE -D_LINUX -D_SVGLIB_ -I/home/radar/repos/rst/include/base -I/home/radar/repos/rst/include/general -I/home/radar/repos/rst/include/superdarn -I/home/radar/repos/rst/usr/include/superdarn -c sndwrite.c    
+mkdir -p /home/radar/repos/rst/usr/bin
+cc -rdynamic -L/home/radar/repos/rst/lib -L/home/radar/repos/rst/usr/lib -o /home/radar/repos/rst/usr/bin/uafsound uafsound.o sndwrite.o -Wl,-Bstatic \
+                           -lops.1 -lsite.1 -lradarshell.1 -ltcpipmsg.1 -lrmsgsnd.1 -lerrlog.1 -lfreq.1 -lfit.1 -lraw.1 -lcfit.1 -lrscan.1 -lfitacf.1 -liqdata.1 -lradar.1 -ldmap.1 -lopt.1 -lrtime.1 -lrcnv.1 -ltsg.1  -Wl,-Bdynamic \
+                           -lm -lrt -lz -ldl -l argtable2   
