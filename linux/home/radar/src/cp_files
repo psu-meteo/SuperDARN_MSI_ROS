@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 dir=$1
 ext=$2
@@ -6,20 +6,20 @@ ext=$2
 # IP address of the QNX machine.
 
 
-mail=$SRCPATH/radar.mail
-report=$SRCPATH/radar.report
+mail=$HOME/radar.mail
+report=$HOME/radar.report
 
 # echo this is the buffer size, if the size of the requested files results
 # is larger than the free space on the disc minus the buffer size
 # then don't get the data
 
-export buffer=40*1024
-export bufmg=buffer/1024
+let buffer=40*1024
+let bufmg=buffer/1024
 datestr=`date -u +%Y%m%d`
 
 dsize=`df -k /data | tail -1 | tr -s " " | cut -f 4 -d" "`
-export dsize=dsize-buffer
-export dszmg=dsize/1024
+let dsize=dsize-buffer
+let dszmg=dsize/1024
 
 echo "cp_files:"${datestr}" /data/"${dir}" "${ext}
 echo "cp_files:"${datestr}" /data/"${dir}" "${ext} > $report
@@ -30,9 +30,9 @@ date >> $mail
 
 
 filedir="/data/ros/${dir}"
-tmpdir=$SRCPATH/tmp_data
-dstdir="$SRCPATH/data/daily"
-rawdir="$SRCPATH/data/rawdata"
+tmpdir=$HOME/tmp_data
+dstdir="$HOME/data/daily"
+rawdir="$HOME/data/rawdata"
 if [ -d $tmpdir ]; then
 	echo "Tmp Directory exists"
 else 
@@ -57,8 +57,8 @@ else
 	echo "Requested Directory does not exists"
         exit
 fi
-getlist=$SRCPATH/src/file.list
-dirlist=$SRCPATH/src/dir.list
+getlist=$HOME/src/file.list
+dirlist=$HOME/src/dir.list
 
 echo "Date: ${datestr}"
 # build a list of files including the file size 
@@ -78,12 +78,12 @@ echo "Remote Files:" >> $report
 cat $getlist | tr " " "\t" >> $report
 
 fsze=`cat ${getlist} | cut -f 1 -d " "`
-export fsize=0
+let fsize=0
 for sze in $fsze
   do
-   export fsize=1+fsize+${sze}/1024
+   let fsize=1+fsize+${sze}/1024
   done
-export fszmg=fsize/1024
+let fszmg=fsize/1024
 echo "Total Disk Space Required:"${fszmg}" MB"
 echo "Total Disk Space Required:"${fszmg}" MB" >> $report
 echo "Total Disk Space Required:"${fszmg}" MB" >> $mail

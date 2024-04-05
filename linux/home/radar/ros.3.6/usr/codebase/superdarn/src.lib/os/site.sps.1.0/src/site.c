@@ -2,7 +2,6 @@
    ====== 
    Author R.J.Barnes
 */
-
 /*
  $License$
 */
@@ -36,8 +35,16 @@
 #define IMAG_BUF_OFFSET 1
 #define USEC 1000000.0
 int SPS_exit_flag=0;
-FILE *errmsg=NULL;
+char channame[5]="\0";
+
 FILE *seqlog=NULL;
+char seqlog_name[256];
+char *seqlog_dir=NULL;
+
+FILE *msglog=NULL;
+char msglog_name[256];
+char *msglog_dir=NULL;
+
 FILE *f_diagnostic_ascii=NULL;
 
 int yday=-1;
@@ -63,9 +70,19 @@ void SiteSpsExit(int signum) {
           fprintf(stderr,"QUIT:status=%d\n",msg.status);
         }
         close(sock);
-        fclose(errmsg);
-        fclose(seqlog);
-        fclose(f_diagnostic_ascii);
+        if(seqlog!=NULL) {
+          fflush(seqlog);
+          fclose(seqlog);
+          seqlog=NULL;
+        } 
+        if(msglog!=NULL) {
+          fclose(msglog);
+          msglog=NULL;
+        } 
+        if(f_diagnostic_ascii!=NULL) {
+          fclose(f_diagnostic_ascii);
+          f_diagnostic_ascii=NULL;
+        }
         if (samples !=NULL)
           ShMemFree((unsigned char *) samples,sharedmemory,IQBUFSIZE,1,shmemfd);
         exit(errno);
@@ -85,9 +102,19 @@ void SiteSpsExit(int signum) {
           fprintf(stderr,"QUIT:status=%d\n",msg.status);
         }
         close(sock);
-        fclose(errmsg);
-        fclose(seqlog);
-        fclose(f_diagnostic_ascii);
+        if(seqlog!=NULL) {
+          fflush(seqlog);
+          fclose(seqlog);
+          seqlog=NULL;
+        } 
+        if(msglog!=NULL) {
+          fclose(msglog);
+          msglog=NULL;
+        } 
+        if(f_diagnostic_ascii!=NULL) {
+          fclose(f_diagnostic_ascii);
+          f_diagnostic_ascii=NULL;
+        }
         if (samples !=NULL)
           ShMemFree((unsigned char *) samples,sharedmemory,IQBUFSIZE,1,shmemfd);
         exit(errno);
@@ -103,6 +130,7 @@ int SiteSpsStart(char *host) {
   signal(SIGPIPE,SiteSpsExit);
   signal(SIGINT,SiteSpsExit);
   signal(SIGUSR1,SiteSpsExit);
+
   for(nave=0;nave<MAXNAVE;nave++) {
     seqbadtr[nave].num=0;
     seqbadtr[nave].start=NULL;
@@ -119,9 +147,6 @@ int SiteSpsStart(char *host) {
   samples=NULL;
   SPS_exit_flag=0;
   cancel_count=0;
-  errmsg=fopen("/tmp/sps_err_msg.txt","a");
-  fprintf(errmsg,"SiteSpsStart\n");
-  fflush(errmsg);
   sock=0;
   fprintf(stderr,"ROS server:%s\n",host);
   strcpy(server,host);
@@ -135,7 +160,9 @@ int SiteSpsStart(char *host) {
 /* Beam Scan Direction settings */
   backward=0;
   sbm=0;
-  ebm=15;
+  ebm=21;
+/* invert main array raw samples to account for inverting amp difference */
+  invert=1;
 /* rxchn number of channels typically 1*/
 /* rngoff argument in ACFCalculate.. is 2*rxchn and is normally set to 2 */
   rxchn=1;
@@ -146,8 +173,8 @@ int SiteSpsStart(char *host) {
 
 /* KTS added to adjust for day/night time */
 
-  day=14;
-  night=02;
+  day=18;
+  night=10;
 
   return 0;
 }
@@ -159,7 +186,11 @@ int SiteSpsSetupRadar() {
   char ini_entry_name[80];
   char requested_entry_type,returned_entry_type;
   struct ROSMsg smsg,rmsg;
-
+  struct timeval currtime;
+  time_t ttime;
+  struct tm tstruct;
+   
+  fprintf(stderr,"Connecting to server on port %d\n", port);
   if ((sock=TCPIPMsgOpen(server,port)) == -1) {
     return -1;
   }
@@ -227,11 +258,66 @@ int SiteSpsSetupRadar() {
     fprintf(stderr,"IQBuffer %s is Null\n",sharedmemory);
     SiteSpsExit(-1);
   }
+/* Setup the seqlog file here*/
+  gettimeofday(&currtime,NULL);
+  ttime=currtime.tv_sec;
+  gmtime_r(&ttime,&tstruct);
+  switch(cnum) {
+	case 1:
+          sprintf(channame,".a");
+          break;
+	case 2:
+          sprintf(channame,".b");
+          break;
+	case 3:
+          sprintf(channame,".c");
+          break;
+	case 4:
+          sprintf(channame,".d");
+          break;
+	default:
+          sprintf(channame,"");
+          break;
+  }
+  if (msglog!=NULL) {
+      fclose(msglog);
+      msglog=NULL;
+  }
+  msglog_dir = getenv("MSGLOG_DIR");
+  if(msglog_dir!=NULL) { 
+    fprintf(stdout,"msglog dir: %s\n",msglog_dir);
+    sprintf(msglog_name,"%s/msglog.sps%s.%04d%02d%02d",msglog_dir,channame,tstruct.tm_year+1900,tstruct.tm_mon+1,tstruct.tm_mday);
+    fprintf(stdout,"msglog filename: %s\n",msglog_name);
+    msglog=fopen(msglog_name,"a+");
+  } else {
+    fprintf(stdout,"No msglog directory defined\n");
+  }
+
+  if (seqlog!=NULL) {
+      fflush(seqlog);
+      fclose(seqlog);
+      seqlog=NULL;
+  }
+  seqlog_dir = getenv("SEQLOG_DIR");
+  if(seqlog_dir!=NULL) { 
+    fprintf(stdout,"seqlog dir: %s\n",seqlog_dir);
+    sprintf(seqlog_name,"%s/seqlog.sps%s.%04d%02d%02d",seqlog_dir,channame,tstruct.tm_year+1900,tstruct.tm_mon+1,tstruct.tm_mday);
+    fprintf(stdout,"seqlog filename: %s\n",seqlog_name);
+    seqlog=fopen(seqlog_name,"a+");
+  } else {
+    fprintf(stdout,"No seqlog directory defined\n");
+  }
+  fflush(stdout);
   return 0;
 }
 
  
 int SiteSpsStartScan() {
+  struct ROSMsg smsg,rmsg;
+  smsg.type=SET_ACTIVE;
+  TCPIPMsgSend(sock, &smsg, sizeof(struct ROSMsg));
+  TCPIPMsgRecv(sock, &rmsg, sizeof(struct ROSMsg));
+
   return 0;
 }
 
@@ -430,8 +516,7 @@ int SiteSpsIntegrate(int (*lags)[2]) {
   double time_diff=0;
   struct tm tstruct;
   time_t ttime;
-  char filename[128];
-  char channame[5];
+  char filename[256];
   struct ROSMsg smsg,rmsg;
 
   int iqoff=0; /* Sequence offset in bytes for current sequence relative to start of samples buffer*/
@@ -446,10 +531,8 @@ int SiteSpsIntegrate(int (*lags)[2]) {
   FILE *ftest=NULL;
   char test_file[255];
   char raw_file[255],data_file[255],strtemp[255];
-  char chan_str[12];
   int temp;
   struct timespec time_now;
-  struct tm* time_struct=NULL;
 
   void * dest; /*AJ*/
   int total_samples=0; /*AJ*/
@@ -458,30 +541,18 @@ int SiteSpsIntegrate(int (*lags)[2]) {
   int32 temp32;
   /* phase code declarations */
   int n,nsamp, *code,   Iout, Qout;
+  uint32 uQ32,uI32;
   if (debug) {
     fprintf(stderr,"SPS SiteIntegrate: start\n");
   }
   SiteSpsExit(0);
-
-  chan_str[0]='\0';
-  switch (cnum) {
-    case 1:
-      strcat(chan_str, ".a");
-      break;
-    case 2:
-      strcat(chan_str, ".b");
-      break;
-    case 3:
-      strcat(chan_str, ".c");
-      break;
-    case 4:
-      strcat(chan_str, ".d");
-      break;
-  }
+  clock_gettime(CLOCK_REALTIME, &time_now);
+  ttime=time_now.tv_sec;
+  gmtime_r(&ttime,&tstruct);
 
   test_file[0]='\0';
   strcat(test_file,"/collect.now");
-  strcat(test_file,chan_str);
+  strcat(test_file,channame);
   ftest=fopen(test_file, "r");
 
   if(ftest!=NULL){
@@ -489,31 +560,29 @@ int SiteSpsIntegrate(int (*lags)[2]) {
     fclose(ftest);
     ftest=NULL;
     data_file[0]='\0';
-    clock_gettime(CLOCK_REALTIME, &time_now);
-    time_struct=gmtime(&time_now.tv_sec);
     /* data file directory*/
     strcat(data_file, "/data/diagnostic_samples/");
     /* data file year*/
-    temp=(int)time_struct->tm_year+1900;
+    temp=(int)tstruct.tm_year+1900;
     sprintf(strtemp,"%d",temp);
     strcat(data_file, strtemp);
     /* data file month*/
-    temp=(int)time_struct->tm_mon;
+    temp=(int)tstruct.tm_mon;
     sprintf(strtemp,"%d",temp+1);
     if(temp<10) strcat(data_file, "0");
     strcat(data_file, strtemp);
     /* data file day*/
-    temp=(int)time_struct->tm_mday;
+    temp=(int)tstruct.tm_mday;
     sprintf(strtemp,"%d",temp);
     if(temp<10) strcat(data_file, "0");
     strcat(data_file, strtemp);
     /* data file hour*/
-    temp=(int)time_struct->tm_hour;
+    temp=(int)tstruct.tm_hour;
     sprintf(strtemp,"%d",temp);
     if(temp<10) strcat(data_file, "0");
     strcat(data_file, strtemp);
     /* data file tens of minutes*/
-    temp=(int)time_struct->tm_min;
+    temp=(int)tstruct.tm_min;
     temp=(int)(temp/10);
     sprintf(strtemp,"%d",temp);
     strcat(data_file, strtemp);
@@ -526,15 +595,13 @@ int SiteSpsIntegrate(int (*lags)[2]) {
     sprintf(raw_file,"%s",data_file);
     strcat(data_file, ".diagnostic.txt");
     strcat(raw_file, ".raw.txt");
-    strcat(data_file, chan_str);
-    strcat(raw_file, chan_str);
+    strcat(data_file, channame);
+    strcat(raw_file, channame);
     f_diagnostic_ascii=fopen(data_file, "a+");
     fprintf(stdout,"Filename: %s  Filepointer: %p\n",data_file,f_diagnostic_ascii);
   }
   if(f_diagnostic_ascii!=NULL) {
-      clock_gettime(CLOCK_REALTIME, &time_now);
-      time_struct=gmtime(&time_now.tv_sec);
-      fprintf(f_diagnostic_ascii,"SiteIntegrate: START %s",asctime(time_struct));
+      fprintf(f_diagnostic_ascii,"SiteIntegrate: START %s",asctime(&tstruct));
       fprintf(f_diagnostic_ascii,"  bmnum=%8d nbaud=%8d txpl=%8d tfreq=%8d\n", bmnum, nbaud, txpl,tfreq);
       fprintf(f_diagnostic_ascii,"  mpinc=%8d mppul=%8d ptab= ", tsgprm.mpinc,tsgprm.mppul);
       for (i=0;i<tsgprm.mppul;i++) fprintf(f_diagnostic_ascii," %8d, ",tsgprm.pat[i]);
@@ -596,11 +663,13 @@ int SiteSpsIntegrate(int (*lags)[2]) {
       }
   }
 
+/* Seq loop to trigger and collect data */
   while (1) {
     SiteSpsExit(0);
-   if(f_diagnostic_ascii!=NULL) {
+    if(f_diagnostic_ascii!=NULL) {
       clock_gettime(CLOCK_REALTIME, &time_now);
-      time_struct=gmtime(&time_now.tv_sec);
+      ttime=time_now.tv_sec;
+      gmtime_r(&ttime,&tstruct);
       fprintf(f_diagnostic_ascii,"Sequence: START: %8d\n",nave);
       fprintf(f_diagnostic_ascii,"  sec: %8d nsec: %12ld\n",(int)time_now.tv_sec,time_now.tv_nsec);
     }
@@ -743,41 +812,25 @@ usleep(usecs);
       fprintf(stderr,"SPS dprm.status=%d\n",dprm.status);
     }
     ttime=dprm.event_secs;
+    if ( ttime < 100 ) {
+      ttime=time_now.tv_sec;
+    }
     gmtime_r(&ttime,&tstruct);
-    if(tstruct.tm_yday!= yday) {  
-      yday=tstruct.tm_yday;
-      switch(cnum) {
-	case 1:
-          sprintf(channame,".a");
-          break;
-	case 2:
-          sprintf(channame,".b");
-          break;
-	case 3:
-          sprintf(channame,".c");
-          break;
-	case 4:
-          sprintf(channame,".d");
-          break;
-	default:
-          sprintf(channame,"");
-          break;
+    if(seqlog_dir!=NULL) { 
+      sprintf(filename,"%s/seqlog.sps%s.%04d%02d%02d",seqlog_dir,channame,tstruct.tm_year+1900,tstruct.tm_mon+1,tstruct.tm_mday);
+      if(strcmp(filename,seqlog_name)!=0) {
+        strcpy(seqlog_name,filename);
+        if (seqlog!=NULL) {
+          fflush(seqlog);
+          fclose(seqlog);
+          seqlog=NULL;
+        }
+        fprintf(stdout,"seqlog filename: %s\n",seqlog_name);
+        seqlog=fopen(seqlog_name,"a+");
+        fflush(stdout);
       }
-      sprintf(filename,"/data/ros/seqlog/seqlog.sps%s.%04d%02d%02d",channame,tstruct.tm_year+1900,tstruct.tm_mon+1,tstruct.tm_mday);
-      if (seqlog!=NULL) {
-        fclose(seqlog);
-        seqlog=NULL;
-      }
-      seqlog=fopen(filename,"a");
     }
     if (seqlog!=NULL) {
-/*      fprintf(seqlog,"%02d:%02d:%02d.%06d",tstruct.tm_hour,tstruct.tm_min,tstruct.tm_sec,(int)(dprm.event_nsecs/1E3));
-      fprintf(seqlog," :: %2d :: %8d :: %4d : ",rprm.tbeam,rprm.tfreq,badtrdat.length);
-      for(i=0;i<badtrdat.length;i++) {
-        fprintf(seqlog," < %6d %6d >",badtrdat.start_usec[i],badtrdat.duration_usec[i]);
-      }
-      fprintf(seqlog,"\n");
-*/
       fwrite(&dprm.event_secs,sizeof(int32),1,seqlog);
       temp32=floor(dprm.event_nsecs/1000); 
       fwrite(&temp32,sizeof(int32),1,seqlog);
@@ -847,6 +900,19 @@ usleep(usecs);
 
     if(dprm.status==0) {
       nsamp=(int)dprm.samples;
+    /* invert interf phase here if necessary */
+      if(invert!=0) {
+        for(n=0;n<(nsamp);n++){
+          Q=((rdata.main)[n] & 0xffff0000) >> 16;
+          I=(rdata.main)[n] & 0x0000ffff;
+          Q=-Q;
+          I=-I;
+          uQ32=((uint32) Q) << 16;
+          uI32=((uint32) I) & 0xFFFF;
+          (rdata.main)[n]=(uQ32)|uI32;
+       }
+      }  
+
       if(f_diagnostic_ascii!=NULL) {
         fprintf(f_diagnostic_ascii,"Sequence : Raw Data : START\n");
         fprintf(f_diagnostic_ascii,"  nsamp: %8d\n",nsamp);
@@ -890,12 +956,15 @@ usleep(usecs);
           Qout/=nbaud;
           I=(short)Iout;
           Q=(short)Qout;
-
+          uQ32=((uint32) Q) << 16;
+          uI32=((uint32) I) & 0xFFFF;
+          (rdata.main)[n]=(uQ32)|uI32;
           if(f_diagnostic_ascii!=NULL) {
+            Q=((rdata.main)[n] & 0xffff0000) >> 16;
+            I=(rdata.main)[n] & 0x0000ffff;
             fprintf(f_diagnostic_ascii,"%8d %8d %8d %8d ", n, I, Q, (int)sqrt(I*I+Q*Q));
           }
                 
-          (rdata.main)[n]=(Q<<16)|I;
           Iout=0;
           Qout=0;
           for(i=0;i<nbaud;i++){
@@ -908,11 +977,14 @@ usleep(usecs);
           Qout/=nbaud;
           I=(short)Iout;
           Q=(short)Qout;
+          uQ32=((uint32) Q) << 16;
+          uI32=((uint32) I) & 0xFFFF;
+          (rdata.back)[n]=(uQ32)|uI32;
           if(f_diagnostic_ascii!=NULL) {
-            fprintf(f_diagnostic_ascii,"%8d %8d %8d\n", I, Q, (int)sqrt(I*I+Q*Q));
+            Q=((rdata.back)[n] & 0xffff0000) >> 16;
+            I=(rdata.back)[n] & 0x0000ffff;
+            fprintf(f_diagnostic_ascii,"%8d %8d %8d\n", n, I, Q, (int)sqrt(I*I+Q*Q));
           }
-
-          (rdata.back)[n]=(Q<<16)|I;
         }
         if(f_diagnostic_ascii!=NULL) fprintf(f_diagnostic_ascii,"PCODE: DECODE_END\n");
 
@@ -992,7 +1064,7 @@ usleep(usecs);
         if (debug) 
         fprintf(stderr,"SPS seq %d :: ACFSumPower\n",nave);
         aflg=ACFSumPower(&tsgprm,mplgs,lagtable,pwr0,
-		     (int16 *) rdata.main,rngoff,skpnum!=0,
+		     (int16 *) dest,rngoff,skpnum!=0,
                      roff,ioff,badrng,
                      noise,mxpwr,seqatten[nave]*atstp,
                      thr,lmt,&abflg);
@@ -1000,15 +1072,15 @@ usleep(usecs);
         fprintf(stderr,"SPS seq %d :: rngoff %d rxchn %d\n",nave,rngoff,rxchn);
         if (debug) 
         fprintf(stderr,"SPS seq %d :: ACFCalculate acf\n",nave);
-        ACFCalculate(&tsgprm,(int16 *) rdata.main,rngoff,skpnum!=0,
-          roff,ioff,mplgs,lagtable,acfd,ACF_PART,dprm.samples,badrng,seqatten[nave]*atstp,NULL);
+        ACFCalculate(&tsgprm,(int16 *) dest,rngoff,skpnum!=0,
+          roff,ioff,mplgs,lagtable,acfd,ACF_PART,2*dprm.samples,badrng,seqatten[nave]*atstp,NULL);
         if (xcf ==1 ){
         if (debug) 
         fprintf(stderr,"SPS seq %d :: rngoff %d rxchn %d\n",nave,rngoff,rxchn);
         if (debug) 
           fprintf(stderr,"SPS seq %d :: ACFCalculate xcf\n",nave);
-          ACFCalculate(&tsgprm,(int16 *) rdata.back,rngoff,skpnum!=0,
-                    roff,ioff,mplgs,lagtable,xcfd,XCF_PART,dprm.samples,badrng,seqatten[nave]*atstp,NULL);
+          ACFCalculate(&tsgprm,(int16 *) dest,rngoff,skpnum!=0,
+                    roff,ioff,mplgs,lagtable,xcfd,XCF_PART,2*dprm.samples,badrng,seqatten[nave]*atstp,NULL);
         }
         if ((nave>0) && (seqatten[nave] !=seqatten[nave])) {
         if (debug) 
@@ -1026,19 +1098,13 @@ usleep(usecs);
       iqoff=iqsze;  /* set the offset bytes for the next sequence */
 
     } else {
-      fprintf(errmsg,"SiteSpsIntegrate:: Bad pulse sequence status: %d :: tv_sec: %d tv_usec: %d nave: %d\n",
-        dprm.status,(int)tick.tv_sec,(int)tick.tv_usec,nave);
-      fflush(errmsg);
-      if(debug) {
-        fprintf(errmsg,"SiteSpsIntegrate:: Bad pulse sequence status: %d :: tv_sec: %d tv_usec: %d nave: %d\n",
-          dprm.status,(int)tick.tv_sec,(int)tick.tv_usec,nave);
-      }
     }
     gettimeofday(&tick,NULL);
     if(f_diagnostic_ascii!=NULL) fprintf(f_diagnostic_ascii,"Sequence: END\n");
 
 
   }
+  if(seqlog!=NULL) fflush(seqlog);
 
   /* Now divide by nave to get the average pwr0 and acfd values for the 
      integration period */ 
@@ -1126,11 +1192,11 @@ int SiteSpsEndScan(int bsc,int bus) {
     SiteSpsExit(0);
     gettimeofday(&tick,NULL);
   }
-
+/*
   smsg.type=SET_ACTIVE;
   TCPIPMsgSend(sock, &smsg, sizeof(struct ROSMsg));
   TCPIPMsgRecv(sock, &rmsg, sizeof(struct ROSMsg));
-
+*/
   return 0;
 }
 

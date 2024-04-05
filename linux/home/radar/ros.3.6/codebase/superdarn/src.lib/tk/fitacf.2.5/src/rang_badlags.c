@@ -52,15 +52,8 @@ void r_overlap(struct FitPrm *ptr) {
   int diff_pulse;
 
   /* define constants */
-  /* Found a few cases where smsep isn't written or is zero.  So lets use txpl
-     in its place */
-  if (ptr->smsep != 0) {
-     tau = ptr->mpinc / ptr->smsep;
-  } else {
-     fprintf( stderr, "r_overlap: WARNING, using txpl instead of smsep...\n");
-     tau = ptr->mpinc / ptr->txpl;
-  }
-
+  tau = ptr->mpinc / ptr->smsep;
+ 
   for (ck_pulse = 0; ck_pulse < ptr->mppul; ++ck_pulse) {
     for (pulse = 0; pulse < ptr->mppul; ++pulse) {
       diff_pulse = ptr->pulse[ck_pulse] - 
@@ -85,7 +78,7 @@ void lag_overlap(int range,int *badlag,struct FitPrm *ptr) {
   int bad_pulse[PULSE_SIZE];  /* 1 if there is a bad pulse */
   int i;
   double nave;
-  double tot_cri; /* cumulative CRI power */ 
+   
   --range;  /* compensate for the index which starts from 0 instead of 1 */
 
   nave = (double) (ptr->nave);
@@ -94,20 +87,18 @@ void lag_overlap(int range,int *badlag,struct FitPrm *ptr) {
       bad_pulse[pulse] = 0;
 
   for (ck_pulse = 0;  ck_pulse < ptr->mppul; ++ck_pulse) {
-      tot_cri=(double) 0;  /* Zeroing total CRI power for the next pulse sample */ 
     for (pulse = 0; pulse < ptr->mppul; ++pulse) {
       ck_range = range_overlap[ck_pulse][pulse] + range;
       if ((pulse != ck_pulse) && (0 <= ck_range) && 
-	      (ck_range < ptr->nrang)) 
-              tot_cri=tot_cri+ptr->pwr0[ck_range];  /* Accumulating CRI power */	      
-     }
-        pwr_ratio = (long) 1;  /*Power ratio threshold*/
+	      (ck_range < ptr->nrang)) {
+        pwr_ratio = (long) 1;  /*pwr_ratio = (long) (nave * MIN_PWR_RATIO);*/
         min_pwr =  pwr_ratio * ptr->pwr0[range];
-        if(min_pwr < tot_cri)    /* Comparing lag 0 power of the checked sample (pulse) with cumulative lag 0 power from all interfering ranges */
+        if(min_pwr < ptr->pwr0[ck_range])
         bad_pulse[ck_pulse] = 1;
       }
-               
-
+    } 
+  }           
+  
   /* mark the bad lag */
 
   for (pulse = 0 ; pulse < ptr->mppul; ++pulse) {

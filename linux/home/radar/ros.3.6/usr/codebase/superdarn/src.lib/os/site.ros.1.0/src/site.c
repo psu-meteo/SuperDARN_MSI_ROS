@@ -656,7 +656,7 @@ int SiteRosStartIntt(int sec,int usec) {
     rprm.priority=cnum;
     rprm.buffer_index=0;
 
-    smsg.type=SET_PARAMETERS_I;
+    smsg.type=SET_PARAMETERS;
     TCPIPMsgSend(sock,&smsg,sizeof(struct ROSMsg));
     TCPIPMsgSend(sock,&rprm,sizeof(struct ControlPRM));
     TCPIPMsgRecv(sock,&rmsg,sizeof(struct ROSMsg));

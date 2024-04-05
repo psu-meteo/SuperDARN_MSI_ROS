@@ -165,7 +165,7 @@ int main(int argc,char *argv[]) {
   /* Variables for controlling clear frequency search */
   struct timeval t0,t1;
   int elapsed_secs=0;
-  int default_clrskip_secs=0;
+  int default_clrskip_secs=30;
   int startup=1;
 
   /* XCF processing variables */
@@ -399,7 +399,7 @@ int main(int argc,char *argv[]) {
       if (al_fast->count) {     /* If fast option selected use 1 minute scan boundaries */
         cp    = 151;
         intsc = 3;
-        intus = 500000; 
+        intus = 100000; 
         scnsc = 60;
         scnus = 0;
         sprintf(modestr," (fast)");
@@ -452,8 +452,7 @@ int main(int argc,char *argv[]) {
      fprintf(stderr, "Initializing interleave beam pattern...\n");
      cp     = 191;                   /* using 191 per memorandum */
      intsc  = 3;                             /* integration period; not sure how critical this is */
-     intus  = 500000;                             /*  but can be changed here */
-/*     intus  = 0;                             /*  but can be changed here */
+     intus  = 0;                             /*  but can be changed here */
      scnsc  = 60;
      scnus  = 0;
      nrang  = 100;
@@ -882,7 +881,7 @@ int main(int argc,char *argv[]) {
     else 
        iBeam = 0;
 
-    /* send scan data to usrp_sever */
+    /* send stan data to usrp_sever */
     if (SiteStartScan(nBeams_per_scan, scan_beam_number_list, scan_clrfreq_fstart_list, scan_clrfreq_bandwidth_list, ai_fixfrq->ival[0], sync_scan, scan_times, scnsc, scnus, intsc, intus, iBeam) !=0){
          ErrLog(errlog.sock,progname,"Received error from usrp_server in ROS:SiteStartScan. Probably channel frequency issue in SetActiveHandler.");  
          sleep(1);
@@ -970,7 +969,7 @@ int main(int argc,char *argv[]) {
       }
       sprintf(logtxt,"Transmitting on: %d (Noise=%g)",tfreq,noise);
       ErrLog(errlog.sock,progname,logtxt);
-
+    
       nave=SiteIntegrate(lags);   
       if (nave<0) {
         sprintf(logtxt,"Integration error:%d",nave);

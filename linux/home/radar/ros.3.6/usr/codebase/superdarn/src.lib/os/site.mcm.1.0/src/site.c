@@ -362,7 +362,7 @@ int SiteMcmStartIntt(int sec,int usec) {
 
   smsg.type=SET_PARAMETERS;
   TCPIPMsgSend(sock,&smsg,sizeof(struct ROSMsg));
-  /*  TCPIPMsgSend(sock,&rprm,sizeof(struct ControlPRM)); */
+  TCPIPMsgSend(sock,&rprm,sizeof(struct ControlPRM));
   TCPIPMsgRecv(sock,&rmsg,sizeof(struct ROSMsg));
   if (debug) {
     fprintf(stderr,"SET_PARAMETERS:type=%c\n",rmsg.type);

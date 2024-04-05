@@ -77,6 +77,8 @@ int SiteStart(char *host,char *ststr) {
 }
 
 int SiteSetupRadar() {
+
+  fprintf(stderr,"going to sitelib\n");
   return (sitelib.setupradar)();
 }
  
