@@ -1,0 +1,101 @@
+make.version /data/repos/SuperDARN_MSI_ROS/linux/home/radar/ros.3.6/codebase/superdarn/src.bin/os/schedule.1.5
+make.help
+cc -fPIC -g -Wall -O3 -ansi -D_GNU_SOURCE -D_LINUX -D_SVGLIB_ -I/home/radar/rst/include/base -I/home/radar/rst/include/general -I/home/radar/rst/include/superdarn -c schedule.c    
+schedule.c: In function ‘child_handler’:
+schedule.c:50:9: warning: variable ‘pid’ set but not used [-Wunused-but-set-variable]
+   50 |   pid_t pid;
+      |         ^~~
+schedule.c: In function ‘main’:
+schedule.c:62:16: warning: variable ‘arg’ set but not used [-Wunused-but-set-variable]
+   62 |   int i,scderr,arg;
+      |                ^~~
+cc -fPIC -g -Wall -O3 -ansi -D_GNU_SOURCE -D_LINUX -D_SVGLIB_ -I/home/radar/rst/include/base -I/home/radar/rst/include/general -I/home/radar/rst/include/superdarn -c log_info.c    
+log_info.c: In function ‘log_info’:
+log_info.c:32:3: warning: format not a string literal and no format arguments [-Wformat-security]
+   32 |   if (flg==0) fprintf(stderr,date);
+      |   ^~
+log_info.c:33:3: warning: format not a string literal and no format arguments [-Wformat-security]
+   33 |   fprintf(stderr,str);
+      |   ^~~~~~~
+log_info.c:41:5: warning: format not a string literal and no format arguments [-Wformat-security]
+   41 |     if (flg==0) fprintf(fp,date);
+      |     ^~
+log_info.c:42:5: warning: format not a string literal and no format arguments [-Wformat-security]
+   42 |     fprintf(fp,str);
+      |     ^~~~~~~
+cc -fPIC -g -Wall -O3 -ansi -D_GNU_SOURCE -D_LINUX -D_SVGLIB_ -I/home/radar/rst/include/base -I/home/radar/rst/include/general -I/home/radar/rst/include/superdarn -c load_schedule.c    
+load_schedule.c: In function ‘parse_schedule_line’:
+load_schedule.c:139:31: warning: format ‘%d’ expects argument of type ‘int’, but argument 3 has type ‘long int’ [-Wformat=]
+  139 |         fprintf(stdout,"val: %d\n",val);
+      |                              ~^    ~~~
+      |                               |    |
+      |                               int  long int
+      |                              %ld
+load_schedule.c: In function ‘load_schedule’:
+load_schedule.c:198:7: warning: variable ‘default_present’ set but not used [-Wunused-but-set-variable]
+  198 |   int default_present=0;
+      |       ^~~~~~~~~~~~~~~
+cc -fPIC -g -Wall -O3 -ansi -D_GNU_SOURCE -D_LINUX -D_SVGLIB_ -I/home/radar/rst/include/base -I/home/radar/rst/include/general -I/home/radar/rst/include/superdarn -c init_schedule.c    
+cc -fPIC -g -Wall -O3 -ansi -D_GNU_SOURCE -D_LINUX -D_SVGLIB_ -I/home/radar/rst/include/base -I/home/radar/rst/include/general -I/home/radar/rst/include/superdarn -c print_schedule.c    
+print_schedule.c: In function ‘print_entries’:
+print_schedule.c:68:10: warning: variable ‘current_time’ set but not used [-Wunused-but-set-variable]
+   68 |   double current_time;
+      |          ^~~~~~~~~~~~
+print_schedule.c: In function ‘print_schedule’:
+print_schedule.c:38:32: warning: ‘%s’ directive writing up to 1023 bytes into a region of size 240 [-Wformat-overflow=]
+   38 |   sprintf(txt,"Command path -> %s",ptr->path);
+      |                                ^~
+In file included from /usr/include/stdio.h:980,
+                 from print_schedule.c:13:
+In function ‘sprintf’,
+    inlined from ‘print_schedule’ at print_schedule.c:38:3:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:30:10: note: ‘__builtin___sprintf_chk’ output between 17 and 1040 bytes into a destination of size 256
+   30 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   31 |                                   __glibc_objsize (__s), __fmt,
+      |                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   32 |                                   __va_arg_pack ());
+      |                                   ~~~~~~~~~~~~~~~~~
+print_schedule.c: In function ‘print_schedule’:
+print_schedule.c:41:37: warning: ‘%s’ directive writing up to 1023 bytes into a region of size 237 [-Wformat-overflow=]
+   41 |     sprintf(txt,"Default Program -> %s\n",ptr->entry[0].command);
+      |                                     ^~
+In function ‘sprintf’,
+    inlined from ‘print_schedule’ at print_schedule.c:41:5:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:30:10: note: ‘__builtin___sprintf_chk’ output between 21 and 1044 bytes into a destination of size 256
+   30 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   31 |                                   __glibc_objsize (__s), __fmt,
+      |                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   32 |                                   __va_arg_pack ());
+      |                                   ~~~~~~~~~~~~~~~~~
+print_schedule.c: In function ‘print_schedule’:
+print_schedule.c:58:36: warning: ‘%s’ directive writing up to 1023 bytes into a region of size 237 [-Wformat-overflow=]
+   58 |   sprintf(txt,"\nCurrent program ->%s",ptr->command);
+      |                                    ^~
+In function ‘sprintf’,
+    inlined from ‘print_schedule’ at print_schedule.c:58:3:
+/usr/include/x86_64-linux-gnu/bits/stdio2.h:30:10: note: ‘__builtin___sprintf_chk’ output between 20 and 1043 bytes into a destination of size 256
+   30 |   return __builtin___sprintf_chk (__s, __USE_FORTIFY_LEVEL - 1,
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   31 |                                   __glibc_objsize (__s), __fmt,
+      |                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   32 |                                   __va_arg_pack ());
+      |                                   ~~~~~~~~~~~~~~~~~
+cc -fPIC -g -Wall -O3 -ansi -D_GNU_SOURCE -D_LINUX -D_SVGLIB_ -I/home/radar/rst/include/base -I/home/radar/rst/include/general -I/home/radar/rst/include/superdarn -c set_schedule.c    
+cc -fPIC -g -Wall -O3 -ansi -D_GNU_SOURCE -D_LINUX -D_SVGLIB_ -I/home/radar/rst/include/base -I/home/radar/rst/include/general -I/home/radar/rst/include/superdarn -c test_schedule.c    
+cc -fPIC -g -Wall -O3 -ansi -D_GNU_SOURCE -D_LINUX -D_SVGLIB_ -I/home/radar/rst/include/base -I/home/radar/rst/include/general -I/home/radar/rst/include/superdarn -c refresh.c    
+cc -fPIC -g -Wall -O3 -ansi -D_GNU_SOURCE -D_LINUX -D_SVGLIB_ -I/home/radar/rst/include/base -I/home/radar/rst/include/general -I/home/radar/rst/include/superdarn -c check_program.c    
+check_program.c: In function ‘check_program’:
+check_program.c:41:7: warning: variable ‘s’ set but not used [-Wunused-but-set-variable]
+   41 |   int s;
+      |       ^
+cc -fPIC -g -Wall -O3 -ansi -D_GNU_SOURCE -D_LINUX -D_SVGLIB_ -I/home/radar/rst/include/base -I/home/radar/rst/include/general -I/home/radar/rst/include/superdarn -c execute.c    
+execute.c: In function ‘execute’:
+execute.c:83:7: warning: variable ‘s’ set but not used [-Wunused-but-set-variable]
+   83 |   int s=0;
+      |       ^
+mkdir -p /home/radar/rst/bin
+cc -L/home/radar/rst/lib -L/home/radar/rst/usr/lib -o /home/radar/rst/bin/schedule  schedule.o log_info.o load_schedule.o init_schedule.o print_schedule.o set_schedule.o test_schedule.o refresh.o check_program.o execute.o -Wl,-Bstatic \
+                           -ltcpipmsg.1 -lrtime.1 -lopt.1  -Wl,-Bdynamic \
+                           -lm   
