@@ -1547,7 +1547,6 @@ int SiteRosIntegrate(int (*lags)[2]) {
     return nave;
 }
 
-
 int SiteRosEndScan(int bsc,int bus) {
 
     struct ROSMsg smsg,rmsg;
@@ -1557,8 +1556,6 @@ int SiteRosEndScan(int bsc,int bus) {
     double bnd;
     double tme;
     int count=0;
-    useconds_t sleep_usec=100000;
-    useconds_t sleep_left;
     SiteRosExit(0);
     bnd=bsc+bus/USEC;
 
@@ -1574,31 +1571,24 @@ int SiteRosEndScan(int bsc,int bus) {
     TCPIPMsgRecv(sock, &rmsg, sizeof(struct ROSMsg));
 
     gettimeofday(&tick,NULL);
-    
     while (1) {
-      if (tick.tv_sec>tock.tv_sec) break;
-      if ((tick.tv_sec==tock.tv_sec) && (tick.tv_usec>=(tock.tv_usec-2000))) break;
-      smsg.type=PING;
-      TCPIPMsgSend(sock, &smsg, sizeof(struct ROSMsg));
-      TCPIPMsgRecv(sock, &rmsg, sizeof(struct ROSMsg));
-      
-      if (debug) {
-	fprintf(stderr,"PING:type=%c\n",rmsg.type);
-	fprintf(stderr,"PING:status=%d\n",rmsg.status);
-	fprintf(stderr,"PING:count=%d\n",count);
-	fflush(stderr);
-      }
-      count++;
-      SiteRosExit(0);
-      sleep_left = (tock.tv_sec-tick.tv_sec)*USEC + (tock.tv_usec-tick.tv_usec) - 2000; 
-      if( sleep_left < sleep_usec ){
-	usleep(sleep_left);
-	break;
-      }else{
-	usleep(sleep_usec);
-      }
-      SiteRosExit(0);
-      gettimeofday(&tick,NULL);
+        if (tick.tv_sec>tock.tv_sec) break;
+        if ((tick.tv_sec==tock.tv_sec) && (tick.tv_usec>tock.tv_usec)) break;
+        smsg.type=PING;
+        TCPIPMsgSend(sock, &smsg, sizeof(struct ROSMsg));
+        TCPIPMsgRecv(sock, &rmsg, sizeof(struct ROSMsg));
+
+        if (debug) {
+            fprintf(stderr,"PING:type=%c\n",rmsg.type);
+            fprintf(stderr,"PING:status=%d\n",rmsg.status);
+            fprintf(stderr,"PING:count=%d\n",count);
+            fflush(stderr);
+        }
+        count++;
+        SiteRosExit(0);
+        usleep(50000);
+        SiteRosExit(0);
+        gettimeofday(&tick,NULL);
     }
     return 0;
 }
