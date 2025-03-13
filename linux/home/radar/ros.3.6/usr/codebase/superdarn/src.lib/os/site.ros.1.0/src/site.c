@@ -467,6 +467,12 @@ int SiteRosSetupRadar() {
     TCPIPMsgSend(sock, &temp32, sizeof(int32)); 
     temp32=cnum;
     TCPIPMsgSend(sock, &temp32, sizeof(int32));
+    temp32=stid;
+    TCPIPMsgSend(sock, &temp32, sizeof(int32)); 
+    data_length=strlen(station)+1;
+    TCPIPMsgSend(sock, &data_length, sizeof(int32));
+    TCPIPMsgSend(sock, &station, data_length*sizeof(char));
+
     TCPIPMsgRecv(sock, &rmsg, sizeof(struct ROSMsg)); 
     if (rmsg.status < 0) {
         fprintf(stderr,"Requested radar channel unavailable\nSleeping 1 second and exiting\n");
