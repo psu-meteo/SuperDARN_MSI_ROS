@@ -867,6 +867,10 @@ int main(int argc,char *argv[]) {
   tsgid=SiteTimeSeq(ptab);
 
   printf("Entering Scan loop Station ID: %s  %d\n",ststr,stid);
+
+
+  SiteEndScan(scnsc,scnus);
+
   do {
     /* reset clearfreq paramaters, in case daytime changed */
     for (iBeam =0; iBeam < nBeams_per_scan; iBeam++){
@@ -875,11 +879,13 @@ int main(int argc,char *argv[]) {
       current_beam += backward ? -1:1;
     }
 
+    iBeam=0;
+    
     /* Set iBeam for scan loop  */ 
-    if(al_nowait->count==0) 
-       iBeam = OpsFindSkip(scnsc,scnus);
-    else 
-       iBeam = 0;
+    /* if(al_nowait->count==0)  */
+    /*    iBeam = OpsFindSkip(scnsc,scnus); */
+    /* else  */
+    /*    iBeam = 0; */
 
     /* send stan data to usrp_sever */
     if (SiteStartScan(nBeams_per_scan, scan_beam_number_list, scan_clrfreq_fstart_list, scan_clrfreq_bandwidth_list, ai_fixfrq->ival[0], sync_scan, scan_times, scnsc, scnus, intsc, intus, iBeam) !=0){

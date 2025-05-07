@@ -39,15 +39,22 @@
 #include "tcpipmsg.h"
 #include "errlog.h"
 
+char str[128];
+
 char *ErrLogStrTime() {
-  char *str;
   time_t clock;
   struct tm *gmt;
-
-  time(&clock);
-  gmt = gmtime(&clock); 
-  str = asctime(gmt);
-  str[strlen(str)-1] = 0; /* get rid of new line */
+  struct timespec err_tm;
+  int stat;
+  
+  char *mos[12]={"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
+  char *dys[7]={"Sun","Mon","Tue","Wed","Thu","Fri","Sat"};
+    
+  stat = clock_gettime(CLOCK_REALTIME, &err_tm);
+  
+  gmt = gmtime(&err_tm.tv_sec); 
+  sprintf(str,"%s %s %d %02d:%02d:%02d,%03d %d",dys[gmt->tm_wday],mos[gmt->tm_mon],gmt->tm_mday,gmt->tm_hour,gmt->tm_min,gmt->tm_sec,(int)(err_tm.tv_nsec/1e6),1900+gmt->tm_year);
+  
   return str;
 }
 

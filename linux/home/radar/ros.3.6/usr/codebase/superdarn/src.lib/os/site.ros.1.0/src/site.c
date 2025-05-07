@@ -705,16 +705,6 @@ int SiteRosFCLR(int stfreq,int edfreq) {
     rprm.priority=cnum;
     rprm.buffer_index=0;
 
-/* Not needed with SwingBuffer
-    smsg.type=SET_PARAMETERS;
-    TCPIPMsgSend(sock,&smsg,sizeof(struct ROSMsg));
-    TCPIPMsgSend(sock,&rprm,sizeof(struct ControlPRM));
-    TCPIPMsgRecv(sock,&rmsg,sizeof(struct ROSMsg));
-    if (debug) {
-        fprintf(stderr,"SET_PARAMETERS:type=%c\n",rmsg.type);
-        fprintf(stderr,"SET_PARAMETERS:status=%d\n",rmsg.status);
-    }
-*/
     fprm.start=stfreq; 
     fprm.end=edfreq;  
     fprm.nave=20;  
@@ -1411,14 +1401,14 @@ int SiteRosIntegrate(int (*lags)[2]) {
                     nsamp=(int)dprm.samples;
                     maddr = (uint32 *)rdata.main;
                     baddr = (uint32 *)rdata.back;
-                    for(n=0;n<(nsamp);n++){
-                        Q=(maddr[n] & 0xffff0000) >> 16;
-                        I=maddr[n] & 0x0000ffff;
-                        fprintf(stderr," %7d :: 0x%8x : %7d %7d " ,n,(uint32)maddr[n],(int)I,(int)Q);
-                        Q=((rdata.back)[n] & 0xffff0000) >> 16;
-                        I=((uint32)((rdata.back)[n])) & 0x0000ffff;
-                        fprintf(stderr," :: 0x%8x : %7d %7d\n" ,(uint32)baddr[n],(int)I,(int)Q);
-                    }
+                    /* for(n=0;n<(nsamp);n++){ */
+                    /*     Q=(maddr[n] & 0xffff0000) >> 16; */
+                    /*     I=maddr[n] & 0x0000ffff; */
+                    /*     fprintf(stderr," %7d :: 0x%8x : %7d %7d " ,n,(uint32)maddr[n],(int)I,(int)Q); */
+                    /*     Q=((rdata.back)[n] & 0xffff0000) >> 16; */
+                    /*     I=((uint32)((rdata.back)[n])) & 0x0000ffff; */
+                    /*     fprintf(stderr," :: 0x%8x : %7d %7d\n" ,(uint32)baddr[n],(int)I,(int)Q); */
+                    /* } */
                     dest = (void *)(samples);
                     dest += iqoff;
                     fprintf(stderr,"%s seq %d :: rdata.back 16bit 30: %8d %8d\n",station,nave,
