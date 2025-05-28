@@ -975,7 +975,8 @@ int main(int argc,char *argv[]) {
       }
       sprintf(logtxt,"Transmitting on: %d (Noise=%g)",tfreq,noise);
       ErrLog(errlog.sock,progname,logtxt);
-    
+
+      usleep(1000);
       nave=SiteIntegrate(lags);   
       if (nave<0) {
         sprintf(logtxt,"Integration error:%d",nave);
