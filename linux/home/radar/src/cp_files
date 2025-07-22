@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/bash
 
 dir=$1
 ext=$2

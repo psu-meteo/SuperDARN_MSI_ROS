@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/bash
 cd $HOME
 $HOME/src/cp_files dat dat
 $HOME/src/cp_files fitacf fit
