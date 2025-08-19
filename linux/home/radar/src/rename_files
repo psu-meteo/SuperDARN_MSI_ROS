@@ -1,0 +1,21 @@
+#! /usr/bin/perl
+# Although philosophically opposed to this, I am writing a comment.
+# Code should only be used by people who can understand it.
+# Threfore, all comments are unnecessary. Kile, however, has
+# a different attitude about this as he does about most everything.
+# Therefore, in his honor, this comment:
+# Free agency has ruined baseball!
+# USE: rename string1 string2
+# string2 will be substituted for string1 in each file name
+# in which it occurs in the current directory 
+opendir(THISDIR,".");
+print "$ARGV[0]  $ARGV[1]\n";
+@allfiles=grep(/$ARGV[0]/,readdir(THISDIR));
+closedir(THISDIR);
+foreach $elm (@allfiles) {
+    $nelm = $elm;
+    $nelm =~ s/$ARGV[0]/$ARGV[1]/;
+    print "$elm $nelm\n";
+    rename($elm,$nelm)
+}
+
